@@ -19,3 +19,12 @@ npm start
 Import database dari folder:
 
 database/etaxzone_db.sql
+
+## Remove
+rm -rf node_modules
+
+## Github
+git status
+git add .
+git commit -m "update fitur"
+git push
