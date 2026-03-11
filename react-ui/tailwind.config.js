@@ -1,0 +1,108 @@
+const colors = require("tailwindcss/colors");
+
+module.exports = {
+  content: ["./public/**/*.{html,js,jsx}", "./src/**/*.{html,js,jsx}"],
+  theme: {
+    extend: {
+      scale: ["group-hover"],
+      colors: {
+        "logo-bg": "#414141",
+        aliceblue: "#f1f7fc",
+      },
+      fontSize: {
+        xxxs: ".65rem",
+        xxs: ".70rem",
+        xs: ".75rem",
+        sm: ".875rem",
+        tiny: ".875rem",
+        base: "1rem",
+      },
+      height: {
+        "20v": "20vh",
+        "25v": "25vh",
+        "30v": "30vh",
+        "35v": "35vh",
+        "40v": "40vh",
+        "45v": "45vh",
+        "50v": "50vh",
+      },
+      minHeight: {
+        "5v": "5vh",
+        "10v": "10vh",
+        "15v": "15vh",
+        "17v": "17vh",
+        "20v": "20vh",
+        "25v": "25vh",
+        "30v": "30vh",
+        "40v": "40vh",
+        "50v": "50vh",
+        "1/4": "25vh",
+        "1/2": "50vh",
+        "3/4": "75vh",
+      },
+      maxHeight: {
+        "5v": "5vh",
+        "10v": "10vh",
+        "15v": "15vh",
+        "17v": "17vh",
+        "20v": "20vh",
+        "25v": "25vh",
+        "30v": "30vh",
+        "40v": "40vh",
+        "50v": "50vh",
+        "1/4": "25vh",
+        "1/2": "50vh",
+        "3/4": "75vh",
+      },
+      minWidth: {
+        "3v": "3vh",
+        "5v": "5vh",
+        "7v": "7vh",
+        "10v": "10vh",
+        "15v": "15vh",
+        "17v": "17vh",
+        "20v": "20vh",
+        "25v": "25vh",
+        "30v": "30vh",
+        "35v": "35vh",
+        "40v": "40vh",
+        "1/4": "25vh",
+        "1/2": "50vh",
+        "3/4": "75vh",
+      },
+      maxWidth: {
+        "5v": "5vh",
+        "7v": "7vh",
+        "10v": "10vh",
+        "15v": "15vh",
+        "17v": "17vh",
+        "20v": "20vh",
+        "25v": "25vh",
+        "30v": "30vh",
+      },
+      blur: {
+        xs: "2px",
+        xxs: "1px",
+      },
+      scale: {
+        102: "1.02",
+      },
+      keyframes: {
+        lompat: {
+          "0%, 100%": {
+            transform: "translateY(-3%)",
+            AnimationTimeline: "cubic-bezier(0.8, 0, 1, 1)",
+          },
+          "50%": {
+            transform: "translateY(0)",
+            AnimationTimeline: "cubic-bezier(0, 0, 0.2, 1)",
+          },
+        },
+      },
+      animation: {
+        lompat: "lompat 1s infinite",
+      },
+    },
+  },
+  plugins: [],
+};
