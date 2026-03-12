@@ -22,6 +22,7 @@ database/etaxzone_db.sql
 
 ## Remove
 rm -rf node_modules
+npm cache clean --force
 
 ## Github
 git status
