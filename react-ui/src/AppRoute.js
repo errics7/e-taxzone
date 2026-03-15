@@ -11,7 +11,7 @@ import { logout, sett } from "./redux/userSlice";
 import ThemeConfig from "./theme";
 import DashboardLayout from "./apps/dashboard/layout";
 const Login = lazy(() => import("./apps/dashboard/pages/Login"));
-const Register = lazy(() => import("./apps/dashboard/pages/RegisterAccount"));
+const Register = lazy(() => import("./apps/dashboard/pages/RegisterAccount/RegisterAccount"));
 
 const Home = lazy(() => import("./apps/dashboard/pages/Home"));
 const BlogPerdagangan = lazy(() => import("./apps/dashboard/pages/blogs/BlogPerdagangan"));
