@@ -19,6 +19,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { login, logout, sett } from "../../../redux/userSlice";
 import PortalLayout from "../component/Layout";
 import RightPanelLogin from "../assets/right-panel-login.png"
+import LogoPolinema from "../../../assets/logopolinema.png";
 
 function Login(props) {
   const user = useSelector((state) => state.user);
@@ -149,10 +150,18 @@ function Login(props) {
       </Helmet>
       <PortalLayout>
         {/* Main Container */}
-        <div className="flex-1 flex flex-col align-middle items-center justify-center p-8">
-          <h1 className="text-2xl font-bold text-blue-800 mb-2 mt-8">
-            e-<span className="text-blue-800">TAXZONE</span> <span className="text-yellow-500">POLINEMA</span>
-          </h1>
+        <div className="flex-1 flex flex-col align-middle items-center justify-center p-6">
+          <div className="flex items-center justify-center gap-2 mb-6 mt-2">
+            <img
+              src={LogoPolinema}
+              alt="Polinema Logo"
+              className="w-24 h-auto"
+            />
+            <h1 className="text-2xl font-bold">
+              <span className="text-blue-800">e-TAXZONE</span>{" "}
+              <span className="text-yellow-500">POLINEMA</span>
+            </h1>
+          </div>
           <div className="w-full max-w-4xl bg-white rounded-lg shadow-xl overflow-hidden flex">
             {/* Left Side - Login Form */}
             <div className="w-1/2 p-12 relative">

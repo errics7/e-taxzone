@@ -8,6 +8,8 @@ import registrationonly from "../../assets/registration-only.png";
 import API from "../../../../utils/host.config";
 import axios from "axios";
 import toast from "react-hot-toast";
+import LogoPolinema from "../../../../assets/logopolinema.png";
+
 
 // Components
 import StepIndicator from "./components/StepIndicator";
@@ -609,9 +611,17 @@ function Registration() {
   return (
     <PortalLayout>
       <div className="flex-1 flex flex-col p-8">
-        <h1 className="text-2xl font-bold text-blue-800 mb-8 text-center">
-          e-<span className="text-blue-800">TAXZONE</span> <span className="text-yellow-500">POLINEMA</span>
-        </h1>
+        <div className="flex items-center justify-center gap-2 mb-6 mt-2">
+          <img
+            src={LogoPolinema}
+            alt="Polinema Logo"
+            className="w-24 h-auto"
+          />
+          <h1 className="text-2xl font-bold">
+            <span className="text-blue-800">e-TAXZONE</span>{" "}
+            <span className="text-yellow-500">POLINEMA</span>
+          </h1>
+        </div>
 
         <div className="flex-1 bg-white rounded-lg shadow-xl p-8">
           {/* Back to Preparation link — shown only while in wizard steps */}

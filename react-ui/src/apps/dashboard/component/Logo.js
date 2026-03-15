@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { Link as RouterLink } from "react-router-dom";
 // material
 import { Box } from "@mui/material";
-// import logoPoltek from "../../dashboard/assets/OOPEDIA.png";
+import LogoPolinema from "../../../assets/logopolinema.png";
 // ----------------------------------------------------------------------
 
 Logo.propTypes = {
@@ -12,11 +12,33 @@ Logo.propTypes = {
 export default function Logo({ sx }) {
   return (
     <RouterLink to="/">
-      <center>
-         <h1 className="text-2xl font-bold text-yellow-400 mb-2 mt-8">
-            e-<span className="text-yellow-400">TAXZONE</span>
-          </h1>
-      </center>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: 8,
+          paddingTop: 20,
+          paddingBottom: 20,
+          paddingLeft: 10
+        }}
+      >
+        <img
+          src={LogoPolinema}
+          alt="Polinema Logo"
+          style={{ width: 56 }}
+        />
+
+        <span
+          style={{
+            color: "#FFA500",
+            fontWeight: "bold",
+            fontSize: "22px"
+          }}
+        >
+          e-TAXZONE
+        </span>
+      </div>
     </RouterLink>
   );
 }

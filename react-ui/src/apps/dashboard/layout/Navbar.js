@@ -29,6 +29,7 @@ import {
 import AccountPopover from './AccountPopover';
 import { getAuthHeaders, HOST } from '../../../utils/host.config';
 import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
+import LogoPolinema from "../../../assets/logopolinema.png";
 
 import {
   fetchTaxpayerData,
@@ -192,7 +193,11 @@ const Navbar = () => {
       <Toolbar sx={{ minHeight: '48px !important', px: 2 }}>
         {/* Logo and Brand */}
         <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-          <HomeIcon sx={{ color: '#FFA500', mr: 1 }} />
+          <img 
+            src={LogoPolinema}
+            alt="Polinema Logo"
+            style={{ width: 32, marginRight: 8 }}
+          />
           <Typography 
             variant="h6" 
             sx={{ 
