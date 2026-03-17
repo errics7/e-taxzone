@@ -37,7 +37,7 @@ const StepNavigation = ({ onPrevious, onNext, onSubmit, isFirst, isLast, canSubm
             onClick={onNext}
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors"
           >
-            Lanjut
+            Next
           </button>
         )}
       </div>

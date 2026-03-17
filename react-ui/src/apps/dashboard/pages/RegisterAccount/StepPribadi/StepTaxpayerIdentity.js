@@ -6,9 +6,9 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
     nik: formData.taxpayerIdentity?.nik || '',
     fullName: formData.taxpayerIdentity?.fullName || '',
     placeOfBirth: formData.taxpayerIdentity?.placeOfBirth || '',
-    taxpayerType: formData.taxpayerIdentity?.taxpayerType || 'Individual or Undivided Inheritance',
+    taxpayerType: formData.taxpayerIdentity?.taxpayerType || '',
     dateOfBirth: formData.taxpayerIdentity?.dateOfBirth || '',
-    countryOfOrigin: formData.taxpayerIdentity?.countryOfOrigin || 'Indonesia',
+    countryOfOrigin: formData.taxpayerIdentity?.countryOfOrigin || '',
     religion: formData.taxpayerIdentity?.religion || '',
     gender: formData.taxpayerIdentity?.gender || '',
     maritalStatus: formData.taxpayerIdentity?.maritalStatus || '',
@@ -25,10 +25,12 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
 
     if (!identity.nik) newErrors.nik = 'NIK is required';
     else if (identity.nik.length !== 16) newErrors.nik = 'NIK must be 16 digits';
-
+    
     if (!identity.fullName) newErrors.fullName = 'Full name is required';
     else if (identity.fullName.length < 3) newErrors.fullName = 'Full name must be at least 3 characters';
-
+    
+    if (!identity.taxpayerType) newErrors.taxpayerType = 'Taxpayer Type is required';
+    if (!identity.countryOfOrigin) newErrors.countryOfOrigin = 'Country of Origin is required';
     if (!identity.placeOfBirth) newErrors.placeOfBirth = 'Place of birth is required';
     if (!identity.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
     if (!identity.religion) newErrors.religion = 'Religion is required';
@@ -97,12 +99,17 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
             />
           </StyledInput>
 
-          <StyledInput label="Taxpayer Type" required>
+          <StyledInput label="Taxpayer Type" required error={errors.taxpayerType} >
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              className= {`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500" ${
+                errors.taxpayerType
+                ? 'border-red-500 focus:border-red-500' 
+                : 'border-gray-300 focus:border-blue-500'
+              }`}
               value={identity.taxpayerType}
               onChange={(e) => setIdentity({ ...identity, taxpayerType: e.target.value })}
             >
+              <option value="" disabled>Select taxpayer type</option>
               <option value="Individual or Undivided Inheritance">Individual or Undivided Inheritance</option>
               <option value="Company">Company</option>
             </select>
@@ -120,12 +127,17 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StyledInput label="Country of origin" required>
+          <StyledInput label="Country of origin" required error={errors.countryOfOrigin} >
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 ${
+                errors.countryOfOrigin
+                ? 'border-red-500 focus:border-red-500'
+                : 'border-gray-300 focus:border-blue-500'
+              }`}
               value={identity.countryOfOrigin}
               onChange={(e) => setIdentity({ ...identity, countryOfOrigin: e.target.value })}
             >
+              <option value="" disabled>Select country of origin</option>
               <option value="Indonesia">Indonesia</option>
               <option value="Other">Other</option>
             </select>
@@ -147,7 +159,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               value={identity.gender}
               onChange={(e) => setIdentity({ ...identity, gender: e.target.value })}
             >
-              <option value="">Select gender</option>
+              <option value="" disabled>Select gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
             </select>
@@ -159,7 +171,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               value={identity.maritalStatus}
               onChange={(e) => setIdentity({ ...identity, maritalStatus: e.target.value })}
             >
-              <option value="">Select marital status</option>
+              <option value="" disabled>Select marital status</option>
               <option value="Single">Single</option>
               <option value="Married">Married</option>
               <option value="Divorced">Divorced</option>
@@ -175,7 +187,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               value={identity.religion}
               onChange={(e) => setIdentity({ ...identity, religion: e.target.value })}
             >
-              <option value="">Select religion</option>
+              <option value="" disabled>Select religion</option>
               <option value="Islam">Islam</option>
               <option value="Christianity">Christianity</option>
               <option value="Catholicism">Catholicism</option>
@@ -191,7 +203,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               value={identity.typeOfWork}
               onChange={(e) => setIdentity({ ...identity, typeOfWork: e.target.value })}
             >
-              <option value="">Select job type</option>
+              <option value="" disabled>Select job type</option>
               <option value="Employee">Employee</option>
               <option value="Entrepreneur">Entrepreneur</option>
               <option value="Professional">Professional</option>
@@ -227,7 +239,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               value={identity.familyRelationshipStatus}
               onChange={(e) => setIdentity({ ...identity, familyRelationshipStatus: e.target.value })}
             >
-              <option value="">Select Family Relationship Status</option>
+              <option value="" disabled>Select Family Relationship Status</option>
               <option value="Head of Family">Head of Family</option>
               <option value="Spouse">Spouse</option>
               <option value="Child">Child</option>

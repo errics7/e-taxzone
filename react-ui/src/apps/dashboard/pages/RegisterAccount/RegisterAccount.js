@@ -50,7 +50,7 @@ function Registration() {
   // the bare handleNext, so validation always runs before the step advances.
   const activeStepValidator = useRef(null);
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     taxpayerType: '',
     hasNIK: null,
     registrationType: '',
@@ -70,7 +70,9 @@ function Registration() {
     wajibPajakTerkait: [],
     companyEconomicData: {},
     documents: {}
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   // ── Beforeunload guard ──────────────────────
   useEffect(() => {
@@ -108,6 +110,10 @@ function Registration() {
 
     setHasUnsavedChanges(hasData);
   }, [formData]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentStep]);
 
   // ── Step labels ─────────────────────────────
   const getSteps = () => {
@@ -429,7 +435,7 @@ function Registration() {
             disabled={!selectedCompanyType}
             className={`px-6 py-2 rounded font-medium ${selectedCompanyType ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
           >
-            Lanjut
+            Next
           </button>
         </div>
       </div>
@@ -602,7 +608,21 @@ function Registration() {
     (formData.taxpayerType === 'company' && currentStep > 2) ||
     (formData.taxpayerType !== 'company' && currentStep > 3);
 
-  const handleBackToPreparation = () => setCurrentStep(1);
+  const handleBackToPreparation = () => {
+    if (window.confirm("Data yang sudah diisi akan hilang. Lanjutkan?")) {
+      // reset wizard step
+      setCurrentStep(1);
+
+      // reset seluruh data form
+      setFormData(initialFormData);
+
+      // reset validator step
+      activeStepValidator.current = null;
+
+      // reset unsaved flag
+      setHasUnsavedChanges(false);
+    }
+  };
 
   // ─────────────────────────────────────────────
   // RENDER
