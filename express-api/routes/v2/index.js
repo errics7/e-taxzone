@@ -122,6 +122,8 @@ router.get('/company/profile', v.verifikasi(["mahasiswa", "dosen"]), sptTahunanB
 // Create new SPT Tahunan Badan
 router.post('/spt-tahunan-badan', v.verifikasi(["mahasiswa", "dosen"]), sptTahunanBadan.createSptTahunanBadan);
 
+router.delete('/spt-tahunan-badan/:spt_id', v.verifikasi(["mahasiswa", "dosen"]), sptTahunanBadan.deleteSptBadan);
+
 // Update specific section of SPT Badan
 router.put('/spt-tahunan-badan/:spt_id/section', v.verifikasi(["mahasiswa", "dosen"]), sptTahunanBadan.updateSptBadanSection);
 

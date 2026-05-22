@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 const StepIdentityVerification = ({ formData, setFormData, onNext, onRegisterValidator }) => {
   const [uploadedPhoto, setUploadedPhoto] = useState(formData.uploadedPhoto || null);
@@ -20,14 +20,15 @@ const StepIdentityVerification = ({ formData, setFormData, onNext, onRegisterVal
   };
 
   const handleNext = () => {
-    setFormData({ ...formData, uploadedPhoto });
+    setFormData(prev => ({ ...prev, uploadedPhoto }));
     onNext();
   };
 
   // Register validator so StepNavigation can call it
+  // ✅ FIX: dependency array stabil — tidak loop re-register setiap render
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleNext);
-  });
+  }, [handleNext, onRegisterValidator]);
 
   return (
     <div>

@@ -169,7 +169,10 @@ const Navbar = () => {
     try {
       await dispatch(switchSptType(newType)).unwrap();
       setSptTypeAnchor(null);
-      router.push('/home/spt-tahunan');
+      // FIX: route ke komponen yang sesuai portal aktif
+      // company   → /home/spt-tahunan-badan-list (ListSptTahunanBadan)
+      // individual → /home/spt-tahunan            (ListSptTahunanOrangPribadi)
+      router.push(newType === 'company' ? '/home/spt-tahunan-badan-list' : '/home/spt-tahunan');
     } catch (error) {
       console.error('Failed to switch SPT type:', error);
       // You can add toast notification here
@@ -486,7 +489,7 @@ const Navbar = () => {
           {/* SPT Button - Simple navigation without dropdown */}
           {!isMobile && (
             <Button
-              onClick={() => router.push('/home/spt-tahunan')}
+              onClick={() => router.push(currentSptType === 'company' ? '/home/spt-tahunan-badan-list' : '/home/spt-tahunan')}
               sx={{
                 color: 'white',
                 textTransform: 'none',
@@ -567,7 +570,7 @@ const Navbar = () => {
             
             <Button
               fullWidth
-              onClick={() => router.push('/home/spt-tahunan')}
+              onClick={() => router.push(currentSptType === 'company' ? '/home/spt-tahunan-badan-list' : '/home/spt-tahunan')}
               sx={{
                 color: 'white',
                 justifyContent: 'flex-start',

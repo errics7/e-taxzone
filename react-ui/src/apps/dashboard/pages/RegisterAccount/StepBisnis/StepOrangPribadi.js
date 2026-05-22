@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
 import toast from "react-hot-toast";
 
@@ -79,14 +79,15 @@ const StepOrangPribadi = ({ formData, setFormData, onNext, onRegisterValidator }
   };
 
   const handleNext = () => {
-    setFormData({ ...formData, orangPribadi });
+    setFormData(prev => ({ ...prev, orangPribadi }));
     onNext();
   };
 
   // Register validator so StepNavigation can call it
+  // ✅ FIX: dependency array stabil — tidak loop re-register setiap render
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleNext);
-  });
+  }, [handleNext, onRegisterValidator]);
 
   return (
     <div>

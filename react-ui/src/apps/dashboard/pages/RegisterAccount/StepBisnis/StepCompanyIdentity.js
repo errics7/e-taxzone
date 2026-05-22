@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
 
 const StepCompanyIdentity = ({ formData, setFormData, onNext, onRegisterValidator }) => {
@@ -43,7 +43,7 @@ const StepCompanyIdentity = ({ formData, setFormData, onNext, onRegisterValidato
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      setFormData({ ...formData, companyIdentity: identity });
+      setFormData(prev => ({ ...prev, companyIdentity: identity }));
       onNext();
     } else {
       const firstErrorField = document.querySelector('.border-red-500');
@@ -52,9 +52,10 @@ const StepCompanyIdentity = ({ formData, setFormData, onNext, onRegisterValidato
   };
 
   // Register validator so StepNavigation can call it
+  // ✅ FIX: dependency array stabil — tidak loop re-register setiap render
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleSubmit);
-  });
+  }, [handleSubmit, onRegisterValidator]);
 
   return (
     <div>

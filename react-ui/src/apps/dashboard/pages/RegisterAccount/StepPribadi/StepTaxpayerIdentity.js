@@ -1,5 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: src/apps/dashboard/pages/RegisterAccount/StepPribadi/StepTaxpayerIdentity.js
+// FIX: Sama dengan pola bug 3 — useEffect tanpa [] dan stale closure handleSubmit.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidator }) => {
   const [identity, setIdentity] = useState({
@@ -20,52 +25,55 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
 
   const [errors, setErrors] = useState({});
 
-  const handleSubmit = () => {
+  // ✅ FIX: useRef untuk membaca identity terbaru tanpa perlu recreate handleSubmit
+  const identityRef = React.useRef(identity);
+  useEffect(() => {
+    identityRef.current = identity;
+  }, [identity]);
+
+  // ✅ FIX: useCallback dengan deps stabil → referensi stabil → tidak loop re-register
+  const handleSubmit = useCallback(() => {
+    const currentIdentity = identityRef.current;
     const newErrors = {};
 
-    if (!identity.nik) newErrors.nik = 'NIK is required';
-    else if (identity.nik.length !== 16) newErrors.nik = 'NIK must be 16 digits';
-    
-    if (!identity.fullName) newErrors.fullName = 'Full name is required';
-    else if (identity.fullName.length < 3) newErrors.fullName = 'Full name must be at least 3 characters';
-    
-    if (!identity.taxpayerType) newErrors.taxpayerType = 'Taxpayer Type is required';
-    if (!identity.countryOfOrigin) newErrors.countryOfOrigin = 'Country of Origin is required';
-    if (!identity.placeOfBirth) newErrors.placeOfBirth = 'Place of birth is required';
-    if (!identity.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
-    if (!identity.religion) newErrors.religion = 'Religion is required';
-    if (!identity.gender) newErrors.gender = 'Gender is required';
-    if (!identity.maritalStatus) newErrors.maritalStatus = 'Marital status is required';
-    if (!identity.typeOfWork) newErrors.typeOfWork = 'Type of work is required';
-    if (!identity.motherName) newErrors.motherName = 'Mother name is required';
-    if (!identity.familyCardNumber) newErrors.familyCardNumber = 'Family card number is required';
-    if (!identity.familyRelationshipStatus) newErrors.familyRelationshipStatus = 'Family relationship status is required';
+    if (!currentIdentity.nik) newErrors.nik = 'NIK is required';
+    else if (currentIdentity.nik.length !== 16) newErrors.nik = 'NIK must be 16 digits';
+    if (!currentIdentity.fullName) newErrors.fullName = 'Full name is required';
+    else if (currentIdentity.fullName.length < 3) newErrors.fullName = 'Full name must be at least 3 characters';
+    if (!currentIdentity.taxpayerType) newErrors.taxpayerType = 'Taxpayer Type is required';
+    if (!currentIdentity.countryOfOrigin) newErrors.countryOfOrigin = 'Country of Origin is required';
+    if (!currentIdentity.placeOfBirth) newErrors.placeOfBirth = 'Place of birth is required';
+    if (!currentIdentity.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
+    if (!currentIdentity.religion) newErrors.religion = 'Religion is required';
+    if (!currentIdentity.gender) newErrors.gender = 'Gender is required';
+    if (!currentIdentity.maritalStatus) newErrors.maritalStatus = 'Marital status is required';
+    if (!currentIdentity.typeOfWork) newErrors.typeOfWork = 'Type of work is required';
+    if (!currentIdentity.motherName) newErrors.motherName = 'Mother name is required';
+    if (!currentIdentity.familyCardNumber) newErrors.familyCardNumber = 'Family card number is required';
+    if (!currentIdentity.familyRelationshipStatus) newErrors.familyRelationshipStatus = 'Family relationship status is required';
 
-    if (identity.dateOfBirth) {
-      const birthDate = new Date(identity.dateOfBirth);
-      const today = new Date();
-      if (birthDate > today) {
-        newErrors.dateOfBirth = 'Date of birth cannot be in the future';
-      }
+    if (currentIdentity.dateOfBirth) {
+      const birthDate = new Date(currentIdentity.dateOfBirth);
+      if (birthDate > new Date()) newErrors.dateOfBirth = 'Date of birth cannot be in the future';
     }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      setFormData({ ...formData, taxpayerIdentity: identity });
+      // ✅ FIX: functional update
+      setFormData(prev => ({ ...prev, taxpayerIdentity: currentIdentity }));
       onNext();
     } else {
       const firstErrorField = document.querySelector('.text-red-500');
-      if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      if (firstErrorField) firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onNext, setFormData]);
 
-  // Register this step's validator so StepNavigation can call it
+  // ✅ FIX: dependency array [handleSubmit, onRegisterValidator] yang stabil
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleSubmit);
-  });
+  }, [handleSubmit, onRegisterValidator]);
 
   return (
     <div>
@@ -83,7 +91,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               value={identity.nik}
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
-                if (value.length <= 16) setIdentity({ ...identity, nik: value });
+                if (value.length <= 16) setIdentity(prev => ({ ...prev, nik: value }));
               }}
               maxLength={16}
             />
@@ -95,19 +103,15 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.fullName ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               placeholder="Enter your full name"
               value={identity.fullName}
-              onChange={(e) => setIdentity({ ...identity, fullName: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, fullName: e.target.value }))}
             />
           </StyledInput>
 
-          <StyledInput label="Taxpayer Type" required error={errors.taxpayerType} >
+          <StyledInput label="Taxpayer Type" required error={errors.taxpayerType}>
             <select
-              className= {`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500" ${
-                errors.taxpayerType
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-500'
-              }`}
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 ${errors.taxpayerType ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.taxpayerType}
-              onChange={(e) => setIdentity({ ...identity, taxpayerType: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, taxpayerType: e.target.value }))}
             >
               <option value="" disabled>Select taxpayer type</option>
               <option value="Individual or Undivided Inheritance">Individual or Undivided Inheritance</option>
@@ -121,21 +125,17 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.placeOfBirth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               placeholder="Enter your place of birth"
               value={identity.placeOfBirth}
-              onChange={(e) => setIdentity({ ...identity, placeOfBirth: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, placeOfBirth: e.target.value }))}
             />
           </StyledInput>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StyledInput label="Country of origin" required error={errors.countryOfOrigin} >
+          <StyledInput label="Country of origin" required error={errors.countryOfOrigin}>
             <select
-              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 ${
-                errors.countryOfOrigin
-                ? 'border-red-500 focus:border-red-500'
-                : 'border-gray-300 focus:border-blue-500'
-              }`}
+              className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 ${errors.countryOfOrigin ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.countryOfOrigin}
-              onChange={(e) => setIdentity({ ...identity, countryOfOrigin: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, countryOfOrigin: e.target.value }))}
             >
               <option value="" disabled>Select country of origin</option>
               <option value="Indonesia">Indonesia</option>
@@ -148,7 +148,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               type="date"
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.dateOfBirth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.dateOfBirth}
-              onChange={(e) => setIdentity({ ...identity, dateOfBirth: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, dateOfBirth: e.target.value }))}
               max={new Date().toISOString().split('T')[0]}
             />
           </StyledInput>
@@ -157,7 +157,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
             <select
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.gender ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.gender}
-              onChange={(e) => setIdentity({ ...identity, gender: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, gender: e.target.value }))}
             >
               <option value="" disabled>Select gender</option>
               <option value="Male">Male</option>
@@ -169,7 +169,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
             <select
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.maritalStatus ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.maritalStatus}
-              onChange={(e) => setIdentity({ ...identity, maritalStatus: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, maritalStatus: e.target.value }))}
             >
               <option value="" disabled>Select marital status</option>
               <option value="Single">Single</option>
@@ -185,7 +185,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
             <select
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.religion ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.religion}
-              onChange={(e) => setIdentity({ ...identity, religion: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, religion: e.target.value }))}
             >
               <option value="" disabled>Select religion</option>
               <option value="Islam">Islam</option>
@@ -201,7 +201,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
             <select
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.typeOfWork ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.typeOfWork}
-              onChange={(e) => setIdentity({ ...identity, typeOfWork: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, typeOfWork: e.target.value }))}
             >
               <option value="" disabled>Select job type</option>
               <option value="Employee">Employee</option>
@@ -217,7 +217,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.motherName ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               placeholder="Enter Mother's Name"
               value={identity.motherName}
-              onChange={(e) => setIdentity({ ...identity, motherName: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, motherName: e.target.value }))}
             />
           </StyledInput>
 
@@ -227,7 +227,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.familyCardNumber ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               placeholder="Enter Family Card Number"
               value={identity.familyCardNumber}
-              onChange={(e) => setIdentity({ ...identity, familyCardNumber: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, familyCardNumber: e.target.value }))}
             />
           </StyledInput>
         </div>
@@ -237,7 +237,7 @@ const StepTaxpayerIdentity = ({ formData, setFormData, onNext, onRegisterValidat
             <select
               className={`w-full border rounded px-3 py-2 focus:outline-none ${errors.familyRelationshipStatus ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               value={identity.familyRelationshipStatus}
-              onChange={(e) => setIdentity({ ...identity, familyRelationshipStatus: e.target.value })}
+              onChange={(e) => setIdentity(prev => ({ ...prev, familyRelationshipStatus: e.target.value }))}
             >
               <option value="" disabled>Select Family Relationship Status</option>
               <option value="Head of Family">Head of Family</option>

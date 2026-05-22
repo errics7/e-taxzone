@@ -3,9 +3,20 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { getAuthHeaders, HOST } from '../utils/host.config';
 
 
+// Baca pilihan portal dari localStorage saat Redux store pertama kali dibuat.
+// Ini memastikan state sudah benar SEBELUM fetchTaxpayerData() selesai,
+// sehingga tidak ada flicker navbar saat halaman pertama load.
+const getSavedSptType = () => {
+  try {
+    const saved = localStorage.getItem('spt_portal_preference');
+    if (saved === 'individual' || saved === 'company') return saved;
+  } catch (_) {}
+  return 'individual'; // default fallback
+};
+
 // Initial state
 const initialState = {
-  currentSptType: 'individual', // 'individual' | 'company'
+  currentSptType: getSavedSptType(), // baca dari localStorage, bukan hardcode 'individual'
   availableSptTypes: [],
   taxpayerData: null,
   loading: false,
@@ -22,6 +33,11 @@ const sptSlice = createSlice({
     setSptType: (state, action) => {
       state.currentSptType = action.payload;
       state.lastUpdated = new Date().toISOString();
+      // PERSISTENCE: simpan pilihan user ke localStorage
+      // agar tidak hilang saat refresh/navigation
+      try {
+        localStorage.setItem('spt_portal_preference', action.payload);
+      } catch (_) {}
     },
 
     // Set available SPT types based on taxpayer data
@@ -52,9 +68,36 @@ const sptSlice = createSlice({
       }
 
       state.availableSptTypes = availableTypes;
-      
-      // Set default SPT type based on taxpayer type
-      state.currentSptType = action.payload?.taxpayer_type === 'company' ? 'company' : 'individual';
+
+      // ROOT CAUSE FIX:
+      // Sebelumnya: selalu overwrite currentSptType ke default account type.
+      // Ini menyebabkan pilihan user hilang setiap Navbar mount (fetchTaxpayerData dipanggil).
+      //
+      // Fix: cek localStorage terlebih dahulu.
+      // - Jika user sudah pernah memilih portal → gunakan pilihan itu (jangan overwrite)
+      // - Jika belum ada pilihan tersimpan → gunakan default dari account type
+      // - Jika pilihan tersimpan tidak valid untuk account ini → fallback ke default
+      try {
+        const savedPreference = localStorage.getItem('spt_portal_preference');
+        const isValidSavedType = savedPreference &&
+          availableTypes.some(t => t.value === savedPreference);
+
+        if (isValidSavedType) {
+          // Hormati pilihan user — jangan overwrite
+          state.currentSptType = savedPreference;
+        } else {
+          // Tidak ada pilihan tersimpan atau tidak valid → set default dari account
+          const defaultType = action.payload?.taxpayer_type === 'company' ? 'company' : 'individual';
+          state.currentSptType = defaultType;
+          try {
+            localStorage.setItem('spt_portal_preference', defaultType);
+          } catch (_) {}
+        }
+      } catch (_) {
+        // localStorage tidak tersedia (misal: private mode yang ketat)
+        state.currentSptType = action.payload?.taxpayer_type === 'company' ? 'company' : 'individual';
+      }
+
       state.lastUpdated = new Date().toISOString();
     },
 
@@ -82,8 +125,13 @@ const sptSlice = createSlice({
     // Update SPT type from account switch
     updateSptFromAccount: (state, action) => {
       const { taxpayer_type } = action.payload;
-      state.currentSptType = taxpayer_type === 'company' ? 'company' : 'individual';
+      const newType = taxpayer_type === 'company' ? 'company' : 'individual';
+      state.currentSptType = newType;
       state.lastUpdated = new Date().toISOString();
+      // Saat ganti akun, reset localStorage ke default akun baru
+      try {
+        localStorage.setItem('spt_portal_preference', newType);
+      } catch (_) {}
     }
   }
 });

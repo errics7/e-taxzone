@@ -1,3 +1,13 @@
+/**
+ * react-ui/src/apps/dashboard/DashboardRoutesMhs.js
+ *
+ * REFACTOR NOTES:
+ * - Tambah lazy import ListSptTahunanBadan
+ * - Tambah route /home/spt-tahunan-badan-list → komponen badan terpisah
+ * - Route /home/spt-tahunan tetap ada dan hanya untuk pribadi
+ * - Tidak ada perubahan lain — backward compatible
+ */
+
 import React, { useState, Suspense, lazy } from "react";
 import axios from "axios";
 import API from "../../utils/host.config";
@@ -15,7 +25,13 @@ const MyAccount = lazy(() => import("./component/MyAccount"));
 const FRouter = lazy(() => import("./mahasiswa/FRouter"));
 const HomeMhs = lazy(() => import("./mahasiswa/HomeMhs"));
 const KodeOtorisasi = lazy(() => import("./mahasiswa/DJPAuthorization"));
+
+// SPT Orang Pribadi — list + wizard pribadi saja
 const SPTTahunan = lazy(() => import("./mahasiswa/SPT/ListSptTahunanOrangPribadi"));
+
+// SPT Badan — list + wizard badan saja (file baru terpisah)
+const SPTBadanList = lazy(() => import("./mahasiswa/SPT/ListSptTahunanBadan"));
+
 const SPTOrangPribadi = lazy(() => import("./mahasiswa/SPT/SptTahunanOrangPribadi"));
 const SptTahunanBadanForm = lazy(() => import("./mahasiswa/SPT/SptTahunanBadan"));
 
@@ -27,24 +43,16 @@ const APP_BAR_DESKTOP = 92;
 
 const RootStyle = styled("div")({
   background: '#fff',
-  // display: "flex",
   minHeight: "100vh",
-  // overflow: "hidden",
 });
 
 const MainStyle = styled("div")(({ theme }) => ({
   flexGrow: 1,
-  // overflow: "auto",
   minHeight: "100%",
-  margin: "0 auto", // center the content
-  // maxWidth: "1100px",
-  // },
+  margin: "0 auto",
 }));
 
-//#endregion
-
 export default function DashboardRoutesMhs() {
-  // const [dataKelas, setDataKelas] = useState(null);
   const refresh = useSelector((state) => state.counter.value);
 
   const { data: dataKelas } = useSWR(`${API.HOST}/api/v2/course/list?${refresh}`, (url) => axios(url, {
@@ -72,7 +80,7 @@ export default function DashboardRoutesMhs() {
       }
     }), {
     refreshWhenOffline: true,
-    loadingTimeout: 6000, //slow network (2G, <= 70Kbps) default 3s
+    loadingTimeout: 6000,
     onLoadingSlow: () => toast('Koneksi Anda Buruk', {
       icon: '⚠️',
       style: {
@@ -108,8 +116,17 @@ export default function DashboardRoutesMhs() {
           <Switch>
             <Route exact path="/home" component={HomeMhs} />
             <Route exact path="/home/kode-otorisasi" component={KodeOtorisasi} />
+
+            {/* SPT Orang Pribadi — list + wizard pribadi */}
             <Route exact path="/home/spt-tahunan" component={SPTTahunan} />
+
+            {/* SPT Badan — list + wizard badan (route baru, terpisah dari pribadi) */}
+            <Route exact path="/home/spt-tahunan-badan-list" component={SPTBadanList} />
+
+            {/* Form detail pribadi */}
             <Route exact path="/home/spt-tahunan-orang-pribadi" component={SPTOrangPribadi} />
+
+            {/* Form detail badan */}
             <Route exact path="/home/spt-tahunan-badan" component={SptTahunanBadanForm} />
 
             <Route path="/home/setting" component={MyAccount} />

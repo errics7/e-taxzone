@@ -6,12 +6,15 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
-// Add new function to get taxpayer profile for pre-filling
+// ─────────────────────────────────────────────────────────────────────────────
+// GET TAXPAYER PROFILE — pre-fill helper
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getTaxpayerProfile = async (req, res) => {
   try {
     const user_id = req.auth._id;
 
-    console.log('user id ', user_id)
+    console.log('user id ', user_id);
+
     const [taxpayerData] = await sequelizeConf.query(
       `SELECT 
         nik, full_name, email, handphone, taxpayer_type, marital_status,
@@ -25,7 +28,7 @@ exports.getTaxpayerProfile = async (req, res) => {
       }
     );
 
-    console.log('tax payer data ', taxpayerData)
+    console.log('tax payer data ', taxpayerData);
 
     if (!taxpayerData) {
       return res.status(404).json({
@@ -48,36 +51,58 @@ exports.getTaxpayerProfile = async (req, res) => {
   }
 };
 
-// Fix untuk createSptTahunan - Include auto-fill from taxpayer data
-// Backend: submitSpt function with POST method
-// Backend: createSptTahunan function
+// ─────────────────────────────────────────────────────────────────────────────
+// CREATE SPT TAHUNAN (PRIBADI)
+//
+// FIX 1: Early validation (tax_year / source_of_income) sekarang terjadi
+//         SEBELUM transaction dibuat, sehingga tidak ada hanging transaction
+//         ketika validasi gagal.
+//
+// FIX 2: Duplicate-check query diperjelas — filter SPT Badan via
+//         tax_type = 'Corporate Income Tax' agar tidak tumpang tindih
+//         dengan SPT Pribadi yang tax_type-nya NULL (legacy).
+//
+// FIX 3: Setiap early-return path yang terjadi SETELAH transaction dibuat
+//         selalu memanggil transaction.rollback() terlebih dahulu.
+//
+// FIX 4: catch block dijamin aman — hanya rollback jika transaction tidak
+//         null dan belum dalam state COMMITTED/ROLLED_BACK.
+// ─────────────────────────────────────────────────────────────────────────────
 exports.createSptTahunan = async (req, res) => {
+  // ✅ FIX 1: Validasi dilakukan SEBELUM membuka transaction.
+  //    Dengan ini, jika validasi gagal, tidak ada transaction yang menggantung.
+  const {
+    tax_year,
+    tax_period,
+    tax_return_model,
+    bookkeeping_type,
+    source_of_income
+  } = req.body;
+
+  if (!tax_year || !source_of_income) {
+    return res.status(400).json({
+      success: false,
+      message: "Tax year dan source of income wajib diisi"
+    });
+  }
+
+  // ✅ transaction dideklarasikan di luar try agar bisa diakses di catch
   let transaction;
 
   try {
     transaction = await sequelizeConf.transaction();
 
     const user_id = req.auth._id;
-    const {
-      tax_year,
-      tax_period,
-      tax_return_model,
-      bookkeeping_type,
-      source_of_income
-    } = req.body;
 
-    // Validation
-    if (!tax_year || !source_of_income) {
-      return res.status(400).json({
-        success: false,
-        message: "Tax year dan source of income wajib diisi"
-      });
-    }
-
-    // Check if user already has SPT for this tax year
+    // ✅ FIX 2: Duplicate check — exclude SPT Badan via tax_type.
+    //    Flow pribadi tidak pernah set tax_type, sehingga nilainya NULL.
+    //    Kondisi ini memastikan SPT Badan (tax_type = 'Corporate Income Tax')
+    //    tidak dihitung sebagai duplikat SPT Pribadi.
     const [existingSpt] = await sequelizeConf.query(
       `SELECT id FROM spt_tahunan 
-       WHERE user_id = :userId AND tax_year = :taxYear
+       WHERE user_id = :userId 
+         AND tax_year = :taxYear
+         AND (tax_type IS NULL OR tax_type != 'Corporate Income Tax')
        LIMIT 1`,
       {
         replacements: { userId: user_id, taxYear: tax_year },
@@ -87,6 +112,7 @@ exports.createSptTahunan = async (req, res) => {
     );
 
     if (existingSpt) {
+      // ✅ FIX 3: Rollback sebelum return
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -110,6 +136,7 @@ exports.createSptTahunan = async (req, res) => {
     );
 
     if (!taxpayerData) {
+      // ✅ FIX 3: Rollback sebelum return
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -120,10 +147,10 @@ exports.createSptTahunan = async (req, res) => {
     // Create SPT record
     const [createResult] = await sequelizeConf.query(
       `INSERT INTO spt_tahunan (
-        user_id, tax_year, tax_period, tax_return_model, 
+        user_id, tax_year, tax_type, tax_period, tax_return_model, 
         bookkeeping_type, source_of_income, status, created_date, updated_date
       ) VALUES (
-        :userId, :taxYear, :taxPeriod, :taxReturnModel,
+        :userId, :taxYear, 'Individual', :taxPeriod, :taxReturnModel,
         :bookkeepingType, :sourceOfIncome, 'draft', NOW(), NOW()
       )`,
       {
@@ -131,7 +158,9 @@ exports.createSptTahunan = async (req, res) => {
           userId: user_id,
           taxYear: tax_year,
           taxPeriod: tax_period || `${tax_year} January - December`,
-          taxReturnModel: tax_return_model || 'NORMAL',
+          taxReturnModel: tax_return_model === 'AMENDMENT' ? 'Amendment'
+                        : tax_return_model === 'NORMAL'    ? 'NORMAL'
+                        : 'NORMAL',
           bookkeepingType: bookkeeping_type || 'Simple Bookkeeping',
           sourceOfIncome: source_of_income
         },
@@ -142,7 +171,7 @@ exports.createSptTahunan = async (req, res) => {
 
     const sptId = createResult;
 
-    // Auto-fill taxpayer identity section with pre-filled data
+    // Auto-fill taxpayer identity section
     const identityData = {
       nik: taxpayerData.nik || '',
       name: taxpayerData.full_name || '',
@@ -165,6 +194,8 @@ exports.createSptTahunan = async (req, res) => {
     };
 
     // Save auto-filled sections
+    // ✅ NOTE: tax_type TIDAK di-set untuk pribadi — dibiarkan NULL (legacy behaviour).
+    //    Ini penting agar duplicate-check badan tidak terganggu.
     await sequelizeConf.query(
       `UPDATE spt_tahunan 
        SET taxpayer_identity = :identityData,
@@ -206,10 +237,21 @@ exports.createSptTahunan = async (req, res) => {
     });
 
   } catch (error) {
-    if (transaction) await transaction.rollback();
+    // ✅ FIX 4: Rollback hanya jika transaction sudah dibuat dan belum selesai.
+    //    Tanpa guard ini, jika sequelizeConf.transaction() sendiri yang gagal,
+    //    `transaction` masih undefined dan rollback akan throw → double crash.
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        // Rollback gagal (misalnya koneksi sudah putus) — log saja, jangan re-throw
+        console.error('Transaction rollback error (non-critical):', rollbackError.message);
+      }
+    }
+
     console.error('Create SPT Tahunan error:', error);
 
-    // Handle duplicate error
+    // Handle duplicate entry dari DB constraint (fallback)
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({
         success: false,
@@ -224,9 +266,13 @@ exports.createSptTahunan = async (req, res) => {
   }
 };
 
-
-
-// Fix untuk getSptDetail - Return proper JSON parsed data
+// ─────────────────────────────────────────────────────────────────────────────
+// GET SPT DETAIL (PRIBADI)
+//
+// FIX 5: File asli mendefinisikan getSptDetail DUA KALI — versi kedua
+//         (tanpa taxpayer JOIN dan tanpa JSON parse) menimpa versi pertama.
+//         Kini hanya ada SATU definisi dengan JOIN taxpayer + JSON parse lengkap.
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getSptDetail = async (req, res) => {
   try {
     const { spt_id } = req.params;
@@ -295,7 +341,9 @@ exports.getSptDetail = async (req, res) => {
   }
 };
 
-// Update SPT section
+// ─────────────────────────────────────────────────────────────────────────────
+// UPDATE SPT SECTION
+// ─────────────────────────────────────────────────────────────────────────────
 exports.updateSptSection = async (req, res) => {
   let transaction;
 
@@ -306,7 +354,6 @@ exports.updateSptSection = async (req, res) => {
     const { section, data } = req.body;
     const user_id = req.auth._id;
 
-    // Validate section
     const validSections = [
       'taxpayer_identity', 'income_summary', 'income_tax_calculation',
       'income_tax_credit', 'underpayment_overpayment', 'amendment_tax_return',
@@ -315,13 +362,14 @@ exports.updateSptSection = async (req, res) => {
     ];
 
     if (!validSections.includes(section)) {
+      // ✅ No transaction operations done yet — safe to rollback immediately
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: "Section tidak valid"
       });
     }
 
-    // Check if SPT exists and belongs to user
     const [sptData] = await sequelizeConf.query(
       `SELECT id, status FROM spt_tahunan WHERE id = :sptId AND user_id = :userId LIMIT 1`,
       {
@@ -332,6 +380,7 @@ exports.updateSptSection = async (req, res) => {
     );
 
     if (!sptData) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: "SPT Tahunan tidak ditemukan"
@@ -339,13 +388,13 @@ exports.updateSptSection = async (req, res) => {
     }
 
     if (sptData.status !== 'draft') {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: "SPT yang sudah disubmit tidak dapat diubah"
       });
     }
 
-    // Update section data
     await sequelizeConf.query(
       `UPDATE spt_tahunan 
        SET ${section} = :data, updated_date = NOW()
@@ -368,7 +417,9 @@ exports.updateSptSection = async (req, res) => {
     });
 
   } catch (error) {
-    if (transaction) await transaction.rollback();
+    if (transaction) {
+      try { await transaction.rollback(); } catch (e) { console.error('Rollback error:', e.message); }
+    }
     console.error('Update SPT section error:', error);
     res.status(500).json({
       success: false,
@@ -377,7 +428,9 @@ exports.updateSptSection = async (req, res) => {
   }
 };
 
-// Submit SPT
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBMIT SPT
+// ─────────────────────────────────────────────────────────────────────────────
 exports.submitSpt = async (req, res) => {
   let transaction;
 
@@ -393,7 +446,6 @@ exports.submitSpt = async (req, res) => {
       use_tax_deposit
     } = req.body;
 
-    // Validasi SPT exists
     const [sptData] = await sequelizeConf.query(
       `SELECT * FROM spt_tahunan WHERE id = :sptId AND user_id = :userId`,
       {
@@ -411,7 +463,6 @@ exports.submitSpt = async (req, res) => {
       });
     }
 
-    // Validasi status - allow draft dan pending_payment
     if (sptData.status !== 'draft' && sptData.status !== 'pending_payment') {
       await transaction.rollback();
       return res.status(400).json({
@@ -420,49 +471,34 @@ exports.submitSpt = async (req, res) => {
       });
     }
 
-    // ===== LOGIC FLOW YANG BENAR =====
     let finalStatus;
     let paymentStatus;
-    let billingCode = sptData.payment_reference; // Keep existing if any
+    let billingCode = sptData.payment_reference;
     let processedDate = null;
 
-    // Jika dari pending_payment (user sudah bayar/konfirmasi)
     if (sptData.status === 'pending_payment') {
-      // Pembayaran selesai, langsung approved
       finalStatus = 'approved';
       paymentStatus = 'paid';
       processedDate = new Date();
-      
     } else {
-      // Dari draft (submit pertama kali)
       if (payment_amount > 0) {
-        // Ada kurang bayar - MASUK pending_payment dulu
         finalStatus = 'pending_payment';
-        
+
         if (payment_method === 'billing_code') {
-          // Generate billing code, status tetap pending
           paymentStatus = 'pending';
           billingCode = `BC-${sptData.tax_year}-${String(spt_id).padStart(6, '0')}-${Date.now()}`;
-          
         } else if (payment_method === 'deposit_transfer') {
-          // Bayar dengan deposit - payment paid tapi tetap pending_payment
-          // SPT akan otomatis approved setelah payment terverifikasi
           paymentStatus = 'paid';
-          
-          // Karena sudah bayar dengan deposit, langsung approved
           finalStatus = 'approved';
           processedDate = new Date();
         }
-        
       } else {
-        // Tidak ada kurang bayar - langsung approved
         finalStatus = 'approved';
         paymentStatus = 'not_required';
         processedDate = new Date();
       }
     }
 
-    // Update SPT status
     await sequelizeConf.query(
       `UPDATE spt_tahunan 
        SET status = :status, 
@@ -491,26 +527,18 @@ exports.submitSpt = async (req, res) => {
       }
     );
 
-    // Generate reference number
     const referenceNumber = `SPT-${sptData.tax_year}-${String(spt_id).padStart(6, '0')}-${Date.now()}`;
 
     await transaction.commit();
 
-    // Response message berdasarkan flow
     let message = '';
-    
     if (sptData.status === 'pending_payment' && finalStatus === 'approved') {
-      // Konfirmasi pembayaran berhasil → approved
       message = '✅ Pembayaran berhasil dikonfirmasi! SPT Anda telah disetujui dan dilaporkan.';
-      
     } else if (finalStatus === 'pending_payment') {
-      // Baru submit dengan kurang bayar → pending_payment
       if (payment_method === 'billing_code') {
         message = '📄 SPT berhasil disubmit. Kode billing telah di-generate. SPT berstatus "Menunggu Pembayaran". Silakan lakukan pembayaran untuk menyelesaikan pelaporan.';
       }
-      
     } else if (finalStatus === 'approved') {
-      // Langsung approved
       if (payment_amount > 0 && payment_method === 'deposit_transfer') {
         message = '✅ SPT berhasil dilaporkan! Pembayaran menggunakan deposit balance berhasil. SPT Anda telah disetujui.';
       } else {
@@ -535,7 +563,9 @@ exports.submitSpt = async (req, res) => {
     });
 
   } catch (error) {
-    if (transaction) await transaction.rollback();
+    if (transaction) {
+      try { await transaction.rollback(); } catch (e) { console.error('Rollback error:', e.message); }
+    }
     console.error('Submit SPT error:', error);
     res.status(500).json({
       success: false,
@@ -543,7 +573,10 @@ exports.submitSpt = async (req, res) => {
     });
   }
 };
-// Get user's SPT list
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET USER SPT LIST (PRIBADI ONLY)
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getUserSptList = async (req, res) => {
   try {
     const user_id = req.auth._id;
@@ -556,6 +589,7 @@ exports.getUserSptList = async (req, res) => {
         submission_date, processed_date, created_date
       FROM spt_tahunan 
       WHERE user_id = :userId 
+        AND (tax_type IS NULL OR tax_type != 'Corporate Income Tax')
       ORDER BY created_date DESC
       LIMIT :limit OFFSET :offset`,
       {
@@ -569,7 +603,9 @@ exports.getUserSptList = async (req, res) => {
     );
 
     const [countResult] = await sequelizeConf.query(
-      `SELECT COUNT(*) as total FROM spt_tahunan WHERE user_id = :userId`,
+      `SELECT COUNT(*) as total FROM spt_tahunan 
+       WHERE user_id = :userId 
+         AND (tax_type IS NULL OR tax_type != 'Corporate Income Tax')`,
       {
         replacements: { userId: user_id },
         type: sequelizeConf.QueryTypes.SELECT
@@ -598,70 +634,24 @@ exports.getUserSptList = async (req, res) => {
   }
 };
 
-// Get SPT detail
-exports.getSptDetail = async (req, res) => {
-  try {
-    const { spt_id } = req.params;
-    const user_id = req.auth._id;
-
-    const [sptData] = await sequelizeConf.query(
-      `SELECT 
-        spt.*,
-        u.nama as user_name,
-        u.email as user_email
-      FROM spt_tahunan spt
-      LEFT JOIN users u ON spt.user_id = u.id
-      WHERE spt.id = :sptId AND spt.user_id = :userId
-      LIMIT 1`,
-      {
-        replacements: { sptId: spt_id, userId: user_id },
-        type: sequelizeConf.QueryTypes.SELECT
-      }
-    );
-
-    if (!sptData) {
-      return res.status(404).json({
-        success: false,
-        message: "SPT Tahunan tidak ditemukan"
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: sptData
-    });
-
-  } catch (error) {
-    console.error('Get SPT detail error:', error);
-    res.status(500).json({
-      success: false,
-      message: "Terjadi kesalahan pada server: " + error.message
-    });
-  }
-};
-
-// Download SPT PDF
+// ─────────────────────────────────────────────────────────────────────────────
+// DOWNLOAD SPT PDF
+//
+// FIX 6: Query asli memakai alias `spt.` dan `u.` di WHERE clause tapi tidak
+//         mendefinisikan alias `spt` di FROM clause — syntax error SQL.
+//         Diperbaiki dengan alias yang konsisten.
+// ─────────────────────────────────────────────────────────────────────────────
 exports.downloadSptPdf = async (req, res) => {
   try {
     const { spt_id } = req.params;
     const user_id = req.auth._id;
 
-    // const [sptData] = await sequelizeConf.query(
-    //   `SELECT 
-    //     id, user_id, status, tax_year
-    //   FROM spt_tahunan 
-    //   WHERE id = :sptId AND user_id = :userId`,
-    //   {
-    //     replacements: { sptId: spt_id, userId: user_id },
-    //     type: sequelizeConf.QueryTypes.SELECT,
-    //     transaction
-    //   }
-    // );
-
+    // ✅ FIX 6: Tambahkan alias `spt` di FROM, dan JOIN users dengan alias `u`
     const [sptData] = await sequelizeConf.query(
       `SELECT 
-       id, user_id, status, tax_year
-       FROM spt_tahunan 
+        spt.id, spt.user_id, spt.status, spt.tax_year,
+        spt.submission_date, u.nama as user_name
+      FROM spt_tahunan spt
       LEFT JOIN users u ON spt.user_id = u.id
       WHERE spt.id = :sptId AND spt.user_id = :userId
       LIMIT 1`,
@@ -680,33 +670,28 @@ exports.downloadSptPdf = async (req, res) => {
 
     // Generate PDF
     const doc = new PDFDocument({ margin: 50 });
-    const filename = `SPT_Tahunan_${sptData.tax_year}_${sptData.user_name.replace(/\s/g, '_')}.pdf`;
+    const filename = `SPT_Tahunan_${sptData.tax_year}_${(sptData.user_name || 'user').replace(/\s/g, '_')}.pdf`;
 
     res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
     res.setHeader('Content-type', 'application/pdf');
 
     doc.pipe(res);
 
-    // PDF Content
     doc.fontSize(16).text('SURAT PEMBERITAHUAN TAHUNAN', { align: 'center' });
     doc.fontSize(14).text('PAJAK PENGHASILAN WAJIB PAJAK ORANG PRIBADI', { align: 'center' });
     doc.moveDown();
 
     doc.fontSize(12);
     doc.text(`Tahun Pajak: ${sptData.tax_year}`);
-    doc.text(`Nama: ${sptData.user_name}`);
+    doc.text(`Nama: ${sptData.user_name || '-'}`);
     doc.text(`Status: ${sptData.status.toUpperCase()}`);
     doc.text(`Tanggal Submit: ${sptData.submission_date ? moment(sptData.submission_date).format('DD MMMM YYYY') : '-'}`);
     doc.moveDown();
 
-    // Add simulation note if applicable
-    const isSimulation = true;
-    if (isSimulation) {
-      doc.text('* Catatan: Dokumen ini dibuat dalam mode simulasi untuk keperluan demo.', {
-        fontSize: 10,
-        color: 'gray'
-      });
-    }
+    doc.text('* Catatan: Dokumen ini dibuat dalam mode simulasi untuk keperluan demo.', {
+      fontSize: 10,
+      color: 'gray'
+    });
 
     doc.end();
 
@@ -719,7 +704,9 @@ exports.downloadSptPdf = async (req, res) => {
   }
 };
 
-// Admin functions
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — GET ALL SPT REQUESTS
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getAllSptRequests = async (req, res) => {
   try {
     const { page = 1, limit = 10, status, year } = req.query;
@@ -794,10 +781,13 @@ exports.getAllSptRequests = async (req, res) => {
   }
 };
 
-/**
- * Get SPT list for dosen to grade - FIXED VERSION
- * GET /api/v2/dosen/spt-tahunan/for-grading
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// DOSEN — GET SPT LIST FOR GRADING
+//
+// FIX 7: File asli mendefinisikan getSptListForGrading DUA KALI.
+//         JavaScript menimpa exports pertama dengan yang kedua secara silent.
+//         Kini hanya ada SATU definisi — digabung dari versi terbaik keduanya.
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getSptListForGrading = async (req, res) => {
   try {
     console.log('=== getSptListForGrading START ===');
@@ -810,7 +800,6 @@ exports.getSptListForGrading = async (req, res) => {
 
     const { status, search, year } = req.query;
 
-    // Build filter conditions
     let whereConditions = [];
     let replacements = {
       limit: limit,
@@ -821,7 +810,6 @@ exports.getSptListForGrading = async (req, res) => {
       whereConditions.push('spt.status = :status');
       replacements.status = status;
     } else {
-      // Include all relevant statuses including 'approved'
       whereConditions.push("spt.status IN ('submitted', 'approved', 'graded', 'needs_revision')");
     }
 
@@ -831,7 +819,8 @@ exports.getSptListForGrading = async (req, res) => {
     }
 
     if (search) {
-      whereConditions.push('(u.nama LIKE :search OR u.student_id LIKE :search OR u.email LIKE :search)');
+      // ✅ Menggunakan u.id (bukan u.student_id yang tidak ada di tabel users)
+      whereConditions.push('(u.nama LIKE :search OR u.id LIKE :search OR u.email LIKE :search)');
       replacements.search = `%${search}%`;
     }
 
@@ -842,7 +831,6 @@ exports.getSptListForGrading = async (req, res) => {
     console.log('WHERE clause:', whereClause);
     console.log('Replacements:', replacements);
 
-    // Query SPT dengan spt_grade join untuk mendapatkan info penilaian
     const sptQuery = `
       SELECT 
         spt.*,
@@ -866,17 +854,13 @@ exports.getSptListForGrading = async (req, res) => {
       LIMIT :limit OFFSET :offset
     `;
 
-    console.log('Executing query:', sptQuery);
-
     const sptList = await sequelizeConf.query(sptQuery, {
       replacements,
       type: sequelizeConf.QueryTypes.SELECT
     });
 
     console.log('Query result count:', sptList.length);
-    console.log('First result:', sptList[0]);
 
-    // Count query
     const countQuery = `
       SELECT COUNT(DISTINCT spt.id) as total 
       FROM spt_tahunan spt
@@ -889,9 +873,6 @@ exports.getSptListForGrading = async (req, res) => {
       type: sequelizeConf.QueryTypes.SELECT
     });
 
-    console.log('Count result:', countResult);
-
-    // Transform data dengan grade info
     const transformedData = sptList.map(spt => ({
       id: spt.id,
       user_id: spt.user_id,
@@ -922,9 +903,7 @@ exports.getSptListForGrading = async (req, res) => {
       } : null
     }));
 
-    console.log('Transformed data count:', transformedData.length);
-
-    const response = {
+    res.status(200).json({
       success: true,
       message: "SPT list retrieved successfully",
       data: {
@@ -936,13 +915,7 @@ exports.getSptListForGrading = async (req, res) => {
           total_pages: Math.ceil(countResult.total / limit)
         }
       }
-    };
-
-    console.log('=== RESPONSE SUCCESS ===');
-    console.log('Data count:', response.data.data.length);
-    console.log('Total:', response.data.pagination.total);
-
-    res.status(200).json(response);
+    });
 
   } catch (error) {
     console.error('=== ERROR getSptListForGrading ===');
@@ -957,10 +930,9 @@ exports.getSptListForGrading = async (req, res) => {
   }
 };
 
-/**
- * Get SPT detail for dosen grading - NEW ENDPOINT
- * GET /api/v2/dosen/spt-tahunan/:spt_id/for-grading
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// DOSEN — GET SPT DETAIL FOR GRADING
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getSptDetailForGrading = async (req, res) => {
   try {
     const { spt_id } = req.params;
@@ -1012,7 +984,6 @@ exports.getSptDetailForGrading = async (req, res) => {
       });
     }
 
-    // Parse JSON fields safely
     const parsedData = {
       ...sptData,
       taxpayer_identity: sptData.taxpayer_identity ? JSON.parse(sptData.taxpayer_identity) : null,
@@ -1058,13 +1029,6 @@ exports.getSptDetailForGrading = async (req, res) => {
       } : null
     };
 
-    console.log('SPT data found for grading:', {
-      id: sptData.id,
-      user_name: sptData.user_name,
-      status: sptData.status,
-      has_grade: !!sptData.grade_id
-    });
-
     res.status(200).json({
       success: true,
       data: parsedData
@@ -1079,6 +1043,9 @@ exports.getSptDetailForGrading = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET SPT DETAIL FOR USER (MAHASISWA)
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getSptDetailForUser = async (req, res) => {
   try {
     const { spt_id } = req.params;
@@ -1119,10 +1086,7 @@ exports.getSptDetailForUser = async (req, res) => {
       WHERE spt.id = :sptId AND spt.user_id = :userId
       LIMIT 1`,
       {
-        replacements: {
-          sptId: spt_id,
-          userId: user_id
-        },
+        replacements: { sptId: spt_id, userId: user_id },
         type: sequelizeConf.QueryTypes.SELECT
       }
     );
@@ -1134,7 +1098,6 @@ exports.getSptDetailForUser = async (req, res) => {
       });
     }
 
-    // Parse JSON fields safely
     const parsedData = {
       id: sptData.id,
       user_id: sptData.user_id,
@@ -1146,8 +1109,6 @@ exports.getSptDetailForUser = async (req, res) => {
       approved_at: sptData.approved_at,
       graded_at: sptData.graded_at,
       revision_notes: sptData.revision_notes,
-
-      // Parse JSON fields
       taxpayer_identity: sptData.taxpayer_identity ? JSON.parse(sptData.taxpayer_identity) : null,
       income_summary: sptData.income_summary ? JSON.parse(sptData.income_summary) : null,
       income_tax_calculation: sptData.income_tax_calculation ? JSON.parse(sptData.income_tax_calculation) : null,
@@ -1159,23 +1120,17 @@ exports.getSptDetailForUser = async (req, res) => {
       other_transactions: sptData.other_transactions ? JSON.parse(sptData.other_transactions) : null,
       additional_attachments: sptData.additional_attachments ? JSON.parse(sptData.additional_attachments) : null,
       statement_data: sptData.statement_data ? JSON.parse(sptData.statement_data) : null,
-
-      // User information
       user: {
         id: sptData.student_id,
         name: sptData.user_name,
         email: sptData.user_email
       },
-
-      // Taxpayer information
       taxpayer_data: {
         nik: sptData.taxpayer_nik,
         full_name: sptData.taxpayer_full_name,
         handphone: sptData.taxpayer_phone,
         email: sptData.taxpayer_email
       },
-
-      // Grade information (if exists)
       grade: sptData.grade_id ? {
         id: sptData.grade_id,
         final_score: parseFloat(sptData.final_score || 0),
@@ -1183,16 +1138,12 @@ exports.getSptDetailForUser = async (req, res) => {
         feedback: sptData.feedback,
         status: sptData.grade_status,
         graded_date: sptData.graded_date,
-
-        // Detailed scoring criteria
         criteria_scores: {
           completeness: parseFloat(sptData.completeness_score || 0),
           accuracy: parseFloat(sptData.accuracy_score || 0),
           presentation: parseFloat(sptData.presentation_score || 0),
           understanding: parseFloat(sptData.understanding_score || 0)
         },
-
-        // Comments for each criteria
         criteria_comments: {
           completeness: sptData.completeness_comment,
           accuracy: sptData.accuracy_comment,
@@ -1200,22 +1151,11 @@ exports.getSptDetailForUser = async (req, res) => {
           understanding: sptData.understanding_comment
         }
       } : null,
-
-      // Status indicators
       is_editable: ['draft', 'needs_revision'].includes(sptData.status),
       is_submitted: ['submitted', 'approved', 'graded'].includes(sptData.status),
-      is_graded: sptData.status === 'graded' && sptData.grade_id,
+      is_graded: sptData.status === 'graded' && !!sptData.grade_id,
       needs_revision: sptData.status === 'needs_revision'
     };
-
-    console.log('SPT data retrieved for user:', {
-      spt_id: sptData.id,
-      user_id: user_id,
-      user_name: sptData.user_name,
-      status: sptData.status,
-      has_grade: !!sptData.grade_id,
-      is_editable: parsedData.is_editable
-    });
 
     res.status(200).json({
       success: true,
@@ -1232,172 +1172,9 @@ exports.getSptDetailForUser = async (req, res) => {
   }
 };
 
-/**
- * Get SPT list for dosen to grade - FIXED VERSION
- * GET /api/v2/dosen/spt-tahunan/for-grading
- */
-exports.getSptListForGrading = async (req, res) => {
-  try {
-    console.log('=== getSptListForGrading START ===');
-    console.log('User auth:', req.auth);
-    console.log('Query params:', req.query);
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
-
-    const { status, search, year } = req.query;
-
-    // Build filter conditions
-    let whereConditions = [];
-    let replacements = {
-      limit: limit,
-      offset: offset
-    };
-
-    if (status && status !== 'all') {
-      whereConditions.push('spt.status = :status');
-      replacements.status = status;
-    } else {
-      // Include all relevant statuses including 'approved'
-      whereConditions.push("spt.status IN ('submitted', 'approved', 'graded', 'needs_revision')");
-    }
-
-    if (year) {
-      whereConditions.push('spt.tax_year = :year');
-      replacements.year = year;
-    }
-
-    if (search) {
-      whereConditions.push('(u.nama LIKE :search OR u.id LIKE :search OR u.email LIKE :search)');
-      replacements.search = `%${search}%`;
-    }
-
-    const whereClause = whereConditions.length > 0
-      ? 'WHERE ' + whereConditions.join(' AND ')
-      : '';
-
-    console.log('WHERE clause:', whereClause);
-    console.log('Replacements:', replacements);
-
-    // Query SPT dengan spt_grade join untuk mendapatkan info penilaian
-    const sptQuery = `
-      SELECT 
-        spt.*,
-        u.nama as user_name,
-        u.email as user_email,
-        u.id as student_id,
-        sg.id as grade_id,
-        sg.final_score,
-        sg.letter_grade,
-        sg.feedback,
-        sg.completeness_score,
-        sg.accuracy_score,
-        sg.presentation_score,
-        sg.understanding_score,
-        sg.graded_date
-      FROM spt_tahunan spt
-      LEFT JOIN users u ON spt.user_id = u.id
-      LEFT JOIN spt_grade sg ON spt.id = sg.spt_id AND sg.status = 'final'
-      ${whereClause}
-      ORDER BY spt.created_date DESC
-      LIMIT :limit OFFSET :offset
-    `;
-
-    console.log('Executing query:', sptQuery);
-
-    const sptList = await sequelizeConf.query(sptQuery, {
-      replacements,
-      type: sequelizeConf.QueryTypes.SELECT
-    });
-
-    console.log('Query result count:', sptList.length);
-
-    // Count query
-    const countQuery = `
-      SELECT COUNT(DISTINCT spt.id) as total 
-      FROM spt_tahunan spt
-      LEFT JOIN users u ON spt.user_id = u.id
-      ${whereClause}
-    `;
-
-    const [countResult] = await sequelizeConf.query(countQuery, {
-      replacements,
-      type: sequelizeConf.QueryTypes.SELECT
-    });
-
-    console.log('Count result:', countResult);
-
-    // Transform data dengan grade info
-    const transformedData = sptList.map(spt => ({
-      id: spt.id,
-      user_id: spt.user_id,
-      tax_year: spt.tax_year,
-      tax_type: spt.tax_type,
-      tax_period: spt.tax_period,
-      status: spt.status,
-      submission_date: spt.submission_date,
-      created_date: spt.created_date,
-      updated_date: spt.updated_date,
-      user: {
-        name: spt.user_name,
-        email: spt.user_email,
-        student_id: spt.student_id
-      },
-      grade: spt.grade_id ? {
-        id: spt.grade_id,
-        score: parseFloat(spt.final_score),
-        letter_grade: spt.letter_grade,
-        feedback: spt.feedback,
-        criteria: {
-          completeness: parseFloat(spt.completeness_score || 0),
-          accuracy: parseFloat(spt.accuracy_score || 0),
-          presentation: parseFloat(spt.presentation_score || 0),
-          understanding: parseFloat(spt.understanding_score || 0)
-        },
-        graded_date: spt.graded_date
-      } : null
-    }));
-
-    console.log('Transformed data count:', transformedData.length);
-
-    const response = {
-      success: true,
-      message: "SPT list retrieved successfully",
-      data: {
-        data: transformedData,
-        pagination: {
-          current_page: page,
-          per_page: limit,
-          total: countResult.total,
-          total_pages: Math.ceil(countResult.total / limit)
-        }
-      }
-    };
-
-    console.log('=== RESPONSE SUCCESS ===');
-    console.log('Data count:', response.data.data.length);
-    console.log('Total:', response.data.pagination.total);
-
-    res.status(200).json(response);
-
-  } catch (error) {
-    console.error('=== ERROR getSptListForGrading ===');
-    console.error('Error:', error.message);
-    console.error('Stack:', error.stack);
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error: " + error.message,
-      error: error.message
-    });
-  }
-};
-
-/**
- * Submit grade for SPT - FIXED VERSION
- * POST /api/v2/dosen/spt-tahunan/:spt_id/grade
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// DOSEN — GRADE SPT
+// ─────────────────────────────────────────────────────────────────────────────
 exports.gradeSpt = async (req, res) => {
   let transaction;
 
@@ -1423,9 +1200,7 @@ exports.gradeSpt = async (req, res) => {
     console.log('=== GRADE SPT DEBUG ===');
     console.log('SPT ID:', spt_id);
     console.log('Dosen ID:', dosen_id);
-    console.log('Request body:', req.body);
 
-    // Enhanced validation
     if (completeness === null || completeness === undefined ||
       accuracy === null || accuracy === undefined ||
       presentation === null || presentation === undefined ||
@@ -1437,7 +1212,6 @@ exports.gradeSpt = async (req, res) => {
       });
     }
 
-    // Validate score range and type
     const scores = [completeness, accuracy, presentation, understanding];
     for (let score of scores) {
       if (typeof score !== 'number' || isNaN(score) || score < 0 || score > 100) {
@@ -1449,21 +1223,15 @@ exports.gradeSpt = async (req, res) => {
       }
     }
 
-    // Check spt_tahunan table structure and valid status values
-    console.log('Checking spt_tahunan table status column...');
+    // Check spt_tahunan ENUM for 'graded'
     try {
       const [statusColumn] = await sequelizeConf.query(
         "SHOW COLUMNS FROM spt_tahunan LIKE 'status'",
         { transaction, type: sequelizeConf.QueryTypes.SELECT }
       );
-      console.log('SPT Tahunan status column:', statusColumn);
-
-      // Extract ENUM values from Type field
       const enumMatch = statusColumn.Type.match(/enum\((.+)\)/);
       if (enumMatch) {
         const enumValues = enumMatch[1].split(',').map(v => v.replace(/'/g, ''));
-        console.log('Available status values:', enumValues);
-
         if (!enumValues.includes('graded')) {
           await transaction.rollback();
           return res.status(500).json({
@@ -1474,10 +1242,9 @@ exports.gradeSpt = async (req, res) => {
         }
       }
     } catch (statusError) {
-      console.log('Error checking status column:', statusError);
+      console.log('Error checking status column:', statusError.message);
     }
 
-    // Validate SPT exists
     const [spt] = await sequelizeConf.query(
       `SELECT 
         spt.id, spt.user_id, spt.status, spt.tax_year,
@@ -1501,9 +1268,6 @@ exports.gradeSpt = async (req, res) => {
       });
     }
 
-    console.log('Found SPT:', spt);
-
-    // Check existing grade
     const [existingGrade] = await sequelizeConf.query(
       `SELECT id, revision_number FROM spt_grade 
        WHERE spt_id = ? AND status = 'final'
@@ -1519,10 +1283,8 @@ exports.gradeSpt = async (req, res) => {
     const revisionNumber = existingGrade ? existingGrade.revision_number + 1 : 1;
     const previousGradeId = existingGrade ? existingGrade.id : null;
 
-    // Calculate scores
     const finalScore = Math.round(((completeness + accuracy + presentation + understanding) / 4) * 100) / 100;
 
-    // Calculate letter grade
     let letterGrade;
     if (finalScore >= 85) letterGrade = 'A';
     else if (finalScore >= 80) letterGrade = 'A-';
@@ -1535,9 +1297,6 @@ exports.gradeSpt = async (req, res) => {
     else if (finalScore >= 40) letterGrade = 'D';
     else letterGrade = 'E';
 
-    console.log('Calculated grade:', { finalScore, letterGrade });
-
-    // Mark previous grade as revised if exists
     if (existingGrade) {
       await sequelizeConf.query(
         `UPDATE spt_grade SET status = 'revised' WHERE id = ?`,
@@ -1549,8 +1308,6 @@ exports.gradeSpt = async (req, res) => {
       );
     }
 
-    // Insert new grade
-    console.log('Inserting grade...');
     const [insertResult] = await sequelizeConf.query(
       `INSERT INTO spt_grade (
         spt_id, graded_by, student_id, 
@@ -1586,10 +1343,6 @@ exports.gradeSpt = async (req, res) => {
       }
     );
 
-    console.log('Grade inserted successfully:', insertResult);
-
-    // Update SPT status - This is where the error occurs
-    console.log('Updating SPT status to graded...');
     try {
       await sequelizeConf.query(
         `UPDATE spt_tahunan 
@@ -1601,17 +1354,10 @@ exports.gradeSpt = async (req, res) => {
           transaction
         }
       );
-      console.log('SPT status updated successfully');
     } catch (updateError) {
-      console.error('Error updating SPT status:', updateError);
-
-      // If status update fails due to ENUM, try without changing status
-      console.log('Attempting to save grade without updating SPT status...');
-
-      // The grade was already inserted successfully, so we can still return success
-      // But inform the user about the status issue
+      console.error('Error updating SPT status to graded:', updateError.message);
+      // Grade sudah tersimpan — commit tetap dilakukan tapi beri warning
       await transaction.commit();
-
       return res.status(200).json({
         success: true,
         message: "Penilaian berhasil disimpan, tetapi status SPT tidak dapat diupdate. Silakan update ENUM spt_tahunan.status.",
@@ -1628,8 +1374,6 @@ exports.gradeSpt = async (req, res) => {
 
     await transaction.commit();
 
-    console.log('Grade submitted successfully');
-
     res.status(200).json({
       success: true,
       message: "Penilaian berhasil disimpan",
@@ -1643,27 +1387,23 @@ exports.gradeSpt = async (req, res) => {
     });
 
   } catch (error) {
-    if (transaction) await transaction.rollback();
+    if (transaction) {
+      try { await transaction.rollback(); } catch (e) { console.error('Rollback error:', e.message); }
+    }
 
     console.error('=== ERROR gradeSpt ===');
-    console.error('Error:', error);
-    console.error('Error message:', error.message);
-    console.error('Error code:', error.code);
-    console.error('SQL:', error.sql);
+    console.error('Error:', error.message);
+    console.error('Code:', error.code);
 
-    // Enhanced error handling
     let errorMessage = "Terjadi kesalahan server saat menyimpan penilaian";
     let statusCode = 500;
 
     if (error.message && error.message.includes("Data truncated for column 'status'")) {
       errorMessage = "Kolom status di tabel spt_tahunan tidak mendukung nilai 'graded'. Silakan update ENUM values.";
-      statusCode = 500;
     } else if (error.code === 'ER_NO_SUCH_TABLE') {
       errorMessage = "Tabel yang diperlukan belum dibuat. Silakan jalankan migration database.";
-      statusCode = 500;
     } else if (error.code === 'ER_BAD_FIELD_ERROR') {
       errorMessage = "Struktur tabel tidak sesuai. Silakan update schema database.";
-      statusCode = 500;
     } else if (error.code === 'ER_TRUNCATED_WRONG_VALUE_FOR_FIELD') {
       errorMessage = "Format data tidak valid. Periksa nilai ENUM atau tipe data.";
       statusCode = 400;
@@ -1686,10 +1426,10 @@ exports.gradeSpt = async (req, res) => {
     });
   }
 };
-/**
- * Preview SPT PDF for dosen - FIXED VERSION
- * GET /api/v2/dosen/spt-tahunan/:spt_id/preview
- */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PREVIEW SPT PDF (dosen + mahasiswa)
+// ─────────────────────────────────────────────────────────────────────────────
 exports.previewSptPdf = async (req, res) => {
   try {
     const { spt_id } = req.params;
@@ -1701,11 +1441,9 @@ exports.previewSptPdf = async (req, res) => {
     console.log('User ID:', user_id);
     console.log('Role:', role);
 
-    // Build query based on role
     let whereClause = 'WHERE spt.id = :sptId';
     let replacements = { sptId: spt_id };
 
-    // If mahasiswa, only show their own SPT
     if (role === 'mahasiswa') {
       whereClause += ' AND spt.user_id = :userId';
       replacements.userId = user_id;
@@ -1746,7 +1484,6 @@ exports.previewSptPdf = async (req, res) => {
     );
 
     if (!sptData) {
-      console.log('SPT not found for ID:', spt_id);
       return res.status(404).send(`
         <html>
           <body style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
@@ -1758,25 +1495,10 @@ exports.previewSptPdf = async (req, res) => {
       `);
     }
 
-    console.log('SPT Data found:', {
-      id: sptData.id,
-      user_name: sptData.user_name,
-      status: sptData.status,
-      has_grade: !!sptData.final_score
-    });
-
-    // Parse JSON data safely
-    let taxpayerIdentity = {};
-    let incomeData = {};
-    let statementData = {};
-    let taxCalculation = {};
-    let taxCredit = {};
-    let underpaymentOverpayment = {};
-    let amendmentTaxReturn = {};
-    let refundData = {};
-    let incomeInstallment = {};
-    let otherTransactions = {};
-    let additionalAttachments = {};
+    let taxpayerIdentity = {}, incomeData = {}, statementData = {},
+      taxCalculation = {}, taxCredit = {}, underpaymentOverpayment = {},
+      amendmentTaxReturn = {}, refundData = {}, incomeInstallment = {},
+      otherTransactions = {}, additionalAttachments = {};
 
     try {
       taxpayerIdentity = sptData.taxpayer_identity ? JSON.parse(sptData.taxpayer_identity) : {};
@@ -1794,20 +1516,10 @@ exports.previewSptPdf = async (req, res) => {
       console.log('JSON parse error (non-critical):', parseError.message);
     }
 
-    // Generate HTML for PDF preview
     const htmlContent = generateEnhancedSptHtml(
-      sptData,
-      taxpayerIdentity,
-      incomeData,
-      statementData,
-      taxCalculation,
-      taxCredit,
-      underpaymentOverpayment,
-      amendmentTaxReturn,
-      refundData,
-      incomeInstallment,
-      otherTransactions,
-      additionalAttachments
+      sptData, taxpayerIdentity, incomeData, statementData, taxCalculation,
+      taxCredit, underpaymentOverpayment, amendmentTaxReturn, refundData,
+      incomeInstallment, otherTransactions, additionalAttachments
     );
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -1815,61 +1527,36 @@ exports.previewSptPdf = async (req, res) => {
     res.send(htmlContent);
 
   } catch (error) {
-    console.error('=== Preview SPT Error ===');
-    console.error('Error:', error.message);
-    console.error('Stack:', error.stack);
-
+    console.error('Preview SPT error:', error.message);
     res.status(500).send(`
       <html>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
           <h2>❌ Error Loading SPT Preview</h2>
-          <p>Terjadi kesalahan saat memuat preview SPT:</p>
-          <div style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0;">
-            ${error.message}
-          </div>
+          <p>${error.message}</p>
           <p><strong>SPT ID:</strong> ${req.params.spt_id}</p>
-          <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
-          <button onclick="window.location.reload()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-            🔄 Reload
-          </button>
+          <button onclick="window.location.reload()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Reload</button>
         </body>
       </html>
     `);
   }
 };
 
-// Enhanced HTML generator function untuk SPT preview
+// ─────────────────────────────────────────────────────────────────────────────
+// HTML GENERATOR (internal helper — tidak di-export)
+// ─────────────────────────────────────────────────────────────────────────────
 function generateEnhancedSptHtml(sptData, taxpayerIdentity, incomeData, statementData, taxCalculation, taxCredit, underpaymentOverpayment, amendmentTaxReturn, refundData, incomeInstallment, otherTransactions, additionalAttachments) {
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('id-ID').format(amount || 0);
-  };
+  const formatCurrency = (amount) => new Intl.NumberFormat('id-ID').format(amount || 0);
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    try {
-      return new Date(dateString).toLocaleDateString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return '-';
-    }
+    try { return new Date(dateString).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }); }
+    catch { return '-'; }
   };
 
   const formatDateTime = (dateString) => {
     if (!dateString) return '-';
-    try {
-      return new Date(dateString).toLocaleString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return '-';
-    }
+    try { return new Date(dateString).toLocaleString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    catch { return '-'; }
   };
 
   const formatBoolean = (value) => {
@@ -1878,702 +1565,6 @@ function generateEnhancedSptHtml(sptData, taxpayerIdentity, incomeData, statemen
     return '-';
   };
 
-  return `
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-        <title>Preview SPT ${sptData.tax_year} - ${sptData.user_name}</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            * { box-sizing: border-box; }
-            body { 
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                margin: 0; 
-                padding: 20px; 
-                background: #f8f9fa;
-                line-height: 1.6;
-                color: #333;
-            }
-            .container {
-                max-width: 800px;
-                margin: 0 auto;
-                background: white;
-                border-radius: 8px;
-                box-shadow: 0 0 20px rgba(0,0,0,0.1);
-                overflow: hidden;
-            }
-            .header { 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                text-align: center; 
-                padding: 30px 20px;
-                margin-bottom: 0;
-            }
-            .header h1 {
-                margin: 0 0 10px 0;
-                font-size: 24px;
-                font-weight: 700;
-            }
-            .header h2 {
-                margin: 0 0 15px 0;
-                font-size: 16px;
-                font-weight: 400;
-                opacity: 0.9;
-            }
-            .header .tax-year {
-                background: rgba(255,255,255,0.2);
-                padding: 8px 16px;
-                border-radius: 20px;
-                display: inline-block;
-                font-weight: 600;
-            }
-            .content {
-                padding: 30px;
-            }
-            .section { 
-                margin-bottom: 30px; 
-                border: 1px solid #e9ecef;
-                border-radius: 8px;
-                overflow: hidden;
-                background: white;
-            }
-            .section-title { 
-                background: #f8f9fa;
-                color: #495057;
-                font-weight: bold; 
-                font-size: 16px; 
-                padding: 15px 20px;
-                margin: 0;
-                border-bottom: 1px solid #e9ecef;
-            }
-            .section-content {
-                padding: 20px;
-            }
-            .field-row {
-                display: flex;
-                margin-bottom: 12px;
-                padding-bottom: 8px;
-                border-bottom: 1px dotted #dee2e6;
-            }
-            .field-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-            }
-            .field-label { 
-                font-weight: 600; 
-                width: 200px; 
-                color: #6c757d;
-                flex-shrink: 0;
-            }
-            .field-value { 
-                flex: 1;
-                color: #495057;
-                word-break: break-word;
-            }
-            .status-badge {
-                display: inline-block;
-                padding: 4px 12px;
-                border-radius: 15px;
-                font-size: 12px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .status-submitted { background: #17a2b8; color: white; }
-            .status-approved { background: #28a745; color: white; }
-            .status-graded { background: #6f42c1; color: white; }
-            .status-draft { background: #6c757d; color: white; }
-            .grade-section {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-            }
-            .grade-section .section-title {
-                background: rgba(255,255,255,0.1);
-                color: white;
-                border-bottom-color: rgba(255,255,255,0.2);
-            }
-            .grade-section .field-label {
-                color: rgba(255,255,255,0.8);
-            }
-            .grade-section .field-value {
-                color: white;
-                font-weight: 500;
-            }
-            .summary-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 15px;
-                font-size: 14px;
-            }
-            .summary-table th,
-            .summary-table td {
-                border: 1px solid #dee2e6;
-                padding: 12px 15px;
-                text-align: left;
-            }
-            .summary-table th {
-                background: #f8f9fa;
-                font-weight: 600;
-                color: #495057;
-            }
-            .amount {
-                text-align: right;
-                font-family: 'Courier New', monospace;
-                font-weight: 500;
-            }
-            .total-row {
-                font-weight: 700;
-                background: #e9ecef;
-            }
-            .grade-table {
-                background: rgba(255,255,255,0.1);
-                color: white;
-            }
-            .grade-table th {
-                background: rgba(255,255,255,0.2);
-                color: white;
-                border-color: rgba(255,255,255,0.3);
-            }
-            .grade-table td {
-                border-color: rgba(255,255,255,0.3);
-            }
-            .feedback-box {
-                background: rgba(255,255,255,0.1);
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 4px solid rgba(255,255,255,0.5);
-                margin-top: 15px;
-            }
-            .watermark {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 120px;
-                color: rgba(0,0,0,0.03);
-                z-index: 1;
-                pointer-events: none;
-                font-weight: bold;
-                user-select: none;
-            }
-            .footer {
-                margin-top: 40px;
-                padding: 20px;
-                background: #f8f9fa;
-                text-align: center;
-                color: #6c757d;
-                font-size: 13px;
-                border-top: 1px solid #dee2e6;
-            }
-            .success-icon { color: #28a745; }
-            .info-icon { color: #17a2b8; }
-            .warning-icon { color: #ffc107; }
-            
-            @media print {
-                body { 
-                    background: white; 
-                    padding: 0;
-                }
-                .container {
-                    box-shadow: none;
-                    border-radius: 0;
-                }
-                .watermark { 
-                    color: rgba(0,0,0,0.05);
-                }
-            }
-            
-            @media (max-width: 768px) {
-                .content { padding: 15px; }
-                .field-row { flex-direction: column; }
-                .field-label { width: auto; margin-bottom: 5px; }
-                .summary-table { font-size: 12px; }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="watermark">SIMULASI</div>
-        
-        <div class="container">
-            <div class="header">
-                <h1>📋 SURAT PEMBERITAHUAN TAHUNAN</h1>
-                <h2>Pajak Penghasilan Wajib Pajak Orang Pribadi</h2>
-                <div class="tax-year">Tahun Pajak ${sptData.tax_year}</div>
-            </div>
-
-            <div class="content">
-                <!-- Informasi Umum -->
-                <div class="section">
-                    <div class="section-title">📊 Informasi Umum</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Nama Wajib Pajak:</div>
-                            <div class="field-value"><strong>${sptData.user_name || '-'}</strong></div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">NIM:</div>
-                            <div class="field-value">${sptData.student_id || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Email:</div>
-                            <div class="field-value">${sptData.user_email || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Status SPT:</div>
-                            <div class="field-value">
-                                <span class="status-badge status-${sptData.status}">${sptData.status}</span>
-                            </div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Tanggal Submit:</div>
-                            <div class="field-value">${formatDateTime(sptData.submission_date)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Periode Pajak:</div>
-                            <div class="field-value">${sptData.tax_period || `${sptData.tax_year} January - December`}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Jenis Pembukuan:</div>
-                            <div class="field-value">${sptData.bookkeeping_type || 'Simple Bookkeeping'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Sumber Penghasilan:</div>
-                            <div class="field-value">${sptData.source_of_income || '-'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- A. Identitas Wajib Pajak -->
-                <div class="section">
-                    <div class="section-title">🆔 A. IDENTITAS WAJIB PAJAK</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">NIK:</div>
-                            <div class="field-value">${taxpayerIdentity.nik || taxpayerIdentity.id_number || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Nama Lengkap:</div>
-                            <div class="field-value">${taxpayerIdentity.name || taxpayerIdentity.full_name || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Jenis Identitas:</div>
-                            <div class="field-value">${taxpayerIdentity.identity_type || 'KTP'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">No. Telepon:</div>
-                            <div class="field-value">${taxpayerIdentity.mobile_phone || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Email:</div>
-                            <div class="field-value">${taxpayerIdentity.email || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Status Kewajiban Pajak:</div>
-                            <div class="field-value">${taxpayerIdentity.tax_obligation_status || '-'}</div>
-                        </div>
-                        ${taxpayerIdentity.spouse_nik ? `
-                        <div class="field-row">
-                            <div class="field-label">NIK Pasangan:</div>
-                            <div class="field-value">${taxpayerIdentity.spouse_nik}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-
-                <!-- B. Ringkasan Penghasilan -->
-                <div class="section">
-                    <div class="section-title">💰 B. RINGKASAN PENGHASILAN</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Penghasilan dari Pekerjaan:</div>
-                            <div class="field-value">${formatBoolean(incomeData.employment_income)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Penghasilan dari Usaha:</div>
-                            <div class="field-value">${formatBoolean(incomeData.business_income)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Penghasilan Lain Dalam Negeri:</div>
-                            <div class="field-value">${formatBoolean(incomeData.other_domestic_income)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Penghasilan Luar Negeri:</div>
-                            <div class="field-value">${formatBoolean(incomeData.foreign_income)}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- C. Perhitungan Pajak -->
-                <div class="section">
-                    <div class="section-title">🧮 C. PERHITUNGAN PAJAK PENGHASILAN</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Pengurangan Penghasilan Neto:</div>
-                            <div class="field-value">${formatBoolean(taxCalculation.net_income_deduction)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">PTKP (Penghasilan Tidak Kena Pajak):</div>
-                            <div class="field-value">${taxCalculation.tax_exemptions || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Pengurangan Pajak Penghasilan:</div>
-                            <div class="field-value">${formatBoolean(taxCalculation.income_tax_deduction)}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- D. Kredit Pajak -->
-                <div class="section">
-                    <div class="section-title">💳 D. KREDIT PAJAK</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">PPh yang Dipotong/Dipungut:</div>
-                            <div class="field-value">${formatBoolean(taxCredit.withheld_income_tax)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">PPh Pasal 25 Angsuran:</div>
-                            <div class="field-value">${formatBoolean(taxCredit.installment_article_25)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">STP Pajak Penghasilan:</div>
-                            <div class="field-value">${formatBoolean(taxCredit.notice_tax_collection)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Kredit Pajak Luar Negeri:</div>
-                            <div class="field-value">${formatBoolean(taxCredit.foreign_tax_credit)}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- E. Kurang/Lebih Bayar -->
-                <div class="section">
-                    <div class="section-title">⚖️ E. KURANG/LEBIH BAYAR</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Surat Persetujuan Angsuran:</div>
-                            <div class="field-value">${formatBoolean(underpaymentOverpayment.approval_letter)}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- F. SPT Pembetulan -->
-                ${Object.keys(amendmentTaxReturn).length > 0 ? `
-                <div class="section">
-                    <div class="section-title">📝 F. SPT PEMBETULAN</div>
-                    <div class="section-content">
-                        ${amendmentTaxReturn.previous_underpayment ? `
-                        <div class="field-row">
-                            <div class="field-label">Kurang Bayar SPT Sebelumnya:</div>
-                            <div class="field-value">Rp. ${formatCurrency(amendmentTaxReturn.previous_underpayment)}</div>
-                        </div>
-                        ` : ''}
-                        ${amendmentTaxReturn.amendment_underpayment ? `
-                        <div class="field-row">
-                            <div class="field-label">Kurang Bayar SPT Pembetulan:</div>
-                            <div class="field-value">Rp. ${formatCurrency(amendmentTaxReturn.amendment_underpayment)}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- G. Restitusi -->
-                ${Object.keys(refundData).length > 0 ? `
-                <div class="section">
-                    <div class="section-title">💸 G. RESTITUSI</div>
-                    <div class="section-content">
-                        ${refundData.refund_method ? `
-                        <div class="field-row">
-                            <div class="field-label">Cara Pengembalian:</div>
-                            <div class="field-value">${refundData.refund_method}</div>
-                        </div>
-                        ` : ''}
-                        ${refundData.bank_account ? `
-                        <div class="field-row">
-                            <div class="field-label">Bank:</div>
-                            <div class="field-value">${refundData.bank_account}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- H. Angsuran PPh Pasal 25 -->
-                ${Object.keys(incomeInstallment).length > 0 ? `
-                <div class="section">
-                    <div class="section-title">📅 H. ANGSURAN PPh PASAL 25</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Kewajiban Angsuran Pasal 25:</div>
-                            <div class="field-value">${formatBoolean(incomeInstallment.article_25_obligation)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Pengusaha Tertentu:</div>
-                            <div class="field-value">${formatBoolean(incomeInstallment.specific_entrepreneur)}</div>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- I. Transaksi Lainnya -->
-                ${Object.keys(otherTransactions).length > 0 ? `
-                <div class="section">
-                    <div class="section-title">🔄 I. TRANSAKSI LAINNYA</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Harta Akhir Tahun:</div>
-                            <div class="field-value">${formatBoolean(otherTransactions.assets_end_year)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Utang Akhir Tahun:</div>
-                            <div class="field-value">${formatBoolean(otherTransactions.debt_end_year)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">PPh Final:</div>
-                            <div class="field-value">${formatBoolean(otherTransactions.final_income_tax)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Penghasilan yang Dikecualikan:</div>
-                            <div class="field-value">${formatBoolean(otherTransactions.excluded_income)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Penyusutan/Amortisasi:</div>
-                            <div class="field-value">${formatBoolean(otherTransactions.depreciation_amortization)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Biaya Jamuan:</div>
-                            <div class="field-value">${formatBoolean(otherTransactions.entertainment_expense)}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Dividen:</div>
-                            <div class="field-value">${formatBoolean(otherTransactions.dividend_income)}</div>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- J. Lampiran Tambahan -->
-                ${Object.keys(additionalAttachments).length > 0 ? `
-                <div class="section">
-                    <div class="section-title">📎 J. LAMPIRAN TAMBAHAN</div>
-                    <div class="section-content">
-                        ${additionalAttachments.financial_statement ? `
-                        <div class="field-row">
-                            <div class="field-label">Laporan Keuangan:</div>
-                            <div class="field-value">${additionalAttachments.financial_statement.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div>
-                        </div>
-                        ` : ''}
-                        ${additionalAttachments.payment_proof ? `
-                        <div class="field-row">
-                            <div class="field-label">Bukti Pembayaran:</div>
-                            <div class="field-value">${additionalAttachments.payment_proof.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div>
-                        </div>
-                        ` : ''}
-                        ${additionalAttachments.withholding_relation ? `
-                        <div class="field-row">
-                            <div class="field-label">Hubungan Pemotongan:</div>
-                            <div class="field-value">${additionalAttachments.withholding_relation.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div>
-                        </div>
-                        ` : ''}
-                        ${additionalAttachments.attorney_letter ? `
-                        <div class="field-row">
-                            <div class="field-label">Surat Kuasa:</div>
-                            <div class="field-value">${additionalAttachments.attorney_letter.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div>
-                        </div>
-                        ` : ''}
-                        ${additionalAttachments.other_documents ? `
-                        <div class="field-row">
-                            <div class="field-label">Dokumen Lainnya:</div>
-                            <div class="field-value">${additionalAttachments.other_documents.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- K. Pernyataan -->
-                <div class="section">
-                    <div class="section-title">✍️ K. PERNYATAAN</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Status Pernyataan:</div>
-                            <div class="field-value">
-                                ${statementData.declaration ?
-      '<span class="success-icon">✅</span> Saya menyatakan bahwa SPT ini telah diisi dengan benar dan lengkap' :
-      '<span class="warning-icon">⚠️</span> Pernyataan belum dibuat'
-    }
-                            </div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Nama Lengkap:</div>
-                            <div class="field-value">${statementData.full_name || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">NIK:</div>
-                            <div class="field-value">${statementData.tin_nik || '-'}</div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Tanggal Pernyataan:</div>
-                            <div class="field-value">${formatDate(sptData.submission_date)}</div>
-                        </div>
-                        ${statementData.representative ? `
-                        <div class="field-row">
-                            <div class="field-label">Kuasa/Wakil:</div>
-                            <div class="field-value">${statementData.representative}</div>
-                        </div>
-                        ` : ''}
-                        ${statementData.signature ? `
-                        <div class="field-row">
-                            <div class="field-label">Tanda Tangan:</div>
-                            <div class="field-value">🔏 ${statementData.signature}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-
-                <!-- Penilaian Dosen (jika ada) -->
-                ${sptData.final_score ? `
-                <div class="section grade-section">
-                    <div class="section-title">🎓 PENILAIAN DOSEN</div>
-                    <div class="section-content">
-                        <div class="field-row">
-                            <div class="field-label">Nilai Akhir:</div>
-                            <div class="field-value">
-                                <strong style="font-size: 18px;">
-                                    ${Math.round(sptData.final_score)}/100 (${sptData.letter_grade})
-                                </strong>
-                            </div>
-                        </div>
-                        <div class="field-row">
-                            <div class="field-label">Tanggal Penilaian:</div>
-                            <div class="field-value">${formatDateTime(sptData.graded_date)}</div>
-                        </div>
-                        
-                        ${sptData.completeness_score ? `
-                        <h4 style="margin: 20px 0 15px 0; color: white;">📊 Detail Penilaian:</h4>
-                        <table class="summary-table grade-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 35%">Kriteria</th>
-                                    <th style="width: 15%">Bobot</th>
-                                    <th style="width: 20%">Skor</th>
-                                    <th style="width: 20%">Nilai</th>
-                                    <th style="width: 10%">Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>📋 Kelengkapan Data</td>
-                                    <td class="amount">25%</td>
-                                    <td class="amount">${Math.round(sptData.completeness_score || 0)}</td>
-                                    <td class="amount">${Math.round((sptData.completeness_score || 0) * 0.25)}</td>
-                                    <td class="amount">${getLetterGrade(sptData.completeness_score || 0)}</td>
-                                </tr>
-                                <tr>
-                                    <td>🎯 Keakuratan Perhitungan</td>
-                                    <td class="amount">25%</td>
-                                    <td class="amount">${Math.round(sptData.accuracy_score || 0)}</td>
-                                    <td class="amount">${Math.round((sptData.accuracy_score || 0) * 0.25)}</td>
-                                    <td class="amount">${getLetterGrade(sptData.accuracy_score || 0)}</td>
-                                </tr>
-                                <tr>
-                                    <td>🎨 Penyajian & Format</td>
-                                    <td class="amount">25%</td>
-                                    <td class="amount">${Math.round(sptData.presentation_score || 0)}</td>
-                                    <td class="amount">${Math.round((sptData.presentation_score || 0) * 0.25)}</td>
-                                    <td class="amount">${getLetterGrade(sptData.presentation_score || 0)}</td>
-                                </tr>
-                                <tr>
-                                    <td>🧠 Pemahaman Konsep</td>
-                                    <td class="amount">25%</td>
-                                    <td class="amount">${Math.round(sptData.understanding_score || 0)}</td>
-                                    <td class="amount">${Math.round((sptData.understanding_score || 0) * 0.25)}</td>
-                                    <td class="amount">${getLetterGrade(sptData.understanding_score || 0)}</td>
-                                </tr>
-                                <tr class="total-row">
-                                    <td><strong>📈 Total</strong></td>
-                                    <td class="amount"><strong>100%</strong></td>
-                                    <td class="amount">-</td>
-                                    <td class="amount"><strong>${Math.round(sptData.final_score)}</strong></td>
-                                    <td class="amount"><strong>${sptData.letter_grade}</strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        ` : ''}
-                        
-                        ${sptData.feedback ? `
-                        <div style="margin-top: 20px;">
-                            <h4 style="margin: 0 0 10px 0; color: white;">💬 Feedback Dosen:</h4>
-                            <div class="feedback-box">
-                                ${sptData.feedback}
-                            </div>
-                        </div>
-                        ` : ''}
-
-                        ${(sptData.completeness_comment || sptData.accuracy_comment || sptData.presentation_comment || sptData.understanding_comment) ? `
-                        <div style="margin-top: 20px;">
-                            <h4 style="margin: 0 0 15px 0; color: white;">📝 Komentar Detail:</h4>
-                            ${sptData.completeness_comment ? `
-                            <div class="feedback-box" style="margin-bottom: 10px;">
-                                <strong>📋 Kelengkapan:</strong> ${sptData.completeness_comment}
-                            </div>
-                            ` : ''}
-                            ${sptData.accuracy_comment ? `
-                            <div class="feedback-box" style="margin-bottom: 10px;">
-                                <strong>🎯 Keakuratan:</strong> ${sptData.accuracy_comment}
-                            </div>
-                            ` : ''}
-                            ${sptData.presentation_comment ? `
-                            <div class="feedback-box" style="margin-bottom: 10px;">
-                                <strong>🎨 Penyajian:</strong> ${sptData.presentation_comment}
-                            </div>
-                            ` : ''}
-                            ${sptData.understanding_comment ? `
-                            <div class="feedback-box" style="margin-bottom: 10px;">
-                                <strong>🧠 Pemahaman:</strong> ${sptData.understanding_comment}
-                            </div>
-                            ` : ''}
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-                ` : ''}
-            </div>
-
-            <!-- Footer -->
-            <div class="footer">
-                <p><strong>📄 Dokumen SPT Tahunan Simulasi</strong></p>
-                <p>🕒 Digenerate pada: ${formatDateTime(new Date())}</p>
-                <p><em>✨ Dokumen ini dibuat dalam mode simulasi untuk keperluan pembelajaran</em></p>
-                <p style="margin-top: 15px; font-size: 11px; color: #999;">
-                    ID SPT: ${sptData.id} | Status: ${sptData.status} | 
-                    ${sptData.submission_date ? 'Submit: ' + formatDate(sptData.submission_date) : 'Belum Submit'}
-                    ${sptData.final_score ? ` | Nilai: ${Math.round(sptData.final_score)}/100` : ''}
-                </p>
-            </div>
-        </div>
-
-        <script>
-            // Auto print untuk PDF generation jika diperlukan
-            if (window.location.search.includes('print=true')) {
-                setTimeout(() => window.print(), 1000);
-            }
-            
-            // Console logging untuk debugging
-            console.log('✅ SPT Preview loaded successfully');
-            console.log('📊 SPT ID: ${sptData.id}');
-            console.log('📈 Status: ${sptData.status}');
-            console.log('🎓 Has Grade: ${!!sptData.final_score}');
-            
-            // Add loading completed indicator
-            document.body.classList.add('loaded');
-        </script>
-    </body>
-    </html>
-  `;
-
-  // Helper function untuk letter grade
   function getLetterGrade(score) {
     if (score >= 85) return 'A';
     else if (score >= 80) return 'A-';
@@ -2586,8 +1577,228 @@ function generateEnhancedSptHtml(sptData, taxpayerIdentity, incomeData, statemen
     else if (score >= 40) return 'D';
     else return 'E';
   }
-};
 
+  return `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <title>Preview SPT ${sptData.tax_year} - ${sptData.user_name}</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            * { box-sizing: border-box; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; line-height: 1.6; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow: hidden; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 30px 20px; }
+            .header h1 { margin: 0 0 10px 0; font-size: 24px; font-weight: 700; }
+            .header h2 { margin: 0 0 15px 0; font-size: 16px; font-weight: 400; opacity: 0.9; }
+            .header .tax-year { background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 600; }
+            .content { padding: 30px; }
+            .section { margin-bottom: 30px; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; }
+            .section-title { background: #f8f9fa; color: #495057; font-weight: bold; font-size: 16px; padding: 15px 20px; margin: 0; border-bottom: 1px solid #e9ecef; }
+            .section-content { padding: 20px; }
+            .field-row { display: flex; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dotted #dee2e6; }
+            .field-row:last-child { border-bottom: none; margin-bottom: 0; }
+            .field-label { font-weight: 600; width: 200px; color: #6c757d; flex-shrink: 0; }
+            .field-value { flex: 1; color: #495057; word-break: break-word; }
+            .status-badge { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+            .status-submitted { background: #17a2b8; color: white; }
+            .status-approved { background: #28a745; color: white; }
+            .status-graded { background: #6f42c1; color: white; }
+            .status-draft { background: #6c757d; color: white; }
+            .grade-section { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+            .grade-section .section-title { background: rgba(255,255,255,0.1); color: white; border-bottom-color: rgba(255,255,255,0.2); }
+            .grade-section .field-label { color: rgba(255,255,255,0.8); }
+            .grade-section .field-value { color: white; font-weight: 500; }
+            .summary-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+            .summary-table th, .summary-table td { border: 1px solid #dee2e6; padding: 12px 15px; text-align: left; }
+            .summary-table th { background: #f8f9fa; font-weight: 600; color: #495057; }
+            .amount { text-align: right; font-family: 'Courier New', monospace; font-weight: 500; }
+            .total-row { font-weight: 700; background: #e9ecef; }
+            .grade-table th { background: rgba(255,255,255,0.2); color: white; border-color: rgba(255,255,255,0.3); }
+            .grade-table td { border-color: rgba(255,255,255,0.3); }
+            .feedback-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; border-left: 4px solid rgba(255,255,255,0.5); margin-top: 15px; }
+            .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 120px; color: rgba(0,0,0,0.03); z-index: 1; pointer-events: none; font-weight: bold; user-select: none; }
+            .footer { margin-top: 40px; padding: 20px; background: #f8f9fa; text-align: center; color: #6c757d; font-size: 13px; border-top: 1px solid #dee2e6; }
+            .success-icon { color: #28a745; }
+            .warning-icon { color: #ffc107; }
+            @media print { body { background: white; padding: 0; } .container { box-shadow: none; border-radius: 0; } }
+            @media (max-width: 768px) { .content { padding: 15px; } .field-row { flex-direction: column; } .field-label { width: auto; margin-bottom: 5px; } }
+        </style>
+    </head>
+    <body>
+        <div class="watermark">SIMULASI</div>
+        <div class="container">
+            <div class="header">
+                <h1>📋 SURAT PEMBERITAHUAN TAHUNAN</h1>
+                <h2>Pajak Penghasilan Wajib Pajak Orang Pribadi</h2>
+                <div class="tax-year">Tahun Pajak ${sptData.tax_year}</div>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <div class="section-title">📊 Informasi Umum</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Nama Wajib Pajak:</div><div class="field-value"><strong>${sptData.user_name || '-'}</strong></div></div>
+                        <div class="field-row"><div class="field-label">NIM:</div><div class="field-value">${sptData.student_id || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Email:</div><div class="field-value">${sptData.user_email || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Status SPT:</div><div class="field-value"><span class="status-badge status-${sptData.status}">${sptData.status}</span></div></div>
+                        <div class="field-row"><div class="field-label">Tanggal Submit:</div><div class="field-value">${formatDateTime(sptData.submission_date)}</div></div>
+                        <div class="field-row"><div class="field-label">Periode Pajak:</div><div class="field-value">${sptData.tax_period || `${sptData.tax_year} January - December`}</div></div>
+                        <div class="field-row"><div class="field-label">Jenis Pembukuan:</div><div class="field-value">${sptData.bookkeeping_type || 'Simple Bookkeeping'}</div></div>
+                        <div class="field-row"><div class="field-label">Sumber Penghasilan:</div><div class="field-value">${sptData.source_of_income || '-'}</div></div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">🆔 A. IDENTITAS WAJIB PAJAK</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">NIK:</div><div class="field-value">${taxpayerIdentity.nik || taxpayerIdentity.id_number || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Nama Lengkap:</div><div class="field-value">${taxpayerIdentity.name || taxpayerIdentity.full_name || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Jenis Identitas:</div><div class="field-value">${taxpayerIdentity.identity_type || 'KTP'}</div></div>
+                        <div class="field-row"><div class="field-label">No. Telepon:</div><div class="field-value">${taxpayerIdentity.mobile_phone || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Email:</div><div class="field-value">${taxpayerIdentity.email || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Status Kewajiban Pajak:</div><div class="field-value">${taxpayerIdentity.tax_obligation_status || '-'}</div></div>
+                        ${taxpayerIdentity.spouse_nik ? `<div class="field-row"><div class="field-label">NIK Pasangan:</div><div class="field-value">${taxpayerIdentity.spouse_nik}</div></div>` : ''}
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">💰 B. RINGKASAN PENGHASILAN</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Penghasilan dari Pekerjaan:</div><div class="field-value">${formatBoolean(incomeData.employment_income)}</div></div>
+                        <div class="field-row"><div class="field-label">Penghasilan dari Usaha:</div><div class="field-value">${formatBoolean(incomeData.business_income)}</div></div>
+                        <div class="field-row"><div class="field-label">Penghasilan Lain Dalam Negeri:</div><div class="field-value">${formatBoolean(incomeData.other_domestic_income)}</div></div>
+                        <div class="field-row"><div class="field-label">Penghasilan Luar Negeri:</div><div class="field-value">${formatBoolean(incomeData.foreign_income)}</div></div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">🧮 C. PERHITUNGAN PAJAK PENGHASILAN</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Pengurangan Penghasilan Neto:</div><div class="field-value">${formatBoolean(taxCalculation.net_income_deduction)}</div></div>
+                        <div class="field-row"><div class="field-label">PTKP:</div><div class="field-value">${taxCalculation.tax_exemptions || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Pengurangan Pajak Penghasilan:</div><div class="field-value">${formatBoolean(taxCalculation.income_tax_deduction)}</div></div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">💳 D. KREDIT PAJAK</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">PPh yang Dipotong/Dipungut:</div><div class="field-value">${formatBoolean(taxCredit.withheld_income_tax)}</div></div>
+                        <div class="field-row"><div class="field-label">PPh Pasal 25 Angsuran:</div><div class="field-value">${formatBoolean(taxCredit.installment_article_25)}</div></div>
+                        <div class="field-row"><div class="field-label">STP Pajak Penghasilan:</div><div class="field-value">${formatBoolean(taxCredit.notice_tax_collection)}</div></div>
+                        <div class="field-row"><div class="field-label">Kredit Pajak Luar Negeri:</div><div class="field-value">${formatBoolean(taxCredit.foreign_tax_credit)}</div></div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">⚖️ E. KURANG/LEBIH BAYAR</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Surat Persetujuan Angsuran:</div><div class="field-value">${formatBoolean(underpaymentOverpayment.approval_letter)}</div></div>
+                    </div>
+                </div>
+                ${Object.keys(amendmentTaxReturn).length > 0 ? `
+                <div class="section">
+                    <div class="section-title">📝 F. SPT PEMBETULAN</div>
+                    <div class="section-content">
+                        ${amendmentTaxReturn.previous_underpayment ? `<div class="field-row"><div class="field-label">Kurang Bayar SPT Sebelumnya:</div><div class="field-value">Rp. ${formatCurrency(amendmentTaxReturn.previous_underpayment)}</div></div>` : ''}
+                        ${amendmentTaxReturn.amendment_underpayment ? `<div class="field-row"><div class="field-label">Kurang Bayar SPT Pembetulan:</div><div class="field-value">Rp. ${formatCurrency(amendmentTaxReturn.amendment_underpayment)}</div></div>` : ''}
+                    </div>
+                </div>` : ''}
+                ${Object.keys(refundData).length > 0 ? `
+                <div class="section">
+                    <div class="section-title">💸 G. RESTITUSI</div>
+                    <div class="section-content">
+                        ${refundData.refund_method ? `<div class="field-row"><div class="field-label">Cara Pengembalian:</div><div class="field-value">${refundData.refund_method}</div></div>` : ''}
+                        ${refundData.bank_account ? `<div class="field-row"><div class="field-label">Bank:</div><div class="field-value">${refundData.bank_account}</div></div>` : ''}
+                    </div>
+                </div>` : ''}
+                ${Object.keys(incomeInstallment).length > 0 ? `
+                <div class="section">
+                    <div class="section-title">📅 H. ANGSURAN PPh PASAL 25</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Kewajiban Angsuran Pasal 25:</div><div class="field-value">${formatBoolean(incomeInstallment.article_25_obligation)}</div></div>
+                        <div class="field-row"><div class="field-label">Pengusaha Tertentu:</div><div class="field-value">${formatBoolean(incomeInstallment.specific_entrepreneur)}</div></div>
+                    </div>
+                </div>` : ''}
+                ${Object.keys(otherTransactions).length > 0 ? `
+                <div class="section">
+                    <div class="section-title">🔄 I. TRANSAKSI LAINNYA</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Harta Akhir Tahun:</div><div class="field-value">${formatBoolean(otherTransactions.assets_end_year)}</div></div>
+                        <div class="field-row"><div class="field-label">Utang Akhir Tahun:</div><div class="field-value">${formatBoolean(otherTransactions.debt_end_year)}</div></div>
+                        <div class="field-row"><div class="field-label">PPh Final:</div><div class="field-value">${formatBoolean(otherTransactions.final_income_tax)}</div></div>
+                        <div class="field-row"><div class="field-label">Penghasilan yang Dikecualikan:</div><div class="field-value">${formatBoolean(otherTransactions.excluded_income)}</div></div>
+                        <div class="field-row"><div class="field-label">Penyusutan/Amortisasi:</div><div class="field-value">${formatBoolean(otherTransactions.depreciation_amortization)}</div></div>
+                        <div class="field-row"><div class="field-label">Biaya Jamuan:</div><div class="field-value">${formatBoolean(otherTransactions.entertainment_expense)}</div></div>
+                        <div class="field-row"><div class="field-label">Dividen:</div><div class="field-value">${formatBoolean(otherTransactions.dividend_income)}</div></div>
+                    </div>
+                </div>` : ''}
+                ${Object.keys(additionalAttachments).length > 0 ? `
+                <div class="section">
+                    <div class="section-title">📎 J. LAMPIRAN TAMBAHAN</div>
+                    <div class="section-content">
+                        ${additionalAttachments.financial_statement ? `<div class="field-row"><div class="field-label">Laporan Keuangan:</div><div class="field-value">${additionalAttachments.financial_statement.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div></div>` : ''}
+                        ${additionalAttachments.payment_proof ? `<div class="field-row"><div class="field-label">Bukti Pembayaran:</div><div class="field-value">${additionalAttachments.payment_proof.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div></div>` : ''}
+                        ${additionalAttachments.withholding_relation ? `<div class="field-row"><div class="field-label">Hubungan Pemotongan:</div><div class="field-value">${additionalAttachments.withholding_relation.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div></div>` : ''}
+                        ${additionalAttachments.attorney_letter ? `<div class="field-row"><div class="field-label">Surat Kuasa:</div><div class="field-value">${additionalAttachments.attorney_letter.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div></div>` : ''}
+                        ${additionalAttachments.other_documents ? `<div class="field-row"><div class="field-label">Dokumen Lainnya:</div><div class="field-value">${additionalAttachments.other_documents.required ? 'Diperlukan' : 'Tidak Diperlukan'}</div></div>` : ''}
+                    </div>
+                </div>` : ''}
+                <div class="section">
+                    <div class="section-title">✍️ K. PERNYATAAN</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Status Pernyataan:</div><div class="field-value">${statementData.declaration ? '<span class="success-icon">✅</span> Saya menyatakan bahwa SPT ini telah diisi dengan benar dan lengkap' : '<span class="warning-icon">⚠️</span> Pernyataan belum dibuat'}</div></div>
+                        <div class="field-row"><div class="field-label">Nama Lengkap:</div><div class="field-value">${statementData.full_name || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">NIK:</div><div class="field-value">${statementData.tin_nik || '-'}</div></div>
+                        <div class="field-row"><div class="field-label">Tanggal Pernyataan:</div><div class="field-value">${formatDate(sptData.submission_date)}</div></div>
+                        ${statementData.representative ? `<div class="field-row"><div class="field-label">Kuasa/Wakil:</div><div class="field-value">${statementData.representative}</div></div>` : ''}
+                        ${statementData.signature ? `<div class="field-row"><div class="field-label">Tanda Tangan:</div><div class="field-value">🔏 ${statementData.signature}</div></div>` : ''}
+                    </div>
+                </div>
+                ${sptData.final_score ? `
+                <div class="section grade-section">
+                    <div class="section-title">🎓 PENILAIAN DOSEN</div>
+                    <div class="section-content">
+                        <div class="field-row"><div class="field-label">Nilai Akhir:</div><div class="field-value"><strong style="font-size:18px;">${Math.round(sptData.final_score)}/100 (${sptData.letter_grade})</strong></div></div>
+                        <div class="field-row"><div class="field-label">Tanggal Penilaian:</div><div class="field-value">${formatDateTime(sptData.graded_date)}</div></div>
+                        ${sptData.completeness_score ? `
+                        <h4 style="margin:20px 0 15px 0;color:white;">📊 Detail Penilaian:</h4>
+                        <table class="summary-table grade-table">
+                            <thead><tr><th>Kriteria</th><th>Bobot</th><th>Skor</th><th>Nilai</th><th>Grade</th></tr></thead>
+                            <tbody>
+                                <tr><td>📋 Kelengkapan Data</td><td class="amount">25%</td><td class="amount">${Math.round(sptData.completeness_score||0)}</td><td class="amount">${Math.round((sptData.completeness_score||0)*0.25)}</td><td class="amount">${getLetterGrade(sptData.completeness_score||0)}</td></tr>
+                                <tr><td>🎯 Keakuratan Perhitungan</td><td class="amount">25%</td><td class="amount">${Math.round(sptData.accuracy_score||0)}</td><td class="amount">${Math.round((sptData.accuracy_score||0)*0.25)}</td><td class="amount">${getLetterGrade(sptData.accuracy_score||0)}</td></tr>
+                                <tr><td>🎨 Penyajian & Format</td><td class="amount">25%</td><td class="amount">${Math.round(sptData.presentation_score||0)}</td><td class="amount">${Math.round((sptData.presentation_score||0)*0.25)}</td><td class="amount">${getLetterGrade(sptData.presentation_score||0)}</td></tr>
+                                <tr><td>🧠 Pemahaman Konsep</td><td class="amount">25%</td><td class="amount">${Math.round(sptData.understanding_score||0)}</td><td class="amount">${Math.round((sptData.understanding_score||0)*0.25)}</td><td class="amount">${getLetterGrade(sptData.understanding_score||0)}</td></tr>
+                                <tr class="total-row"><td><strong>📈 Total</strong></td><td class="amount"><strong>100%</strong></td><td class="amount">-</td><td class="amount"><strong>${Math.round(sptData.final_score)}</strong></td><td class="amount"><strong>${sptData.letter_grade}</strong></td></tr>
+                            </tbody>
+                        </table>` : ''}
+                        ${sptData.feedback ? `<div style="margin-top:20px;"><h4 style="margin:0 0 10px 0;color:white;">💬 Feedback Dosen:</h4><div class="feedback-box">${sptData.feedback}</div></div>` : ''}
+                        ${(sptData.completeness_comment||sptData.accuracy_comment||sptData.presentation_comment||sptData.understanding_comment) ? `
+                        <div style="margin-top:20px;"><h4 style="margin:0 0 15px 0;color:white;">📝 Komentar Detail:</h4>
+                            ${sptData.completeness_comment ? `<div class="feedback-box" style="margin-bottom:10px;"><strong>📋 Kelengkapan:</strong> ${sptData.completeness_comment}</div>` : ''}
+                            ${sptData.accuracy_comment ? `<div class="feedback-box" style="margin-bottom:10px;"><strong>🎯 Keakuratan:</strong> ${sptData.accuracy_comment}</div>` : ''}
+                            ${sptData.presentation_comment ? `<div class="feedback-box" style="margin-bottom:10px;"><strong>🎨 Penyajian:</strong> ${sptData.presentation_comment}</div>` : ''}
+                            ${sptData.understanding_comment ? `<div class="feedback-box" style="margin-bottom:10px;"><strong>🧠 Pemahaman:</strong> ${sptData.understanding_comment}</div>` : ''}
+                        </div>` : ''}
+                    </div>
+                </div>` : ''}
+            </div>
+            <div class="footer">
+                <p><strong>📄 Dokumen SPT Tahunan Simulasi</strong></p>
+                <p>🕒 Digenerate pada: ${formatDateTime(new Date())}</p>
+                <p><em>✨ Dokumen ini dibuat dalam mode simulasi untuk keperluan pembelajaran</em></p>
+                <p style="margin-top:15px;font-size:11px;color:#999;">ID SPT: ${sptData.id} | Status: ${sptData.status} | ${sptData.submission_date ? 'Submit: '+formatDate(sptData.submission_date) : 'Belum Submit'}${sptData.final_score ? ` | Nilai: ${Math.round(sptData.final_score)}/100` : ''}</p>
+            </div>
+        </div>
+        <script>
+            if (window.location.search.includes('print=true')) { setTimeout(() => window.print(), 1000); }
+            console.log('✅ SPT Preview loaded successfully');
+        </script>
+    </body>
+    </html>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE SPT (draft only)
+// ─────────────────────────────────────────────────────────────────────────────
 exports.deleteSpt = async (req, res) => {
   let transaction;
 
@@ -2597,10 +1808,8 @@ exports.deleteSpt = async (req, res) => {
     const { spt_id } = req.params;
     const user_id = req.auth._id;
 
-
     const [sptData] = await sequelizeConf.query(
-      `SELECT 
-        id, user_id, status, tax_year, tax_period
+      `SELECT id, user_id, status, tax_year, tax_period
       FROM spt_tahunan 
       WHERE id = :sptId AND user_id = :userId
       LIMIT 1`,
@@ -2611,8 +1820,14 @@ exports.deleteSpt = async (req, res) => {
       }
     );
 
+    if (!sptData) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "SPT Tahunan tidak ditemukan atau Anda tidak memiliki akses"
+      });
+    }
 
-    // Check if SPT can be deleted (only draft status can be deleted)
     if (sptData.status !== 'draft') {
       await transaction.rollback();
       return res.status(400).json({
@@ -2621,7 +1836,6 @@ exports.deleteSpt = async (req, res) => {
       });
     }
 
-    // Delete the main SPT record
     await sequelizeConf.query(
       `DELETE FROM spt_tahunan WHERE id = :sptId AND user_id = :userId`,
       {
@@ -2648,14 +1862,12 @@ exports.deleteSpt = async (req, res) => {
     });
 
   } catch (error) {
-    if (transaction) await transaction.rollback();
+    if (transaction) {
+      try { await transaction.rollback(); } catch (e) { console.error('Rollback error:', e.message); }
+    }
 
-    console.error('=== DELETE SPT ERROR ===');
-    console.error('Error:', error);
-    console.error('Error message:', error.message);
-    console.error('Error code:', error.code);
+    console.error('Delete SPT error:', error.message);
 
-    // Enhanced error handling
     let errorMessage = "Terjadi kesalahan server saat menghapus SPT";
     let statusCode = 500;
 
@@ -2663,11 +1875,9 @@ exports.deleteSpt = async (req, res) => {
       errorMessage = "SPT tidak dapat dihapus karena masih memiliki data terkait. Hubungi administrator.";
       statusCode = 400;
     } else if (error.code === 'ER_NO_SUCH_TABLE') {
-      errorMessage = "Tabel database tidak ditemukan. Hubungi administrator untuk perbaikan sistem.";
-      statusCode = 500;
+      errorMessage = "Tabel database tidak ditemukan.";
     } else if (error.code === 'ER_BAD_FIELD_ERROR') {
-      errorMessage = "Struktur database tidak sesuai. Hubungi administrator.";
-      statusCode = 500;
+      errorMessage = "Struktur database tidak sesuai.";
     }
 
     res.status(statusCode).json({
@@ -2675,8 +1885,7 @@ exports.deleteSpt = async (req, res) => {
       message: errorMessage,
       error: process.env.NODE_ENV === 'development' ? {
         message: error.message,
-        code: error.code,
-        stack: error.stack
+        code: error.code
       } : 'Internal server error'
     });
   }

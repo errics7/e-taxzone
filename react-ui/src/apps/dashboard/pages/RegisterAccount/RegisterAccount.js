@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useHistory } from "react-router-dom";
 import PortalLayout from "../../component/Layout";
 import individual from "../../assets/perorangan.png";
@@ -9,7 +9,6 @@ import API from "../../../../utils/host.config";
 import axios from "axios";
 import toast from "react-hot-toast";
 import LogoPolinema from "../../../../assets/logopolinema.png";
-
 
 // Components
 import StepIndicator from "./components/StepIndicator";
@@ -44,10 +43,6 @@ function Registration() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Holds the active step's validate-and-advance function.
-  // Each wizard step calls onRegisterValidator(fn) on mount to register it.
-  // StepNavigation's Next button calls activeStepValidator.current() instead of
-  // the bare handleNext, so validation always runs before the step advances.
   const activeStepValidator = useRef(null);
 
   const initialFormData = {
@@ -73,6 +68,12 @@ function Registration() {
   };
 
   const [formData, setFormData] = useState(initialFormData);
+  const formDataRef = useRef(formData);
+
+  // Sync formDataRef setiap kali formData berubah
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
 
   // ── Beforeunload guard ──────────────────────
   useEffect(() => {
@@ -160,13 +161,19 @@ function Registration() {
     if (currentStep > maxActualStep) {
       setCurrentStep(1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.taxpayerType, formData.registrationType]);
 
   // ── Submit registration ─────────────────────
-  const submitRegistration = async (latestFormData) => {
-    const fd = latestFormData || formData;
+  // ✅ submitRegistration membaca dari formDataRef.current (selalu terbaru)
+  //    bukan dari formData di closure (bisa stale).
+  //    useCallback dengan deps stabil agar referensi fungsi tidak berubah
+  //    setiap render — tapi tetap baca data terbaru via ref.
+  const submitRegistration = useCallback(async () => {
+    // ✅ Baca dari ref, BUKAN dari formData di closure
+    const fd = formDataRef.current;
 
-    // Declaration safety check
+    // Declaration safety check — membaca state TERBARU via ref
     if (!fd.declarationAccepted) {
       toast.error('Anda harus menyetujui pernyataan wajib pajak sebelum mengajukan permohonan.', {
         style: { minWidth: '250px', border: '1px solid #DC2626', padding: '16px', color: '#DC2626' }
@@ -294,11 +301,15 @@ function Registration() {
         });
       }
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSubmitting, history]);
+  // ✅ NOTE: formData sengaja TIDAK dimasukkan ke deps array useCallback.
+  //    Kita justru membaca dari formDataRef.current (selalu terbaru) agar
+  //    fungsi ini tidak perlu di-recreate setiap formData berubah.
+  //    Ini pola "ref for latest value" yang direkomendasikan React docs.
 
   // ─────────────────────────────────────────────
   // PREPARATION STEPS (not wizard steps)
-  // These determine the flow; they stay in this file.
   // ─────────────────────────────────────────────
 
   const Step1TaxpayerType = () => (
@@ -312,13 +323,13 @@ function Registration() {
           icon={<img src={individual} alt="individual" />}
           title="Individual"
           isSelected={formData.taxpayerType === 'individual'}
-          onClick={() => setFormData({ ...formData, taxpayerType: 'individual', companyTypeSelection: '' })}
+          onClick={() => setFormData((prev) => ({ ...prev, taxpayerType: 'individual', companyTypeSelection: '' }))}
         />
         <SelectionCard
           icon={<img src={company} alt="badan" />}
           title="Company"
           isSelected={formData.taxpayerType === 'company'}
-          onClick={() => setFormData({ ...formData, taxpayerType: 'company' })}
+          onClick={() => setFormData((prev) => ({ ...prev, taxpayerType: 'company' }))}
         />
       </div>
     </div>
@@ -333,13 +344,13 @@ function Registration() {
       <div className="flex justify-center gap-4">
         <button
           className={`px-8 py-3 rounded font-medium min-w-[200px] ${formData.hasNIK === true ? 'bg-green-600 text-white' : 'border border-green-600 text-green-600 hover:bg-green-50'}`}
-          onClick={() => setFormData({ ...formData, hasNIK: true })}
+          onClick={() => setFormData((prev) => ({ ...prev, hasNIK: true }))}
         >
           ✓ Yes, Taxpayers Have NIK
         </button>
         <button
           className={`px-8 py-3 rounded font-medium min-w-[200px] ${formData.hasNIK === false ? 'bg-red-600 text-white' : 'border border-red-600 text-red-600 hover:bg-red-50'}`}
-          onClick={() => setFormData({ ...formData, hasNIK: false })}
+          onClick={() => setFormData((prev) => ({ ...prev, hasNIK: false }))}
         >
           ✗ Do Not Have NIK
         </button>
@@ -358,13 +369,13 @@ function Registration() {
           icon={<img src={nik} alt="nik" />}
           title="Registration with NIK Activation / NIK Activation"
           isSelected={formData.registrationType === 'nik-activation'}
-          onClick={() => setFormData({ ...formData, registrationType: 'nik-activation' })}
+          onClick={() => setFormData((prev) => ({ ...prev, registrationType: 'nik-activation' }))}
         />
         <SelectionCard
           icon={<img src={registrationonly} alt="registration-only" />}
           title="Registration only"
           isSelected={formData.registrationType === 'registration-only'}
-          onClick={() => setFormData({ ...formData, registrationType: 'registration-only' })}
+          onClick={() => setFormData((prev) => ({ ...prev, registrationType: 'registration-only' }))}
         />
       </div>
     </div>
@@ -406,8 +417,8 @@ function Registration() {
         toast.error('Silakan pilih jenis badan usaha', { style: { border: '1px solid #DC2626', color: '#DC2626' } });
         return;
       }
-      setFormData({ ...formData, companyTypeSelection: selectedCompanyType });
-      setCurrentStep(currentStep + 1);
+      setFormData((prev) => ({ ...prev, companyTypeSelection: selectedCompanyType }));
+      setCurrentStep((prev) => prev + 1);
     };
 
     return (
@@ -446,77 +457,147 @@ function Registration() {
   // NAVIGATION HELPERS
   // ─────────────────────────────────────────────
 
-  const handleNext = () => {
-    if (currentStep < (formData.taxpayerType === 'company' ? 2 : 3) + steps.length) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
+  const handleNext = useCallback(() => {
+      setCurrentStep((prev) => {
+        const taxpayerType = formDataRef.current.taxpayerType;
+        const registrationType = formDataRef.current.registrationType;
 
-  const handlePrev = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1);
-  };
+        let totalWizardSteps = 0;
 
-  // Called by StepNavigation's Next button.
-  // If the active step has registered a validator, run it (it handles advancing
-  // the step itself after validation passes).  Otherwise fall back to bare advance.
-  const handleValidatedNext = () => {
+        if (taxpayerType === "company") {
+          totalWizardSteps = 9;
+        } else if (registrationType === "registration-only") {
+          totalWizardSteps = 5;
+        } else {
+          totalWizardSteps = 7;
+        }
+
+        const preparationSteps = taxpayerType === "company" ? 2 : 3;
+
+        const maxStep = preparationSteps + totalWizardSteps;
+
+        console.log("HANDLE NEXT", {
+          prev,
+          maxStep,
+          taxpayerType,
+          registrationType
+        });
+
+      return prev < maxStep ? prev + 1 : prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    activeStepValidator.current = null;
+    setCurrentStep((prev) => (prev > 1 ? prev - 1 : prev));
+  }, []);
+
+  const handleValidatedNext = useCallback(() => {
     if (activeStepValidator.current) {
       activeStepValidator.current();
     } else {
       handleNext();
     }
-  };
+  }, [handleNext]);
 
-  // Step props builder.
-  // onRegisterValidator lets each step register its internal handleSubmit so that
-  // StepNavigation can trigger it.
+  // ✅ FIX: handleRegisterValidator distabilkan dengan useCallback + deps [].
+  //
+  // BUG SEBELUMNYA — onRegisterValidator adalah inline arrow function:
+  //   onRegisterValidator: (fn) => { activeStepValidator.current = fn; }
+  //
+  // Inline arrow di dalam object literal berarti fungsi baru dibuat SETIAP
+  // render RegisterAccount. Karena stepProps selalu di-rebuild setiap render,
+  // onRegisterValidator selalu berubah referensinya.
+  //
+  // Di child steps (StepContactDetails, StepAddressDetails), ada useEffect:
+  //   useEffect(() => {
+  //     if (onRegisterValidator) onRegisterValidator(handleSubmit);
+  //   }, [handleSubmit, onRegisterValidator]); // ← onRegisterValidator berubah tiap render!
+  //
+  // Akibatnya: setiap kali user mengetik di input (trigger re-render parent) →
+  // onRegisterValidator baru → useEffect di child re-fire → validator baru
+  // ditimpa ke activeStepValidator.current. Jika user klik Next tepat di
+  // momen pergantian ini, validator yang terpanggil bisa stale atau sedang
+  // dalam proses overwrite — step tidak maju.
+  //
+  // FIX: Ekstrak ke useCallback dengan deps [] → referensi STABIL selamanya.
+  // useEffect di child tidak pernah re-fire hanya karena parent re-render.
+  const handleRegisterValidator = useCallback((fn) => {
+    activeStepValidator.current = fn;
+  }, []);
+
+  // Step props builder
+  // ✅ onRegisterValidator sekarang menggunakan handleRegisterValidator yang stabil
   const stepProps = {
     formData,
     setFormData,
     onNext: handleNext,
     onPrevious: handlePrev,
-    onRegisterValidator: (fn) => { activeStepValidator.current = fn; },
+    onRegisterValidator: handleRegisterValidator,
   };
 
   // ─────────────────────────────────────────────
   // WIZARD-STEP NAVIGATION BAR HELPERS
   // ─────────────────────────────────────────────
 
-  // True while the user is on the preparation screens (not yet in the wizard).
   const isOnPrepStep =
     (formData.taxpayerType === 'company' && currentStep <= 2) ||
     (formData.taxpayerType !== 'company' && currentStep <= 3);
 
-  // Within the wizard portion, what is the 1-based position?
   const prepOffset = formData.taxpayerType === 'company' ? 2 : 3;
-  const wizardPosition = currentStep - prepOffset; // 1 = first wizard step
+  const wizardPosition = currentStep - prepOffset;
 
   const isFirstWizardStep = wizardPosition === 1;
   const isLastWizardStep  = wizardPosition === steps.length;
-
-  // TaxpayerDeclaration manages its own Submit button, so we hide StepNavigation
-  // on the declaration step to avoid a duplicate Submit.
   const isDeclarationStep = isLastWizardStep;
+  const showNavigation = !isOnPrepStep;
 
   // ─────────────────────────────────────────────
   // RENDER CURRENT STEP
   // ─────────────────────────────────────────────
+  //
+  // ✅ FIX: Setiap step yang memakai shared component (StepContactDetails,
+  // StepAddressDetails) diberi prop `key` yang UNIK dan BERBEDA antar flow.
+  //
+  // MENGAPA key PENTING:
+  // React menggunakan `key` untuk memutuskan apakah sebuah component instance
+  // perlu di-remount atau bisa di-reuse. Tanpa key yang berbeda, ketika user
+  // berpindah dari flow bisnis ke flow pribadi (atau sebaliknya), React melihat
+  // component type yang sama di posisi render yang sama → instance di-reuse →
+  // local state lama (addresses, contact, errors) tetap tersisa → validator
+  // yang ter-register juga bisa berasal dari instance sebelumnya.
+  //
+  // Dengan key yang berbeda per flow:
+  // - "bisnis-contact" vs "pribadi-contact-reg" / "pribadi-contact-nik"
+  // - "bisnis-address" vs "pribadi-address-reg" / "pribadi-address-nik"
+  // React SELALU membuat instance baru saat berpindah flow → state fresh →
+  // validator fresh → tidak ada lifecycle reuse issue.
+  //
+  // KEY NAMING CONVENTION:
+  // - flow-bisnis  : "bisnis-{stepname}"
+  // - flow reg-only: "pribadi-reg-{stepname}"
+  // - flow nik-act : "pribadi-nik-{stepname}"
 
   const renderCurrentStep = () => {
+    // ── COMPANY FLOW ──────────────────────────────────────────────────────────
     if (formData.taxpayerType === 'company') {
       switch (currentStep) {
-        case 1: return <Step1TaxpayerType />;
-        case 2: return <Step4CompanyTypeSelection />;
-        case 3: return <StepKuasaWajibPajak {...stepProps} />;
-        case 4: return <StepCompanyIdentity {...stepProps} />;
-        case 5: return <StepContactDetailsBisnis {...stepProps} />;
-        case 6: return <StepOrangPribadi {...stepProps} />;
-        case 7: return <StepWajibPajakTerkait {...stepProps} />;
-        case 8: return <StepEconomicDataBisnis {...stepProps} />;
-        case 9: return <StepAddressBisnis {...stepProps} />;
-        case 10: return <StepDocuments {...stepProps} />;
+        case 1:  return <Step1TaxpayerType />;
+        case 2:  return <Step4CompanyTypeSelection />;
+        case 3:  return <StepKuasaWajibPajak key="bisnis-kuasa" {...stepProps} />;
+        case 4:  return <StepCompanyIdentity key="bisnis-identity" {...stepProps} />;
+        // ✅ key "bisnis-contact" — berbeda dari semua flow pribadi
+        case 5:  return <StepContactDetailsBisnis key="bisnis-contact" {...stepProps} />;
+        case 6:  return <StepOrangPribadi key="bisnis-orang-pribadi" {...stepProps} />;
+        case 7:  return <StepWajibPajakTerkait key="bisnis-wp-terkait" {...stepProps} />;
+        case 8:  return <StepEconomicDataBisnis key="bisnis-economic" {...stepProps} />;
+        // ✅ key "bisnis-address" — berbeda dari semua flow pribadi
+        case 9:  return <StepAddressBisnis key="bisnis-address" {...stepProps} />;
+        case 10: return <StepDocuments key="bisnis-documents" {...stepProps} />;
         case 11: return (
           <TaxpayerDeclaration
+            key="bisnis-declaration"
             formData={formData}
             setFormData={setFormData}
             onSubmit={submitRegistration}
@@ -527,17 +608,21 @@ function Registration() {
       }
     }
 
+    // ── INDIVIDUAL — REGISTRATION ONLY FLOW ──────────────────────────────────
     if (formData.registrationType === 'registration-only') {
       switch (currentStep) {
         case 1: return <Step1TaxpayerType />;
         case 2: return <Step2NIKStatus />;
         case 3: return <Step3RegistrationType />;
-        case 4: return <StepTaxpayerIdentity {...stepProps} />;
-        case 5: return <StepContactDetailsPribadi {...stepProps} />;
-        case 6: return <StepEconomicDataPribadi {...stepProps} />;
-        case 7: return <StepAddressDetails {...stepProps} />;
+        case 4: return <StepTaxpayerIdentity key="pribadi-reg-identity" {...stepProps} />;
+        // ✅ key "pribadi-reg-contact" — berbeda dari flow bisnis & flow nik-activation
+        case 5: return <StepContactDetailsPribadi key="pribadi-reg-contact" {...stepProps} />;
+        case 6: return <StepEconomicDataPribadi key="pribadi-reg-economic" {...stepProps} />;
+        // ✅ key "pribadi-reg-address" — berbeda dari flow bisnis & flow nik-activation
+        case 7: return <StepAddressDetails key="pribadi-reg-address" {...stepProps} />;
         case 8: return (
           <TaxpayerDeclaration
+            key="pribadi-reg-declaration"
             formData={formData}
             setFormData={setFormData}
             onSubmit={submitRegistration}
@@ -548,19 +633,22 @@ function Registration() {
       }
     }
 
-    // NIK activation (default individual flow)
+    // ── INDIVIDUAL — NIK ACTIVATION FLOW (default) ───────────────────────────
     switch (currentStep) {
-      case 1: return <Step1TaxpayerType />;
-      case 2: return <Step2NIKStatus />;
-      case 3: return <Step3RegistrationType />;
-      case 4: return <StepTaxpayerIdentity {...stepProps} />;
-      case 5: return <StepContactDetailsPribadi {...stepProps} />;
-      case 6: return <StepRelatedPersons {...stepProps} />;
-      case 7: return <StepEconomicDataPribadi {...stepProps} />;
-      case 8: return <StepAddressDetails {...stepProps} />;
-      case 9: return <StepIdentityVerification {...stepProps} />;
+      case 1:  return <Step1TaxpayerType />;
+      case 2:  return <Step2NIKStatus />;
+      case 3:  return <Step3RegistrationType />;
+      case 4:  return <StepTaxpayerIdentity key="pribadi-nik-identity" {...stepProps} />;
+      // ✅ key "pribadi-nik-contact" — berbeda dari flow bisnis & flow reg-only
+      case 5:  return <StepContactDetailsPribadi key="pribadi-nik-contact" {...stepProps} />;
+      case 6:  return <StepRelatedPersons key="pribadi-nik-related" {...stepProps} />;
+      case 7:  return <StepEconomicDataPribadi key="pribadi-nik-economic" {...stepProps} />;
+      // ✅ key "pribadi-nik-address" — berbeda dari flow bisnis & flow reg-only
+      case 8:  return <StepAddressDetails key="pribadi-nik-address" {...stepProps} />;
+      case 9:  return <StepIdentityVerification key="pribadi-nik-verification" {...stepProps} />;
       case 10: return (
         <TaxpayerDeclaration
+          key="pribadi-nik-declaration"
           formData={formData}
           setFormData={setFormData}
           onSubmit={submitRegistration}
@@ -601,7 +689,6 @@ function Registration() {
 
   // ─────────────────────────────────────────────
   // BACK TO PREPARATION
-  // Does NOT clear formData. Resets form if taxpayerType changes (handled in Step1).
   // ─────────────────────────────────────────────
 
   const isInWizard =
@@ -610,16 +697,9 @@ function Registration() {
 
   const handleBackToPreparation = () => {
     if (window.confirm("Data yang sudah diisi akan hilang. Lanjutkan?")) {
-      // reset wizard step
       setCurrentStep(1);
-
-      // reset seluruh data form
       setFormData(initialFormData);
-
-      // reset validator step
       activeStepValidator.current = null;
-
-      // reset unsaved flag
       setHasUnsavedChanges(false);
     }
   };
@@ -627,6 +707,11 @@ function Registration() {
   // ─────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────
+
+  // ✅ canSubmit membaca langsung dari formData (reactive state),
+  //    sehingga tombol Ajukan Permohonan aktif/disable dengan benar.
+  //    Sementara submitRegistration membaca dari formDataRef.current (latest value).
+  const canSubmit = formData.declarationAccepted;
 
   return (
     <PortalLayout>
@@ -670,57 +755,57 @@ function Registration() {
             {renderCurrentStep()}
           </div>
 
-          {/* ── Wizard step navigation (shown only inside the wizard, not on declaration step) ── */}
-          {!isOnPrepStep && !isDeclarationStep && (
+          {/* ── Wizard step navigation ── */}
+          {showNavigation && (
             <StepNavigation
               onPrevious={handlePrev}
               onNext={handleValidatedNext}
-              onSubmit={() => {}}   /* submit is handled by TaxpayerDeclaration */
+              onSubmit={submitRegistration}
               isFirst={isFirstWizardStep}
-              isLast={false}        /* never show Submit here; declaration step owns it */
-              canSubmit={false}
+              isLast={isDeclarationStep}
+              canSubmit={canSubmit}
               isSubmitting={isSubmitting}
             />
           )}
 
-          {/* ── Preparation-screen nav buttons (steps 1-3 / 1-2 for company) ── */}
+          {/* ── Preparation-screen nav buttons ── */}
           {isOnPrepStep && (
-              <div className="flex justify-center gap-4 mt-8">
-                {currentStep > 1 && (
-                  <button
-                    onClick={handlePrev}
-                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-400"
-                  >
-                    Previous
-                  </button>
-                )}
-                {/* Company prep next button */}
-                {formData.taxpayerType === 'company' && (
-                  (currentStep === 1 && formData.taxpayerType) ||
-                  (currentStep === 2 && formData.companyTypeSelection)
-                ) && (
-                    <button
-                      onClick={handleNext}
-                      className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                    >
-                      Next
-                    </button>
-                  )}
-                {/* Individual prep next button */}
-                {formData.taxpayerType !== 'company' && (
-                  (currentStep === 1 && formData.taxpayerType) ||
-                  (currentStep === 2 && formData.hasNIK !== null) ||
-                  (currentStep === 3 && formData.registrationType)
-                ) && (
-                    <button
-                      onClick={handleNext}
-                      className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                    >
-                      Next
-                    </button>
-                  )}
-              </div>
-            )}
+            <div className="flex justify-center gap-4 mt-8">
+              {currentStep > 1 && (
+                <button
+                  onClick={handlePrev}
+                  className="bg-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-400"
+                >
+                  Previous
+                </button>
+              )}
+              {/* Company prep next button */}
+              {formData.taxpayerType === 'company' && (
+                (currentStep === 1 && formData.taxpayerType) ||
+                (currentStep === 2 && formData.companyTypeSelection)
+              ) && (
+                <button
+                  onClick={handleNext}
+                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              )}
+              {/* Individual prep next button */}
+              {formData.taxpayerType !== 'company' && (
+                (currentStep === 1 && formData.taxpayerType) ||
+                (currentStep === 2 && formData.hasNIK !== null) ||
+                (currentStep === 3 && formData.registrationType)
+              ) && (
+                <button
+                  onClick={handleNext}
+                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Back to Login */}
           <div className="text-center mt-6">

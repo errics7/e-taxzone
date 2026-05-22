@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 
 const StepDocuments = ({ formData, setFormData, onNext, onRegisterValidator }) => {
@@ -57,14 +57,15 @@ const StepDocuments = ({ formData, setFormData, onNext, onRegisterValidator }) =
       toast.error('Authorization Letter wajib diupload', { style: { border: '1px solid #DC2626', color: '#DC2626' } });
       return;
     }
-    setFormData({ ...formData, documents });
+    setFormData(prev => ({ ...prev, documents }));
     onNext();
   };
 
   // Register validator so StepNavigation can call it
+  // ✅ FIX: dependency array stabil — tidak loop re-register setiap render
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleNext);
-  });
+  }, [handleNext, onRegisterValidator]);
 
   const DocumentUploadBox = ({ documentType, label }) => (
     <div>

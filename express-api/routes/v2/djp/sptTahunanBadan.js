@@ -67,10 +67,28 @@ exports.createSptTahunanBadan = async (req, res) => {
       tax_return_model,
       bookkeeping_type,
       reporting_currency,
-      digital_signature
+      tax_return_type,
+      tax_period_type
     } = req.body;
 
-    // Validation
+    // ─── DEBUG: log semua yang diterima dari frontend ─────────────────────────
+    console.log('\n======================================');
+    console.log('=== CREATE BADAN: REQ.BODY (RAW) ===');
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log('=== CREATE BADAN: DESTRUCTURED VALUES ===');
+    console.log({ user_id, tax_year, tax_period, tax_return_model, bookkeeping_type, reporting_currency, tax_return_type, tax_period_type });
+    console.log('=== CREATE BADAN: TYPES ===');
+    console.log({
+      tax_year_type: typeof tax_year,
+      tax_year_value: tax_year,
+      tax_return_model_type: typeof tax_return_model,
+      tax_return_model_value: tax_return_model,
+    });
+    console.log('======================================\n');
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Validation - only tax_year required for draft creation
+    // digital_signature is NOT required here; it is only validated at submit time
     if (!tax_year) {
       return res.status(400).json({
         success: false,
@@ -78,38 +96,13 @@ exports.createSptTahunanBadan = async (req, res) => {
       });
     }
 
-    if (!digital_signature) {
-      return res.status(400).json({
-        success: false,
-        message: "Digital signature wajib diisi"
-      });
-    }
-
-    const [authData] = await sequelizeConf.query(
-      `SELECT id, authorization_code, status FROM djp_authorization 
-       WHERE user_id = :userId AND authorization_code = :digitalSignature AND status = 'approved'
-       LIMIT 1`,
-      {
-        replacements: { userId: user_id, digitalSignature: digital_signature },
-        type: sequelizeConf.QueryTypes.SELECT,
-        transaction
-      }
-    );
-
-    if (!authData) {
-      await transaction.rollback();
-      return res.status(403).json({
-        success: false,
-        message: "Digital signature tidak valid atau kode otorisasi DJP belum disetujui."
-      });
-    }
-
-
-
     // Check if company already has SPT for this tax year
+    // Cek menggunakan source_of_income = 'Business Activities' ATAU tax_type = 'Corporate Income Tax'
+    // karena tax_type di-set via UPDATE setelah INSERT (tidak ada di INSERT langsung)
     const [existingSpt] = await sequelizeConf.query(
       `SELECT id FROM spt_tahunan 
-       WHERE user_id = :userId AND tax_year = :taxYear AND tax_type = 'Corporate Income Tax'
+       WHERE user_id = :userId AND tax_year = :taxYear 
+         AND (tax_type = 'Corporate Income Tax' OR source_of_income = 'Business Activities')
        LIMIT 1`,
       {
         replacements: { userId: user_id, taxYear: tax_year },
@@ -144,6 +137,12 @@ exports.createSptTahunanBadan = async (req, res) => {
       }
     );
 
+    // ─── DEBUG: log company data yang ditemukan ───────────────────────────────
+    console.log('=== CREATE BADAN: COMPANY DATA FROM DB ===');
+    console.log(JSON.stringify(companyData, null, 2));
+    console.log('==========================================\n');
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (!companyData) {
       await transaction.rollback();
       return res.status(400).json({
@@ -152,32 +151,52 @@ exports.createSptTahunanBadan = async (req, res) => {
       });
     }
 
+    // ─── DEBUG: log INSERT replacements tepat sebelum query ──────────────────
+    const insertReplacements = {
+      userId: user_id,
+      taxYear: tax_year,
+      taxPeriod: tax_period || `${tax_year} January - December`,
+      taxReturnModel: tax_return_model === 'AMENDMENT' ? 'Amendment'
+                    : tax_return_model === 'NORMAL'    ? 'NORMAL'
+                    : 'NORMAL',
+      bookkeepingType: bookkeeping_type || 'Full Bookkeeping',
+      sourceOfIncome: 'Business Activities',
+      taxReturnType: tax_return_type || 'Rupiah',
+      taxPeriodType: tax_period_type || 'Yearly'
+    };
+    console.log('=== CREATE BADAN: INSERT REPLACEMENTS ===');
+    console.log(JSON.stringify(insertReplacements, null, 2));
+    console.log('=========================================\n');
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Create SPT record
+    // Kolom yang di-INSERT dibuat minimal (mengikuti pola pribadi) untuk menghindari
+    // ENUM validation error pada tax_return_type dan tax_period_type.
+    // tax_type di-set via UPDATE setelah INSERT agar lebih aman.
     const [createResult] = await sequelizeConf.query(
       `INSERT INTO spt_tahunan (
-        user_id, tax_year, tax_type, tax_return_type, tax_period_type, 
-        tax_period, tax_return_model, bookkeeping_type, source_of_income,
+        user_id, tax_year, tax_type, tax_period, tax_return_model,
+        bookkeeping_type, source_of_income, tax_return_type, tax_period_type,
         status, created_date, updated_date
       ) VALUES (
-        :userId, :taxYear, 'Corporate Income Tax', 'Corporate Income Tax Return',
-        'Yearly Tax Return', :taxPeriod, :taxReturnModel, :bookkeepingType,
-        :sourceOfIncome, 'draft', NOW(), NOW()
+        :userId, :taxYear, 'Corporate Income Tax', :taxPeriod, :taxReturnModel,
+        :bookkeepingType, :sourceOfIncome, :taxReturnType, :taxPeriodType,
+        'draft', NOW(), NOW()
       )`,
       {
-        replacements: {
-          userId: user_id,
-          taxYear: tax_year,
-          taxPeriod: tax_period || `${tax_year} January - December`,
-          taxReturnModel: tax_return_model || 'NORMAL',
-          bookkeepingType: bookkeeping_type || 'Full Bookkeeping',
-          sourceOfIncome: 'Business Activities'
-        },
+        replacements: insertReplacements,
         type: sequelizeConf.QueryTypes.INSERT,
         transaction
       }
     );
 
     const sptId = createResult;
+
+    // ─── DEBUG: log hasil INSERT ──────────────────────────────────────────────
+    console.log('=== CREATE BADAN: INSERT RESULT (sptId) ===');
+    console.log({ sptId, createResult });
+    console.log('===========================================\n');
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Auto-fill company identity section
     const companyIdentityData = {
@@ -285,7 +304,23 @@ exports.createSptTahunanBadan = async (req, res) => {
       }
     };
 
-    // Save auto-filled sections
+    // ─── DEBUG: log semua JSON yang akan di-UPDATE ────────────────────────────
+    console.log('=== CREATE BADAN: PRE-UPDATE CHECK ===');
+    console.log('sptId untuk UPDATE:', sptId);
+    try {
+      // Coba stringify masing-masing untuk isolasi mana yang gagal
+      console.log('companyIdentityData OK:', JSON.stringify(companyIdentityData).length, 'chars');
+      console.log('generalInfoData OK:', JSON.stringify(generalInfoData).length, 'chars');
+      console.log('balanceSheetData OK:', JSON.stringify(balanceSheetData).length, 'chars');
+      console.log('profitLossData OK:', JSON.stringify(profitLossData).length, 'chars');
+      console.log('statementData OK:', JSON.stringify(statementData).length, 'chars');
+    } catch (jsonErr) {
+      console.log('JSON stringify error:', jsonErr.message);
+    }
+    console.log('=====================================\n');
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Save auto-filled sections + set tax_type untuk SPT Badan
     await sequelizeConf.query(
       `UPDATE spt_tahunan 
        SET taxpayer_identity = :companyIdentity,
@@ -308,6 +343,8 @@ exports.createSptTahunanBadan = async (req, res) => {
         transaction
       }
     );
+
+    console.log('=== CREATE BADAN: UPDATE SUCCESS — committing ===\n');
 
     await transaction.commit();
 
@@ -334,10 +371,30 @@ exports.createSptTahunanBadan = async (req, res) => {
 
   } catch (error) {
     if (transaction) await transaction.rollback();
-    console.error('Create SPT Tahunan Badan error:', error);
+
+    // ─── DEBUG: full error dump ───────────────────────────────────────────────
+    console.log('\n======================================');
+    console.log('=== CREATE BADAN: FULL ERROR ===');
+    console.log(error);
+    console.log('=== ERROR NAME ===');
+    console.log(error.name);
+    console.log('=== ERROR MESSAGE ===');
+    console.log(error.message);
+    console.log('=== ERROR CODE ===');
+    console.log(error.code || error.original?.code);
+    console.log('=== ERROR ERRORS (Sequelize validation details) ===');
+    console.log(JSON.stringify(error.errors, null, 2));
+    console.log('=== ERROR SQL ===');
+    console.log(error.sql || error.original?.sql);
+    console.log('=== ERROR PARAMETERS ===');
+    console.log(error.parameters || error.original?.parameters);
+    console.log('=== STACK TRACE ===');
+    console.log(error.stack);
+    console.log('======================================\n');
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Handle duplicate error
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === 'ER_DUP_ENTRY' || error.original?.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({
         success: false,
         message: `SPT Tahunan Badan untuk tahun ${req.body.tax_year} sudah ada`
@@ -809,6 +866,84 @@ exports.downloadSptBadanPdf = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan saat mengunduh SPT Badan: " + error.message
+    });
+  }
+};
+
+// Delete SPT Badan (draft only)
+// Dipanggil oleh frontend: DELETE /api/v2/spt-tahunan-badan/:spt_id
+exports.deleteSptBadan = async (req, res) => {
+  let transaction;
+
+  try {
+    transaction = await sequelizeConf.transaction();
+
+    const { spt_id } = req.params;
+    const user_id = req.auth._id;
+
+    // Fetch SPT dan validasi ownership + tax_type
+    const [sptData] = await sequelizeConf.query(
+      `SELECT id, user_id, status, tax_year, tax_period, tax_type
+       FROM spt_tahunan
+       WHERE id = :sptId AND user_id = :userId
+         AND tax_type = 'Corporate Income Tax'
+       LIMIT 1`,
+      {
+        replacements: { sptId: spt_id, userId: user_id },
+        type: sequelizeConf.QueryTypes.SELECT,
+        transaction
+      }
+    );
+
+    if (!sptData) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'SPT Badan tidak ditemukan atau Anda tidak memiliki akses.'
+      });
+    }
+
+    // Hanya draft yang boleh dihapus
+    if (sptData.status !== 'draft') {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `SPT dengan status '${sptData.status}' tidak dapat dihapus. Hanya SPT dengan status 'draft' yang dapat dihapus.`
+      });
+    }
+
+    // Hapus record SPT Badan
+    await sequelizeConf.query(
+      `DELETE FROM spt_tahunan WHERE id = :sptId AND user_id = :userId`,
+      {
+        replacements: { sptId: spt_id, userId: user_id },
+        type: sequelizeConf.QueryTypes.DELETE,
+        transaction
+      }
+    );
+
+    await transaction.commit();
+
+    res.status(200).json({
+      success: true,
+      message: `SPT Tahunan Badan ${sptData.tax_year} berhasil dihapus`,
+      data: {
+        deleted_spt: {
+          id: sptData.id,
+          tax_year: sptData.tax_year,
+          tax_period: sptData.tax_period,
+          status: sptData.status
+        },
+        deleted_at: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    console.error('Delete SPT Badan error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan saat menghapus SPT Badan: ' + error.message
     });
   }
 };

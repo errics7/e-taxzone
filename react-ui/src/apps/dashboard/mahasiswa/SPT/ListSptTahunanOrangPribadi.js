@@ -52,6 +52,11 @@ const SptCreationWizard = () => {
 
     const currentSptType = useSelector(selectCurrentSptType);
 
+    // isBadan: satu flag tunggal untuk semua keputusan portal
+    // Nilai currentSptType dari sptSlice adalah 'company' (BUKAN 'badan')
+    // Inilah root cause bug sebelumnya: cek `=== 'badan'` tidak pernah true
+    const isBadan = currentSptType === 'company';
+
     // Dynamic data from API
     const [sptList, setSptList] = useState([]);
     const [submittedSptList, setSubmittedSptList] = useState([]);
@@ -204,7 +209,13 @@ const SptCreationWizard = () => {
     const fetchSptList = async (page = 1, status = null) => {
         try {
             setLoading(true);
-            let url = `${API.HOST}/api/v2/spt-tahunan/my-list?page=${page}&limit=${pagination.limit}`;
+            // FIX: endpoint sesuai portal aktif
+            // isBadan=true  → /api/v2/spt-tahunan-badan/my-list
+            // isBadan=false → /api/v2/spt-tahunan/my-list
+            const baseEndpoint = isBadan
+                ? `${API.HOST}/api/v2/spt-tahunan-badan/my-list`
+                : `${API.HOST}/api/v2/spt-tahunan/my-list`;
+            let url = `${baseEndpoint}?page=${page}&limit=${pagination.limit}`;
             if (status) {
                 url += `&status=${status}`;
             }
@@ -328,9 +339,9 @@ const SptCreationWizard = () => {
                 setSelectedModel('');
                 setCurrentView('list');
 
-                // Redirect to form with edit mode for amendment
+                // FIX: redirect berdasarkan isBadan — bukan currentSptType === 'badan' (tidak pernah true)
                 setTimeout(() => {
-                    if (currentSptType === 'badan') {
+                    if (isBadan) {
                         window.location.href = `/home/spt-tahunan-badan?sptId=${existingSpt?.id}`;
                     } else {
                         window.location.href = `/home/spt-tahunan-orang-pribadi?sptId=${existingSpt?.id}`;
@@ -339,17 +350,33 @@ const SptCreationWizard = () => {
                 return;
             }
 
-            // For normal SPT, create new record
-            const response = await fetch(`${API.HOST}/api/v2/spt-tahunan`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
+            // FIX: endpoint create sesuai portal aktif
+            const createEndpoint = isBadan
+                ? `${API.HOST}/api/v2/spt-tahunan-badan`
+                : `${API.HOST}/api/v2/spt-tahunan`;
+
+            // FIX: payload sesuai portal aktif
+            // - Badan: tidak ada source_of_income; backend menetapkan tax_type permanen
+            // - Pribadi: source_of_income dari selectedTaxType wizard step 1
+            const payload = isBadan
+                ? {
+                    tax_year: parseInt(selectedPeriod),
+                    tax_period: `${selectedPeriod} January - December`,
+                    tax_return_model: selectedModel,
+                    bookkeeping_type: 'Full Bookkeeping'
+                }
+                : {
                     tax_year: parseInt(selectedPeriod),
                     tax_period: `${selectedPeriod} January - December`,
                     tax_return_model: selectedModel,
                     bookkeeping_type: 'Simple Bookkeeping',
                     source_of_income: selectedTaxType
-                })
+                };
+
+            const response = await fetch(createEndpoint, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
@@ -365,9 +392,13 @@ const SptCreationWizard = () => {
                 // Refresh list
                 fetchSptList();
 
-                // Redirect ke form SPT yang sudah ada
+                // FIX: redirect ke form yang sesuai portal aktif
                 setTimeout(() => {
-                    window.location.href = `/home/spt-tahunan-orang-pribadi?sptId=${result.data.id}`;
+                    if (isBadan) {
+                        window.location.href = `/home/spt-tahunan-badan?sptId=${result.data.id}`;
+                    } else {
+                        window.location.href = `/home/spt-tahunan-orang-pribadi?sptId=${result.data.id}`;
+                    }
                 }, 1500);
             } else {
                 setError(result.message);
@@ -466,7 +497,11 @@ const SptCreationWizard = () => {
     const deleteSpt = async (sptId) => {
         try {
             setLoading(true);
-            const response = await fetch(`${API.HOST}/api/v2/spt-tahunan/${sptId}`, {
+            // FIX: endpoint delete sesuai portal aktif
+            const deleteEndpoint = isBadan
+                ? `${API.HOST}/api/v2/spt-tahunan-badan/${sptId}`
+                : `${API.HOST}/api/v2/spt-tahunan/${sptId}`;
+            const response = await fetch(deleteEndpoint, {
                 method: 'DELETE',
                 headers: getAuthHeaders()
             });
@@ -490,7 +525,11 @@ const SptCreationWizard = () => {
     const submitSpt = async (sptId) => {
         try {
             setLoading(true);
-            const response = await fetch(`${API.HOST}/api/v2/spt-tahunan/${sptId}/submit`, {
+            // FIX: endpoint submit sesuai portal aktif
+            const submitEndpoint = isBadan
+                ? `${API.HOST}/api/v2/spt-tahunan-badan/${sptId}/submit`
+                : `${API.HOST}/api/v2/spt-tahunan/${sptId}/submit`;
+            const response = await fetch(submitEndpoint, {
                 method: 'POST',
                 headers: getAuthHeaders()
             });
@@ -539,6 +578,18 @@ const SptCreationWizard = () => {
         fetchSptList();
         fetchTaxpayerProfile();
     }, []);
+
+    // FIX: reset wizard + refetch saat user ganti portal (isBadan berubah)
+    // AMAN: tidak ada fetch loop — dependency tunggal [isBadan] hanya berubah
+    // ketika user klik portal switch di Navbar, bukan saat render biasa
+    useEffect(() => {
+        setSelectedTaxType('');
+        setSelectedPeriod('');
+        setSelectedModel('');
+        setCurrentView('list');
+        fetchSptList();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isBadan]);
 
     useEffect(() => {
         if (detailDialog && selectedSpt) {
@@ -877,17 +928,17 @@ const SptCreationWizard = () => {
                         <div className="flex justify-center">
                             <div className="w-80">
                                 <div className="border-2 border-yellow-400 rounded-lg p-6 bg-yellow-50">
-                                    <h3 className="font-semibold text-gray-800 mb-4 text-lg">{currentSptType === 'company' ? "PPh Badan" : "PPh Orang Pribadi"}</h3>
+                                    <h3 className="font-semibold text-gray-800 mb-4 text-lg">{isBadan ? "PPh Badan" : "PPh Orang Pribadi"}</h3>
                                     <label className="flex items-center cursor-pointer">
                                         <input
                                             type="radio"
                                             name="taxType"
-                                            value="Pekerjaan"
-                                            checked={selectedTaxType === 'Pekerjaan'}
+                                            value={isBadan ? 'Business Activities' : 'Pekerjaan'}
+                                            checked={selectedTaxType === (isBadan ? 'Business Activities' : 'Pekerjaan')}
                                             onChange={(e) => setSelectedTaxType(e.target.value)}
                                             className="mr-3 h-4 w-4 text-yellow-400 focus:ring-yellow-300"
                                         />
-                                        <span className="text-gray-700">{currentSptType === 'company' ? "PPh Badan" : "PPh Orang Pribadi"}</span>
+                                        <span className="text-gray-700">{isBadan ? "PPh Badan" : "PPh Orang Pribadi"}</span>
                                     </label>
                                 </div>
                             </div>
@@ -928,7 +979,7 @@ const SptCreationWizard = () => {
                                 <div className="flex items-center">
                                     <span className="font-medium w-64">Jenis Surat Pemberitahuan Pajak</span>
                                     <span className="mx-4">:</span>
-                                    <span className="font-bold">SPT Tahunan PPh Wajib Pajak Orang Pribadi</span>
+                                    <span className="font-bold">{isBadan ? 'SPT Tahunan PPh Wajib Pajak Badan' : 'SPT Tahunan PPh Wajib Pajak Orang Pribadi'}</span>
                                 </div>
                             </div>
 
@@ -1016,7 +1067,7 @@ const SptCreationWizard = () => {
                                 <div className="flex items-center">
                                     <span className="font-medium w-64">Jenis Surat Pemberitahuan Pajak</span>
                                     <span className="mx-4">:</span>
-                                    <span>SPT Tahunan PPh Wajib Pajak Orang Pribadi</span>
+                                    <span>{isBadan ? 'SPT Tahunan PPh Wajib Pajak Badan' : 'SPT Tahunan PPh Wajib Pajak Orang Pribadi'}</span>
                                 </div>
                                 <div className="flex items-center">
                                     <span className="font-medium w-64">Periode dan Tahun Pajak</span>
@@ -1319,7 +1370,10 @@ const SptCreationWizard = () => {
                                             {viewType === 'list' && (
                                                 <div className='flex items-center gap-2'>
                                                     <button
-                                                        onClick={() => window.location.href = `/home/spt-tahunan-orang-pribadi?sptId=${spt.id}`}
+                                                        onClick={() => window.location.href = isBadan
+                                                            ? `/home/spt-tahunan-badan?sptId=${spt.id}`
+                                                            : `/home/spt-tahunan-orang-pribadi?sptId=${spt.id}`
+                                                        }
                                                         className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors"
                                                         title="Edit SPT"
                                                     >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
 import toast from "react-hot-toast";
 
@@ -22,27 +22,41 @@ const StepAddressDetails = ({ formData, setFormData, onNext, onRegisterValidator
 
   const [errors, setErrors] = useState({});
 
+  
+  const addressesRef = React.useRef(addresses);
+  useEffect(() => {
+    addressesRef.current = addresses;
+  }, [addresses]);
+
+  
   const handleAddressChange = (index, field, value) => {
-    const newAddresses = [...addresses];
-    newAddresses[index][field] = value;
-    setAddresses(newAddresses);
+    setAddresses(prev => {
+      const newAddresses = [...prev];
+      newAddresses[index] = { ...newAddresses[index], [field]: value };
+      return newAddresses;
+    });
 
     if (errors[`${index}_${field}`]) {
-      const newErrors = { ...errors };
-      delete newErrors[`${index}_${field}`];
-      setErrors(newErrors);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`${index}_${field}`];
+        return newErrors;
+      });
     }
   };
 
   const copyFromDomicile = () => {
-    const newAddresses = [...addresses];
-    newAddresses[1] = { ...newAddresses[0], type: 'Alamat sesuai di KTP' };
-    setAddresses(newAddresses);
+    setAddresses(prev => {
+      const newAddresses = [...prev];
+      newAddresses[1] = { ...newAddresses[0], type: 'Alamat sesuai di KTP' };
+      return newAddresses;
+    });
   };
 
-  const validateAddresses = () => {
+  // Pure function — tidak ada closure dependency
+  const validateAddresses = (addressList) => {
     const newErrors = {};
-    addresses.forEach((address, index) => {
+    addressList.forEach((address, index) => {
       if (!address.address) newErrors[`${index}_address`] = 'Detail alamat wajib diisi';
       if (!address.rt) newErrors[`${index}_rt`] = 'RT wajib diisi';
       if (!address.rw) newErrors[`${index}_rw`] = 'RW wajib diisi';
@@ -55,8 +69,11 @@ const StepAddressDetails = ({ formData, setFormData, onNext, onRegisterValidator
     return newErrors;
   };
 
-  const handleNext = () => {
-    const validationErrors = validateAddresses();
+  
+  const handleNext = useCallback(() => {
+    // Baca addresses TERBARU dari ref — tidak stale meski closure lama
+    const currentAddresses = addressesRef.current;
+    const validationErrors = validateAddresses(currentAddresses);
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -72,14 +89,17 @@ const StepAddressDetails = ({ formData, setFormData, onNext, onRegisterValidator
       return;
     }
 
-    setFormData({ ...formData, addresses });
-    onNext();
-  };
+    // ✅ Functional update — tidak overwrite perubahan formData dari step lain
+    setFormData(prev => ({ ...prev, addresses: currentAddresses }));
+    setTimeout(() => {
+      onNext();
+    }, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onNext, setFormData]);
 
-  // Register validator so StepNavigation can call it
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleNext);
-  });
+  }, [handleNext, onRegisterValidator]);
 
   return (
     <div>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { setSptType } from '../../../../redux/sptSlice';
 import {
     Check, Download, FileOpen, ArrowBack, ArrowForward,
     Save, Send, Warning, Info, Upload, Delete, ExpandMore, ExpandLess,
@@ -8,6 +10,7 @@ import {
 import API from "../../../../utils/host.config";
 
 const SptTahunanBadanForm = () => {
+    const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -16,6 +19,21 @@ const SptTahunanBadanForm = () => {
     const [expandedSections, setExpandedSections] = useState({ header: true });
     const [companyData, setCompanyData] = useState(null);
     const [autoFillAttempted, setAutoFillAttempted] = useState(false);
+
+    // untuk safeParse setSptData
+    const safeParse = (value) => {
+        if (!value) return {};
+
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return {};
+            }
+        }
+
+        return value;
+    };
 
     // Form data state untuk SPT Badan
     const [sptData, setSptData] = useState({
@@ -213,6 +231,11 @@ const SptTahunanBadanForm = () => {
 
     // Fetch company data on component mount
     useEffect(() => {
+        // SYNC: saat halaman form badan dibuka, pastikan navbar menampilkan "SPT Badan"
+        // Ini menangani kasus: user buka /home/spt-tahunan-badan langsung (misal dari bookmark)
+        // tanpa melalui portal switch di Navbar
+        dispatch(setSptType('company'));
+
         fetchCompanyData();
         // Jika ada sptId dari props/params, load existing data
         const urlParams = new URLSearchParams(window.location.search);
@@ -222,6 +245,18 @@ const SptTahunanBadanForm = () => {
             fetchSptData(existingSptId);
         }
     }, []);
+
+    useEffect(() => {
+        if (!success) return;
+        const timer = setTimeout(() => setSuccess(''), 3000);
+        return () => clearTimeout(timer);
+    }, [success]);
+
+    useEffect(() => {
+        if (!error) return;
+        const timer = setTimeout(() => setError(''), 4000);
+        return () => clearTimeout(timer);
+    }, [error]);
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem('xtoken') || sessionStorage.getItem('xtoken');
@@ -322,23 +357,23 @@ const SptTahunanBadanForm = () => {
                         submission_type: prev.header.submission_type
                     },
                     company_identity: sptDetail.taxpayer_identity ?
-                        { ...prev.company_identity, ...JSON.parse(sptDetail.taxpayer_identity) } : prev.company_identity,
+                        { ...prev.company_identity, ...safeParse(sptDetail.taxpayer_identity) } : prev.company_identity,
                     general_info: sptDetail.income_summary ?
-                        { ...prev.general_info, ...JSON.parse(sptDetail.income_summary) } : prev.general_info,
+                        { ...prev.general_info, ...safeParse(sptDetail.income_summary) } : prev.general_info,
                     balance_sheet: sptDetail.income_tax_calculation ?
-                        { ...prev.balance_sheet, ...JSON.parse(sptDetail.income_tax_calculation) } : prev.balance_sheet,
+                        { ...prev.balance_sheet, ...safeParse(sptDetail.income_tax_calculation) } : prev.balance_sheet,
                     profit_loss: sptDetail.income_tax_credit ?
-                        { ...prev.profit_loss, ...JSON.parse(sptDetail.income_tax_credit) } : prev.profit_loss,
+                        { ...prev.profit_loss, ...safeParse(sptDetail.income_tax_credit) } : prev.profit_loss,
                     tax_calculation: sptDetail.underpayment_overpayment ?
-                        { ...prev.tax_calculation, ...JSON.parse(sptDetail.underpayment_overpayment) } : prev.tax_calculation,
+                        { ...prev.tax_calculation, ...safeParse(sptDetail.underpayment_overpayment) } : prev.tax_calculation,
                     tax_credit: sptDetail.amendment_tax_return ?
-                        { ...prev.tax_credit, ...JSON.parse(sptDetail.amendment_tax_return) } : prev.tax_credit,
+                        { ...prev.tax_credit, ...safeParse(sptDetail.amendment_tax_return) } : prev.tax_credit,
                     tax_payable: sptDetail.refund_data ?
-                        { ...prev.tax_payable, ...JSON.parse(sptDetail.refund_data) } : prev.tax_payable,
+                        { ...prev.tax_payable, ...safeParse(sptDetail.refund_data) } : prev.tax_payable,
                     attachments: sptDetail.additional_attachments ?
-                        { ...prev.attachments, ...JSON.parse(sptDetail.additional_attachments) } : prev.attachments,
+                        { ...prev.attachments, ...safeParse(sptDetail.additional_attachments) } : prev.attachments,
                     statement: sptDetail.statement_data ?
-                        { ...prev.statement, ...JSON.parse(sptDetail.statement_data) } : prev.statement
+                        { ...prev.statement, ...safeParse(sptDetail.statement_data) } : prev.statement
                 }));
 
                 setSuccess('Data SPT Badan berhasil dimuat');

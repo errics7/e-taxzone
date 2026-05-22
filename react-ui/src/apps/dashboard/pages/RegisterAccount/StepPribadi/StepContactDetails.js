@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
 import toast from "react-hot-toast";
 
@@ -22,33 +22,49 @@ const StepContactDetails = ({ formData, setFormData, onNext, onRegisterValidator
     return phoneRegex.test(phone);
   };
 
-  const handleSubmit = () => {
+  // ✅ FIX: useRef to always read latest contact state inside handleSubmit
+  // without needing to add `contact` to useCallback deps (which would
+  // recreate handleSubmit on every keystroke → re-register loop).
+  const contactRef = React.useRef(contact);
+  useEffect(() => {
+    contactRef.current = contact;
+  }, [contact]);
+
+  // ✅ FIX: useCallback with stable deps — reads latest value via contactRef.
+  // Previously handleSubmit was a plain function recreated every render.
+  // Combined with onRegisterValidator being an inline arrow (also recreated
+  // every render), the useEffect below would re-fire every single render,
+  // constantly replacing activeStepValidator.current — causing race conditions
+  // where a stale or partially-replaced validator got called on Next click.
+  const handleSubmit = useCallback(() => {
+    const currentContact = contactRef.current;
     const newErrors = {};
 
-    if (!contact.email) {
+    if (!currentContact.email) {
       newErrors.email = 'Email is required';
-    } else if (!validateEmail(contact.email)) {
+    } else if (!validateEmail(currentContact.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (!contact.handphone) {
+    if (!currentContact.handphone) {
       newErrors.handphone = 'Handphone number is required';
-    } else if (!validatePhone(contact.handphone)) {
+    } else if (!validatePhone(currentContact.handphone)) {
       newErrors.handphone = 'Phone number must start with 0, min 8 characters, max 15 characters, and digits only';
     }
 
-    if (contact.telephone && !validatePhone(contact.telephone)) {
+    if (currentContact.telephone && !validatePhone(currentContact.telephone)) {
       newErrors.telephone = 'Phone number must start with 0, min 8 characters, max 15 characters, and digits only';
     }
 
-    if (contact.fax && !validatePhone(contact.fax)) {
+    if (currentContact.fax && !validatePhone(currentContact.fax)) {
       newErrors.fax = 'Fax number must start with 0, min 8 characters, max 15 characters, and digits only';
     }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      setFormData({ ...formData, contactDetails: contact });
+      // ✅ Functional update — safe even with concurrent renders
+      setFormData(prev => ({ ...prev, contactDetails: currentContact }));
       onNext();
     } else {
       const firstErrorField = document.querySelector('.text-red-500');
@@ -56,12 +72,17 @@ const StepContactDetails = ({ formData, setFormData, onNext, onRegisterValidator
         firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onNext, setFormData]);
+  // contactRef not in deps (ref is always current, doesn't trigger re-render)
+  // validateEmail/validatePhone not in deps (pure functions, no closure state)
 
-  // Register validator so StepNavigation can call it
+  // ✅ FIX: With handleSubmit now stable (useCallback) AND onRegisterValidator
+  // now stable (fixed in RegisterAccount.js), this effect fires ONCE on mount
+  // and never again — no loop, no overwrite race.
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleSubmit);
-  });
+  }, [handleSubmit, onRegisterValidator]);
 
   return (
     <div>

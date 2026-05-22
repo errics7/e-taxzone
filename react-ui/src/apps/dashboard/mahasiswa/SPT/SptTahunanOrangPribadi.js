@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { setSptType } from '../../../../redux/sptSlice';
 import {
     Check, Download, FileOpen, ArrowBack, ArrowForward,
     Save, Send, Warning, Info, Upload, Delete, ExpandMore, ExpandLess,
@@ -25,6 +27,7 @@ import L4Form from './Pribadi/L4';
 import { L5Form } from './Pribadi/L5';
 
 const SptTahunanForm = () => {
+    const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -55,6 +58,21 @@ const SptTahunanForm = () => {
     const [l3DData, setL3DData] = useState({})
     const [l4Data, setL4Data] = useState({})
     const [l5Data, setL5Data] = useState({})
+
+    // Untuk safeParse setSptData
+    const safeParse = (value) => {
+        if (!value) return {};
+
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return {};
+            }
+        }
+
+        return value;
+    };
 
     // Tambahkan state baru setelah state paymentAmount (sekitar baris 50)
     const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -183,7 +201,7 @@ const SptTahunanForm = () => {
     });
 
     const sections = [
-        { id: 'header', title: 'HEADER', icon: Assignment },
+        { id: 'header', title: 'HEADER PRIBADI', icon: Assignment },
         { id: 'identity', title: 'A. IDENTITY OF TAXPAYERS', icon: Person },
         { id: 'income', title: 'B. SUMMARY OF INCOME', icon: AccountBalance },
         { id: 'calculation', title: 'C. INCOME TAX PAYABLE CALCULATION', icon: Calculate },
@@ -271,6 +289,11 @@ const SptTahunanForm = () => {
 
     // Fetch taxpayer data on component mount
     useEffect(() => {
+        // SYNC: saat halaman form pribadi dibuka, pastikan navbar menampilkan "SPT Orang Pribadi"
+        // Ini menangani kasus: user buka /home/spt-tahunan-orang-pribadi langsung (misal dari bookmark)
+        // tanpa melalui portal switch di Navbar
+        dispatch(setSptType('individual'));
+
         fetchTaxpayerData();
         // Jika ada sptId dari props/params, load existing data
         const urlParams = new URLSearchParams(window.location.search);
@@ -419,33 +442,33 @@ const SptTahunanForm = () => {
                         accounting_period_end: prev.header.accounting_period_end
                     },
                     identity: sptDetail.taxpayer_identity ?
-                        { ...prev.identity, ...JSON.parse(sptDetail.taxpayer_identity) } : prev.identity,
+                        { ...prev.identity, ...safeParse(sptDetail.taxpayer_identity) } : prev.identity,
                     income_summary: sptDetail.income_summary ?
-                        { ...prev.income_summary, ...JSON.parse(sptDetail.income_summary) } : prev.income_summary,
+                        { ...prev.income_summary, ...safeParse(sptDetail.income_summary) } : prev.income_summary,
                     tax_calculation: sptDetail.income_tax_calculation ?
-                        { ...prev.tax_calculation, ...JSON.parse(sptDetail.income_tax_calculation) } : prev.tax_calculation,
+                        { ...prev.tax_calculation, ...safeParse(sptDetail.income_tax_calculation) } : prev.tax_calculation,
                     tax_credit: sptDetail.income_tax_credit ?
-                        { ...prev.tax_credit, ...JSON.parse(sptDetail.income_tax_credit) } : prev.tax_credit,
+                        { ...prev.tax_credit, ...safeParse(sptDetail.income_tax_credit) } : prev.tax_credit,
                     underpayment: sptDetail.underpayment_overpayment ?
-                        { ...prev.underpayment, ...JSON.parse(sptDetail.underpayment_overpayment) } : prev.underpayment,
+                        { ...prev.underpayment, ...safeParse(sptDetail.underpayment_overpayment) } : prev.underpayment,
                     amendment: sptDetail.amendment_tax_return ?
-                        { ...prev.amendment, ...JSON.parse(sptDetail.amendment_tax_return) } : prev.amendment,
+                        { ...prev.amendment, ...safeParse(sptDetail.amendment_tax_return) } : prev.amendment,
                     refund: sptDetail.refund_data ?
-                        { ...prev.refund, ...JSON.parse(sptDetail.refund_data) } : prev.refund,
+                        { ...prev.refund, ...safeParse(sptDetail.refund_data) } : prev.refund,
                     installment: sptDetail.income_tax_installment ?
-                        { ...prev.installment, ...JSON.parse(sptDetail.income_tax_installment) } : prev.installment,
+                        { ...prev.installment, ...safeParse(sptDetail.income_tax_installment) } : prev.installment,
                     other_transactions: sptDetail.other_transactions ?
-                        { ...prev.other_transactions, ...JSON.parse(sptDetail.other_transactions) } : prev.other_transactions,
+                        { ...prev.other_transactions, ...safeParse(sptDetail.other_transactions) } : prev.other_transactions,
                     attachments: sptDetail.additional_attachments ?
-                        { ...prev.attachments, ...JSON.parse(sptDetail.additional_attachments) } : prev.attachments,
+                        { ...prev.attachments, ...safeParse(sptDetail.additional_attachments) } : prev.attachments,
                     statement: sptDetail.statement_data ?
-                        { ...prev.statement, ...JSON.parse(sptDetail.statement_data) } : prev.statement
+                        { ...prev.statement, ...safeParse(sptDetail.statement_data) } : prev.statement
                 }));
 
                 // Parse and set detail data with proper default values
                 if (sptDetail.detail) {
                     try {
-                        const detailData = JSON.parse(sptDetail.detail);
+                        const detailData = safeParse(sptDetail.detail);
 
                         // Set L1 data with default structure
                         if (detailData.l1_assets) {

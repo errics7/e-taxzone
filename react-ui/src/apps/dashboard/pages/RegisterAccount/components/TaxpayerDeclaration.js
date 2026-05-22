@@ -1,14 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 
-const TaxpayerDeclaration = ({ formData, setFormData, onSubmit, isSubmitting }) => {
-  const [isAgreed, setIsAgreed] = useState(formData.declarationAccepted || false);
-
-  const handleSubmit = () => {
-    if (!isAgreed) return;
-    const updatedFormData = { ...formData, declarationAccepted: true };
-    setFormData(updatedFormData);
-    onSubmit(updatedFormData);
-  };
+const TaxpayerDeclaration = ({ formData, setFormData }) => {
+  // const [isAgreed, setIsAgreed] = useState(formData.declarationAccepted || false); // ← JANGAN pakai ini
 
   return (
     <div>
@@ -17,37 +10,52 @@ const TaxpayerDeclaration = ({ formData, setFormData, onSubmit, isSubmitting }) 
       </h2>
 
       <div className="max-w-4xl mx-auto">
-        <div className="bg-gray-50 p-6 rounded-lg mb-6">
-          <label className="flex items-start space-x-3">
+        <div
+          className={`p-6 rounded-lg mb-6 border-2 transition-colors ${
+            formData.declarationAccepted
+              ? 'bg-blue-50 border-blue-300'
+              : 'bg-gray-50 border-gray-200'
+          }`}
+        >
+          <label className="flex items-start space-x-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={isAgreed}
+              // ✅ Controlled: nilai SELALU dari formData.declarationAccepted
+              // Bukan dari local state yang bisa desync
+              checked={!!formData.declarationAccepted}
               onChange={(e) => {
-                setIsAgreed(e.target.checked);
-                setFormData({ ...formData, declarationAccepted: e.target.checked });
+                const checked = e.target.checked;
+                // ✅ Functional update — tidak akan stale
+                setFormData((prev) => ({
+                  ...prev,
+                  declarationAccepted: checked,
+                }));
               }}
-              className="mt-1 w-4 h-4 text-blue-600"
+              className="mt-1 w-4 h-4 text-blue-600 flex-shrink-0"
             />
-            <span className="text-sm text-gray-700">
-              Dengan menyadari sepenuhnya akan segala akibatnya termasuk sanksi sesuai dengan ketentuan peraturan perundang-undangan yang berlaku, saya
-              menyatakan bahwa apa yang saya sampaikan di atas adalah benar dan lengkap, dan saya menyetujui untuk menggunakan Akun Wajib Pajak saya sebagai
-              sarana penerimaan surat dan dokumen perpajakan.
+            <span className="text-sm text-gray-700 leading-relaxed">
+              Dengan menyadari sepenuhnya akan segala akibatnya termasuk sanksi
+              sesuai dengan ketentuan peraturan perundang-undangan yang berlaku,
+              saya menyatakan bahwa apa yang saya sampaikan di atas adalah benar
+              dan lengkap, dan saya menyetujui untuk menggunakan Akun Wajib
+              Pajak saya sebagai sarana penerimaan surat dan dokumen perpajakan.
             </span>
           </label>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            onClick={handleSubmit}
-            disabled={!isAgreed || isSubmitting}
-            className={`px-6 py-2 rounded font-medium ${isAgreed && !isSubmitting
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-          >
-            Ajukan Permohonan
-          </button>
-        </div>
+        {/* Visual feedback saat checkbox belum dicentang */}
+        {!formData.declarationAccepted && (
+          <p className="text-sm text-amber-600 text-center">
+            ⚠️ Centang pernyataan di atas untuk mengaktifkan tombol "Ajukan Permohonan"
+          </p>
+        )}
+
+        {/* Visual feedback saat checkbox sudah dicentang */}
+        {formData.declarationAccepted && (
+          <p className="text-sm text-green-600 text-center">
+            ✅ Pernyataan telah disetujui. Anda dapat mengajukan permohonan.
+          </p>
+        )}
       </div>
     </div>
   );

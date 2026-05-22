@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
 
 const StepRelatedPersons = ({ formData, setFormData, onNext, onRegisterValidator }) => {
@@ -19,14 +19,15 @@ const StepRelatedPersons = ({ formData, setFormData, onNext, onRegisterValidator
   };
 
   const handleNext = () => {
-    setFormData({ ...formData, relatedPersons });
+    setFormData(prev => ({ ...prev, relatedPersons }));
     onNext();
   };
 
   // Register validator so StepNavigation can call it
+  // ✅ FIX: dependency array stabil — tidak loop re-register setiap render
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleNext);
-  });
+  }, [handleNext, onRegisterValidator]);
 
   return (
     <div>

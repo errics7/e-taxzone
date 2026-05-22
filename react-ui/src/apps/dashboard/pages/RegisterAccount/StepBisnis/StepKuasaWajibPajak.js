@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
 
-const StepKuasaWajibPajak = ({ formData, setFormData, onNext }) => {
+const StepKuasaWajibPajak = ({ formData, setFormData,  onNext, onRegisterValidator }) => {
 
 
   const [kuasaData, setKuasaData] = useState({
@@ -30,10 +30,15 @@ const StepKuasaWajibPajak = ({ formData, setFormData, onNext }) => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      setFormData({ ...formData, kuasaWajibPajak: kuasaData });
+      setFormData(prev => ({ ...prev, kuasaWajibPajak: kuasaData }));
       onNext();
     }
   };
+
+  // ✅ FIX: dependency array stabil — tidak loop re-register setiap render
+  useEffect(() => {
+    if (onRegisterValidator) onRegisterValidator(handleSubmit);
+  }, [handleSubmit, onRegisterValidator]);
 
   return (
     <div>

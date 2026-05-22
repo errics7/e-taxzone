@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StyledInput from "../components/StyledInput";
 import KluModal from "../components/KluModal";
 import toast from "react-hot-toast";
@@ -57,14 +57,15 @@ const StepEconomicData = ({ formData, setFormData, onNext, onRegisterValidator }
       toast.error('Minimal satu KLU Utama harus ditambahkan', { style: { border: '1px solid #DC2626', color: '#DC2626' } });
       return;
     }
-    setFormData({ ...formData, companyEconomicData: economicData });
+    setFormData(prev => ({ ...prev, companyEconomicData: economicData }));
     onNext();
   };
 
   // Register validator so StepNavigation can call it
+  // ✅ FIX: dependency array stabil — tidak loop re-register setiap render
   useEffect(() => {
     if (onRegisterValidator) onRegisterValidator(handleNext);
-  });
+  }, [handleNext, onRegisterValidator]);
 
   const KluTable = ({ type, data }) => (
     <div className="mb-6">
