@@ -4,7 +4,7 @@
   "description": "ini api untuk hidden lms 360",
   "main": "index.js",
   "engines": {
-    "node": "14.x"
+    "node": "22.x"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
