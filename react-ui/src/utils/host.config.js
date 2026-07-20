@@ -1,7 +1,8 @@
 let HOST =
   !process.env.NODE_ENV || process.env.NODE_ENV === "development"
     ? "http://localhost:8000"
-    : "https://api.etaxzonepolinema.my.id";
+    //: "https://api.etaxzonepolinema.my.id";
+    : "https://e-taxzone-production.up.railway.app";
     
 const MODE = "perdagangan";
 
