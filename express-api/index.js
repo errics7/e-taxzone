@@ -25,6 +25,14 @@ app.use('/assets/uploads/file', express.static("assets/uploads/file"));
 app.use("/api/v2", require("./routes/v2/index"));
 app.use("/api/v3", require("./routes/v3/index"));
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "e-taxzone API is running",
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.listen(process.env.PORT || 8000, function () {
   console.log(
     "Express server listening on port %d in %s mode",
