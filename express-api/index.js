@@ -33,6 +33,17 @@ app.get("/", (req, res) => {
   });
 });
 
+const sequelize = require("./config/sequelizeconf");
+
+sequelize.authenticate()
+  .then(() => {
+    console.log("✅ Database connected");
+  })
+  .catch((err) => {
+    console.error("❌ Database connection failed:");
+    console.error(err);
+  });
+
 app.listen(process.env.PORT || 8000, function () {
   console.log(
     "Express server listening on port %d in %s mode",

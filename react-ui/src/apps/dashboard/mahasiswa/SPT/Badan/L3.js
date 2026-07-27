@@ -13,14 +13,35 @@ const fmt = (v) => {
     return n === 0 ? '' : n.toLocaleString('id-ID');
 };
 
+// fmtRp: wrapper fmt dengan prefix "Rp" — untuk tampilan nilai di sel tabel dan
+// summary. RpField internal tetap pakai fmt sendiri; tidak ada duplikasi.
+const fmtRp = (v) => { const s = fmt(v); return s ? 'Rp' + s : ''; };
+
+// fmtDate: konversi nilai date input (YYYY-MM-DD) ke format tampilan dd-MMM-yyyy.
+// BUG #4/#5: satu helper dipakai di seluruh L3 agar konsisten antara tabel dan modal.
+// Format data tersimpan (YYYY-MM-DD dari <input type="date">) tidak diubah.
+const fmtDate = (v) => {
+    if (!v) return '';
+    const d = new Date(v + 'T00:00:00');
+    if (isNaN(d.getTime())) return v;
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${String(d.getDate()).padStart(2,'0')}-${M[d.getMonth()]}-${d.getFullYear()}`;
+};
+
 const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) || 0;
 
-const ReadonlyField = ({ label, value }) => (
+const ReadonlyField = ({ label, value, helper }) => (
     <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
         <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded text-sm text-gray-700 min-h-[36px]">
             {value || <span className="text-gray-400">—</span>}
         </div>
+        {helper && (
+            <p className="mt-1 text-xs text-gray-400 flex items-start gap-1 leading-relaxed">
+                <span className="shrink-0">ⓘ</span>
+                <span>{helper}</span>
+            </p>
+        )}
     </div>
 );
 
@@ -92,8 +113,8 @@ const RpField = ({ label, value, onChange, placeholder = '0', required = false }
             <label className="block text-xs font-medium text-gray-700 mb-1">
                 {label}{required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
-            <div className="flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
-                <span className="px-2 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-r border-gray-200 select-none whitespace-nowrap">Rp</span>
+            <div className="flex items-stretch border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
+                <span className="inline-flex items-center px-3 border-r border-gray-300 text-gray-500 text-sm bg-gray-100 select-none whitespace-nowrap rounded-l-lg">Rp</span>
                 <input
                     ref={inputRef}
                     type="text"
@@ -103,7 +124,7 @@ const RpField = ({ label, value, onChange, placeholder = '0', required = false }
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0 rounded-r-lg"
                 />
             </div>
         </div>
@@ -112,13 +133,13 @@ const RpField = ({ label, value, onChange, placeholder = '0', required = false }
 
 const SelectField = ({ label, value, onChange, options, required = false }) => (
     <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
             {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
         <select
             value={value}
             onChange={e => onChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
             {options.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -127,18 +148,22 @@ const SelectField = ({ label, value, onChange, options, required = false }) => (
     </div>
 );
 
-const TextField = ({ label, value, onChange, placeholder = '', maxLength, required = false }) => (
+const TextField = ({ label, value, onChange, placeholder = '', maxLength, required = false, digitsOnly = false }) => (
     <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
             {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
         <input
             type="text"
+            inputMode={digitsOnly ? 'numeric' : 'text'}
             value={value}
-            onChange={e => onChange(e.target.value)}
+            onChange={e => {
+                const v = digitsOnly ? e.target.value.replace(/\D/g, '') : e.target.value;
+                onChange(v);
+            }}
             placeholder={placeholder}
             maxLength={maxLength}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
     </div>
 );
@@ -148,14 +173,14 @@ const TextField = ({ label, value, onChange, placeholder = '', maxLength, requir
 // Date" (Part B) — keduanya field tanggal sederhana (Blueprint L3 Final).
 const DateField = ({ label, value, onChange, required = false }) => (
     <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
             {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
         <input
             type="date"
             value={value}
             onChange={e => onChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
     </div>
 );
@@ -181,13 +206,32 @@ const COUNTRY_OPTIONS = [
 
 // TODO: Replace with backend/master data
 const INCOME_CODE_OPTIONS = [
-    { value: '', label: 'Please select' },
-    { value: '01', label: '01 — Dividend' },
-    { value: '02', label: '02 — Interest' },
-    { value: '03', label: '03 — Royalty' },
-    { value: '04', label: '04 — Business Profit' },
-    { value: '05', label: '05 — Service Fee' },
-    { value: '99', label: '99 — Other' },
+    { value: '',    label: 'Please select' },
+    { value: '01',  label: 'Penghasilan dari Usaha Jasa Konstruksi' },
+    { value: '02',  label: 'Penghasilan dari kegiatan usaha' },
+    { value: '03',  label: 'Penghasilan dari Premi Asuransi Termasuk Premi Reasuransi' },
+    { value: '04',  label: 'Penghasilan kena pajak sesudah dikurangi PPh suatu BUT' },
+    { value: '05',  label: 'Penghasilan lain-lain dari usaha' },
+    { value: '06',  label: 'Sewa tanah dan atau bangunan' },
+    { value: '07',  label: 'Sewa harta selain tanah dan atau bangunan' },
+    { value: '08',  label: 'Dividen' },
+    { value: '09',  label: 'Bunga' },
+    { value: '10',  label: 'Obligasi' },
+    { value: '11',  label: 'Royalti' },
+    { value: '12',  label: 'Keuntungan Penjualan Harta' },
+    { value: '13',  label: 'Bunga Deposito' },
+    { value: '14',  label: 'Bunga Tabungan' },
+    { value: '15',  label: 'Surat Berharga/Sekuritas' },
+    { value: '16',  label: 'Penjualan Saham di Bursa' },
+    { value: '17',  label: 'Pengalihan atau Penjualan Tanah/Bangunan' },
+    { value: '18',  label: 'Penghasilan dari Bangun Guna Serah' },
+    { value: '19',  label: 'Penghasilan lain-lain dari Modal atau Aset/Harta' },
+    { value: '20',  label: 'Pembebasan Utang' },
+    { value: '21',  label: 'Hibah' },
+    { value: '22',  label: 'Bantuan/Sumbangan' },
+    { value: '23',  label: 'Klaim Asuransi' },
+    { value: '24',  label: 'Hadiah/Undian' },
+    { value: '25',  label: 'Penghasilan lain' },
 ];
 
 // TODO: Replace with backend/master data
@@ -201,17 +245,29 @@ const CURRENCY_OPTIONS = [
     { value: 'MYR', label: 'MYR' },
 ];
 
-// TODO: Replace with backend/master data
+// Verified against Coretax DJP — urutan dan isi sesuai tampilan Coretax.
 const TAX_TYPE_OPTIONS = [
-    { value: '',     label: 'Please select' },
-    { value: 'PPh21', label: 'PPh Pasal 21' },
-    { value: 'PPh22', label: 'PPh Pasal 22' },
-    { value: 'PPh23', label: 'PPh Pasal 23' },
-    { value: 'PPh26', label: 'PPh Pasal 26' },
-    { value: 'PPh4_2', label: 'PPh Pasal 4 ayat (2)' },
+    { value: '',             label: 'Please select' },
+    { value: 'lb_bukan_lb',  label: 'Nilai LB dalam SPT yang dianggap bukan merupakan lebih bayar' },
+    { value: 'pph_dtg',      label: 'PPh Ditanggung Pemerintah' },
+    { value: 'pph_dtg_pln',  label: 'PPh Ditanggung Pemerintah (Proyek Bantuan Luar Negeri)' },
+    { value: 'PPh15',        label: 'PPh Pasal 15' },
+    { value: 'PPh22',        label: 'PPh Pasal 22' },
+    { value: 'PPh23',        label: 'PPh Pasal 23' },
+    { value: 'PPh26',        label: 'PPh Pasal 26' },
 ];
 
-// ─── Row helpers (generic, identik pola L2) ────────────────────────────────────
+// fmtRpZero: seperti fmtRp tapi menampilkan "Rp0" alih-alih string kosong.
+// Dipakai pada summary Bagian B agar selalu menampilkan nilai walaupun nol
+// (BUG #6 — Summary B harus selalu tampil dengan nilai default Rp0).
+const fmtRpZero = (v) => fmtRp(v) || 'Rp0';
+
+// getTaxTypeLabel: resolve value internal (key) ke display label sesuai TAX_TYPE_OPTIONS.
+// BUG #3 — tabel menampilkan label yang user pilih, bukan value internal.
+const getTaxTypeLabel = (value) => {
+    const opt = TAX_TYPE_OPTIONS.find(o => o.value === value);
+    return opt ? opt.label : (value || '');
+};
 
 const updateRowById = (rows, id, patch) => rows.map(r => (r.id === id ? { ...r, ...patch } : r));
 const removeRowById  = (rows, id) => rows.filter(r => r.id !== id);
@@ -302,14 +358,14 @@ const ModalPartA = ({ mode, row, onClose, onSave }) => {
     const title = mode === 'create' ? 'Add Income from Overseas' : 'Edit Income from Overseas';
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
-                <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
-                    <p className="text-white font-semibold text-sm">{title}</p>
-                    <button onClick={onClose} className="text-white/80 hover:text-white text-xl leading-none">&times;</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                    <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                 </div>
 
-                <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="px-6 py-5 space-y-4 overflow-y-auto">
                     <div>
                         <TextField label="Name" value={form.name} onChange={set('name')} required />
                         {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
@@ -332,10 +388,6 @@ const ModalPartA = ({ mode, row, onClose, onSave }) => {
                     </div>
 
                     <RpField label="Net Income" value={form.netIncomeRp} onChange={set('netIncomeRp')} required />
-
-                    {/* Tax Payable/Paid in Overseas — PERLU KONFIRMASI (Blueprint L3 Final §4):
-                        diperlakukan sebagai input manual karena Excel tidak menunjukkan formula
-                        konversi apa pun dari Amount in Foreign Currency × kurs. */}
                     <RpField label="Tax Payable/Paid in Overseas" value={form.taxPayableOverseasRp} onChange={set('taxPayableOverseasRp')} required />
 
                     <div className="grid grid-cols-2 gap-3">
@@ -343,20 +395,20 @@ const ModalPartA = ({ mode, row, onClose, onSave }) => {
                             <SelectField label="Currency" value={form.currency} onChange={set('currency')} options={CURRENCY_OPTIONS} required />
                             {errors.currency && <p className="text-xs text-red-500 mt-1">{errors.currency}</p>}
                         </div>
-                        <TextField label="Amount in Foreign Currency" value={form.foreignCurrencyAmount} onChange={set('foreignCurrencyAmount')} placeholder="Opsional" />
+                        <TextField label="Amount in Foreign Currency" value={form.foreignCurrencyAmount} onChange={set('foreignCurrencyAmount')} placeholder="Optional" />
                     </div>
 
                     <RpField label="Tax Credit That Can be Calculated" value={form.taxCreditCalculatedRp} onChange={set('taxCreditCalculatedRp')} required />
                 </div>
 
-                <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition-colors">
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 flex-shrink-0">
+                    <button onClick={onClose} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
                         Close
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={hasError}
-                        className={`px-4 py-2 text-sm rounded text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        className={`px-5 py-2 text-sm font-medium rounded-lg text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-900 hover:bg-blue-800'}`}
                     >
                         Save
                     </button>
@@ -401,20 +453,20 @@ const ModalPartB = ({ mode, row, onClose, onSave }) => {
         : 'Edit Income Tax Withheld by Other Parties';
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
-                <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
-                    <p className="text-white font-semibold text-sm">{title}</p>
-                    <button onClick={onClose} className="text-white/80 hover:text-white text-xl leading-none">&times;</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                    <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                 </div>
 
-                <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="px-6 py-5 space-y-4 overflow-y-auto">
                     <div>
                         <TextField label="Name" value={form.name} onChange={set('name')} required />
                         {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
                     </div>
                     <div>
-                        <TextField label="TIN" value={form.tin} onChange={set('tin')} maxLength={50} required />
+                        <TextField label="TIN" value={form.tin} onChange={set('tin')} maxLength={50} required digitsOnly />
                         {errors.tin && <p className="text-xs text-red-500 mt-1">{errors.tin}</p>}
                     </div>
                     <div>
@@ -439,14 +491,14 @@ const ModalPartB = ({ mode, row, onClose, onSave }) => {
                     </div>
                 </div>
 
-                <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition-colors">
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 flex-shrink-0">
+                    <button onClick={onClose} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
                         Close
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={hasError}
-                        className={`px-4 py-2 text-sm rounded text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        className={`px-5 py-2 text-sm font-medium rounded-lg text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-900 hover:bg-blue-800'}`}
                     >
                         Save
                     </button>
@@ -593,20 +645,25 @@ const L3 = ({
         if (onCreditAmountChange) onCreditAmountChange(summary.partB.c);
     }, [summary.partB.c]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Style helpers — disalin dari pola sticky-column L2.
-    const thCls = "px-3 py-2 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-    const tdCls = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100";
-    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border-b border-gray-100 font-mono";
+    // ── Style helpers — mengikuti standar visual L13A.js
+    // Header: bg-yellow-400 text-gray-800, cell border border-white border-b-gray-300
+    // Data: border border-gray-200, hover:bg-gray-50
+    const thCls = "px-3 py-2 text-center text-xs font-semibold text-gray-800 bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap uppercase";
+    const tdCls = "px-3 py-2 text-xs text-gray-700 border border-gray-200 whitespace-nowrap";
+    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border border-gray-200 whitespace-nowrap font-mono";
 
     const COL_ACTION_W = 64;
     const COL_NAME_W   = 160;
 
-    const thAction = { position: 'sticky', left: 0,            top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thName   = { position: 'sticky', left: COL_ACTION_W, top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#f3f4f6' };
+    // thAction/thName: sticky top saja (untuk header row), tanpa left/zIndex kolom
+    // tdAction/tdName: tidak ada sticky sama sekali — seluruh kolom scroll bersama
+    // Sticky Header tetap aktif via thTop (top: 0). Sticky Column dinonaktifkan.
+    const thAction = { position: 'sticky', top: 0, zIndex: 20, backgroundColor: '#fde047' };
+    const thName   = { position: 'sticky', top: 0, zIndex: 20, backgroundColor: '#fde047' };
+    const thTop    = { position: 'sticky', top: 0, zIndex: 20, backgroundColor: '#fde047' };
 
-    const tdAction = { position: 'sticky', left: 0,            zIndex: 1, backgroundColor: '#ffffff' };
-    const tdName   = { position: 'sticky', left: COL_ACTION_W, zIndex: 1, backgroundColor: '#ffffff' };
+    const tdAction = {};
+    const tdName   = {};
 
     const EditIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -633,170 +690,393 @@ const L3 = ({
             </div>
 
             {/* ── PART A ──────────────────────────────────────────────────── */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                <div className="px-5 py-3 bg-blue-700 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">
-                        A. Income from Overseas
-                    </h3>
+            {/* Blueprint: +Add di LUAR dan di ATAS panel, sebelah kiri */}
+            <div className="space-y-2">
+                <div>
                     <button
                         onClick={() => setModalA({ mode: 'create' })}
-                        className="px-3 py-1.5 text-xs font-semibold bg-white text-blue-700 rounded hover:bg-blue-50 transition-colors"
+                        className="flex items-center gap-1 px-4 py-2 bg-blue-900 text-white text-xs font-semibold rounded-lg hover:bg-blue-800 transition-colors"
                     >
                         + Add
                     </button>
                 </div>
 
-                <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '500px' }}>
-                    <table className="w-full text-sm border-collapse min-w-[1400px]">
-                        <thead>
-                            <tr>
-                                <th className={thCls} style={{ ...thAction, minWidth: COL_ACTION_W }}>Action</th>
-                                <th className={thCls} style={{ ...thName, minWidth: COL_NAME_W }}>Name</th>
-                                <th className={thCls} style={thTop}>Country Code</th>
-                                <th className={thCls} style={thTop}>Date of Transaction</th>
-                                <th className={thCls} style={thTop}>Income Code</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Net Income (Rp)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Tax Payable/Paid Overseas (Rp)</th>
-                                <th className={thCls} style={thTop}>Currency</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Amount in Foreign Currency</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Tax Credit Calculated (Rp)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rowsA.length === 0 && (
-                                <tr><td colSpan={10} className="px-3 py-6 text-center text-sm text-gray-400 italic">No data to display.</td></tr>
-                            )}
-                            {rowsA.map((row) => (
-                                <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className={tdCls} style={tdAction}>
-                                        <div className="flex gap-1">
-                                            <button onClick={() => setModalA({ mode: 'edit', row })} title="Edit" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors">
-                                                <EditIcon />
-                                            </button>
-                                            <button onClick={() => handleDeleteA(row.id)} title="Delete" className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
-                                                <DeleteIcon />
-                                            </button>
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    {/* Panel header — title only, tanpa button */}
+                    <div className="px-5 py-3 bg-blue-900">
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                            A. Income from Overseas
+                        </h3>
+                    </div>
+
+                    <div className="border-b border-gray-200 overflow-x-auto overflow-y-auto max-h-[520px]">
+                        <table className="w-full text-sm border-collapse min-w-[1400px]">
+                            {/* ── 2-LEVEL THEAD ────────────────────────────────────────── */}
+                            {/* Kolom: 1=Action, 2=Name, 3=Country, 4=Date, 5=IncomeCode,
+                                 6=NetIncome, 7=TaxPayable, 8=Currency, 9=AmountForeign,
+                                 10=TaxCredit — total 10 kolom */}
+                            <thead>
+                                {/* Row 1 — parent headers */}
+                                <tr>
+                                    {/* col 1 — Action: rowSpan=2, sticky kiri */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thAction, minWidth: COL_ACTION_W, verticalAlign: 'middle' }}>
+                                        Action
+                                    </th>
+                                    {/* col 2-3 — Income Tax Withholder group */}
+                                    <th colSpan={2} className={thCls}
+                                        style={thTop}>
+                                        Income Tax Withholder
+                                    </th>
+                                    {/* col 4 — Date of Transaction: rowSpan=2 */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thTop, verticalAlign: 'middle' }}>
+                                        Date of Transaction
+                                    </th>
+                                    {/* col 5 — Income Code: rowSpan=2 */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thTop, verticalAlign: 'middle' }}>
+                                        Income Code
+                                    </th>
+                                    {/* col 6 — Net Income: rowSpan=2 */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thTop, verticalAlign: 'middle' }}>
+                                        Net Income
+                                    </th>
+                                    {/* col 7-9 — Tax Payable/Paid in Overseas group */}
+                                    <th colSpan={3} className={thCls} style={thTop}>
+                                        Tax Payable/Paid in Overseas
+                                    </th>
+                                    {/* col 10 — Tax Credit Calculated: rowSpan=2 */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thTop, verticalAlign: 'middle' }}>
+                                        Tax Credit Calculated
+                                    </th>
+                                </tr>
+                                {/* Row 2 — child headers (5 cells; cols 1,4,5,6,10 di-span oleh rowSpan=2) */}
+                                <tr>
+                                    {/* col 2 — Name: sticky kiri */}
+                                    <th className={thCls}
+                                        style={{ ...thTop, top: 36 }}>
+                                        Name
+                                    </th>
+                                    {/* col 3 — Country Code */}
+                                    <th className={thCls} style={{ ...thTop, top: 36 }}>Country Code</th>
+                                    {/* col 7 — Tax Payable/Paid Overseas */}
+                                    <th className={thCls} style={{ ...thTop, top: 36 }}>Tax Payable/Paid Overseas (Rp)</th>
+                                    {/* col 8 — Currency */}
+                                    <th className={thCls} style={{ ...thTop, top: 36 }}>Currency</th>
+                                    {/* col 9 — Amount in Foreign Currency */}
+                                    <th className={thCls} style={{ ...thTop, top: 36 }}>Foreign Amount</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {rowsA.length === 0 && (
+                                    <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-400 border border-gray-200">No data to display.</td></tr>
+                                )}
+                                {rowsA.map((row) => (
+                                    <tr key={row.id} className="hover:bg-gray-50">
+                                        <td className={tdCls} style={tdAction}>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => setModalA({ mode: 'edit', row })} title="Edit" className="text-blue-600 hover:text-blue-800">
+                                                    <EditIcon />
+                                                </button>
+                                                <button onClick={() => handleDeleteA(row.id)} title="Delete" className="text-red-500 hover:text-red-700">
+                                                    <DeleteIcon />
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className={tdCls} style={tdName}>{row.name}</td>
+                                        <td className={tdCls}>{row.countryCode}</td>
+                                        <td className={tdCls}>{fmtDate(row.transactionDate)}</td>
+                                        <td className={tdCls}>{row.incomeCode}</td>
+                                        <td className={tdNum}>{fmtRp(row.netIncomeRp)}</td>
+                                        <td className={tdNum}>{fmtRp(row.taxPayableOverseasRp)}</td>
+                                        <td className={tdCls}>{row.currency}</td>
+                                        <td className={tdNum}>{row.foreignCurrencyAmount}</td>
+                                        <td className={tdNum}>{fmtRp(row.taxCreditCalculatedRp)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+
+                            {/* ── TFOOT: TOTAL + 3 summary rows menyatu dalam tabel ────── */}
+                            {/* Blueprint: summary bukan card baru, melainkan lanjutan tabel.
+                                 Kolom: 6+3+1=10.
+                                 - col 1-6 kosong (label mulai di posisi grup Tax Payable, col 7)
+                                 - col 7-9: label summary (sejajar grup Tax Payable/Paid in Overseas)
+                                 - col 10: nilai (kolom Tax Credit Calculated) */}
+                            <tfoot>
+                                {/* TOTAL row */}
+                                <tr className="bg-gray-100">
+                                    <td className="px-3 py-2 text-xs font-bold text-gray-700 border border-gray-200" colSpan={5}>
+                                        TOTAL
+                                    </td>
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-gray-800 border border-gray-200">
+                                        {fmtRp(rowsA.reduce((s, r) => s + parse(r.netIncomeRp), 0))}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-gray-800 border border-gray-200">
+                                        {fmtRp(rowsA.reduce((s, r) => s + parse(r.taxPayableOverseasRp), 0))}
+                                    </td>
+                                    <td colSpan={2} className="border border-gray-200" />
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-gray-800 border border-gray-200">
+                                        {fmtRp(summary.partA.a)}
+                                    </td>
+                                </tr>
+
+                                {/* Summary row a — Total Tax Credit That Can Be Calculated (READONLY, helper di luar tabel) */}
+                                <tr className="bg-white">
+                                    <td colSpan={6} className="border border-gray-200" />
+                                    <td colSpan={3} className="px-3 py-1 text-xs font-medium text-gray-600 text-right border border-gray-200">
+                                        a. Total Tax Credit That Can Be Calculated
+                                    </td>
+                                    <td className="px-3 py-1 border border-gray-200">
+                                        <div className="w-full px-2 py-1 bg-gray-100 border border-gray-200 rounded text-sm text-right font-mono text-gray-700">
+                                            {fmtRp(summary.partA.a) || <span className="text-gray-400">—</span>}
                                         </div>
                                     </td>
-                                    <td className={tdCls} style={tdName}>{row.name}</td>
-                                    <td className={tdCls}>{row.countryCode}</td>
-                                    <td className={tdCls}>{row.transactionDate}</td>
-                                    <td className={tdCls}>{row.incomeCode}</td>
-                                    <td className={tdNum}>{fmt(row.netIncomeRp)}</td>
-                                    <td className={tdNum}>{fmt(row.taxPayableOverseasRp)}</td>
-                                    <td className={tdCls}>{row.currency}</td>
-                                    <td className={tdNum}>{row.foreignCurrencyAmount}</td>
-                                    <td className={tdNum}>{fmt(row.taxCreditCalculatedRp)}</td>
                                 </tr>
-                            ))}
-                        </tbody>
-                        {rowsA.length > 0 && (
-                            <tfoot>
-                                <tr className="bg-blue-700">
-                                    <td className="px-3 py-2" colSpan={9} style={{ position: 'sticky', left: 0 }}>
-                                        <span className="text-xs font-bold text-white">TOTAL</span>
+
+                                {/* Summary row b — Prior Year Foreign Tax Credit Adjustment (EDITABLE, tanpa helper) */}
+                                <tr className="bg-white">
+                                    <td colSpan={6} className="border border-gray-200" />
+                                    <td colSpan={3} className="px-3 py-1 text-xs font-medium text-gray-600 text-right border border-gray-200">
+                                        b. Prior Year Foreign Tax Credit Adjustment (Article 24)
                                     </td>
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{fmt(summary.partA.a)}</td>
+                                    <td className="px-3 py-1 border border-gray-200">
+                                        <div className="flex items-stretch border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
+                                            <span className="inline-flex items-center px-3 border-r border-gray-300 text-gray-500 text-sm bg-gray-100 select-none whitespace-nowrap rounded-l-lg">Rp</span>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={creditRefund
+                                                    ? Number(String(creditRefund).replace(/\D/g, '') || 0).toLocaleString('id-ID')
+                                                    : ''}
+                                                onChange={e => handleCreditRefundChange(e.target.value.replace(/\D/g, ''))}
+                                                placeholder="0"
+                                                className="flex-1 px-3 py-1 text-sm text-right bg-white focus:outline-none min-w-0 font-mono rounded-r-lg"
+                                            />
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {/* Summary row c — Foreign Tax Credit Eligible for Current Year (READONLY, helper di luar tabel) */}
+                                <tr className="bg-white">
+                                    <td colSpan={6} className="border border-gray-200" />
+                                    <td colSpan={3} className="px-3 py-1 text-xs font-medium text-gray-600 text-right border border-gray-200">
+                                        c. Foreign Tax Credit Eligible for Current Year
+                                    </td>
+                                    <td className="px-3 py-1 border border-gray-200">
+                                        <div className="w-full px-2 py-1 bg-gray-100 border border-gray-200 rounded text-sm text-right font-mono text-gray-700">
+                                            {fmtRp(summary.partA.c) || <span className="text-gray-400">—</span>}
+                                        </div>
+                                    </td>
                                 </tr>
                             </tfoot>
-                        )}
-                    </table>
-                </div>
+                        </table>
+                    </div>
 
-                {/* ── Summary Bagian A (a/b/c) — Blueprint L3 Final §2: derived,
-                     b = priorYearCreditRefund (SATU-SATUNYA field editable di sini) ── */}
-                <div className="p-5 bg-gray-50 border-t border-gray-200 space-y-3">
-                    <div className="grid grid-cols-3 gap-4 items-end max-w-3xl">
-                        <ReadonlyField label="a. Jumlah Tax Credit That Can be Calculated" value={fmt(summary.partA.a)} />
-                        <RpField
-                            label="b. Pengembalian Pengurangan Kredit Pajak LN (PPh Psl 24) Tahun Lalu"
-                            value={creditRefund}
-                            onChange={handleCreditRefundChange}
-                        />
-                        <ReadonlyField label="c. Jumlah Kredit Pajak LN yang Dapat Diperhitungkan Tahun Berjalan (a − b)" value={fmt(summary.partA.c)} />
+                    {/* Calculation Notes Part A — di luar tabel, di dalam panel */}
+                    <div className="px-5 py-3 border-t border-gray-100 space-y-1">
+                        <p className="text-xs font-semibold text-gray-500 mb-1.5">Calculation Notes</p>
+                        <p className="text-xs text-gray-400 flex items-start gap-1.5">
+                            <span className="shrink-0 mt-px">ⓘ</span>
+                            <span><span className="font-medium text-gray-500">Total Tax Credit That Can Be Calculated</span> = Sum of all &ldquo;Tax Credit That Can Be Calculated&rdquo; values.</span>
+                        </p>
+                        <p className="text-xs text-gray-400 flex items-start gap-1.5">
+                            <span className="shrink-0 mt-px">ⓘ</span>
+                            <span><span className="font-medium text-gray-500">Foreign Tax Credit Eligible for Current Year</span> = Total Tax Credit That Can Be Calculated − Prior Year Foreign Tax Credit Adjustment.</span>
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* ── PART B ──────────────────────────────────────────────────── */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                <div className="px-5 py-3 bg-blue-700 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">
-                        B. PPh Withheld/Collected by Other Party
-                    </h3>
+            {/* +Add di LUAR dan di ATAS panel, sebelah kiri — identik pola Part A */}
+            <div className="space-y-2">
+                <div>
                     <button
                         onClick={() => setModalB({ mode: 'create' })}
-                        className="px-3 py-1.5 text-xs font-semibold bg-white text-blue-700 rounded hover:bg-blue-50 transition-colors"
+                        className="flex items-center gap-1 px-4 py-2 bg-blue-900 text-white text-xs font-semibold rounded-lg hover:bg-blue-800 transition-colors"
                     >
                         + Add
                     </button>
                 </div>
 
-                <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '500px' }}>
-                    <table className="w-full text-sm border-collapse min-w-[1300px]">
-                        <thead>
-                            <tr>
-                                <th className={thCls} style={{ ...thAction, minWidth: COL_ACTION_W }}>Action</th>
-                                <th className={thCls} style={{ ...thName, minWidth: COL_NAME_W }}>Name</th>
-                                <th className={thCls} style={thTop}>TIN</th>
-                                <th className={thCls} style={thTop}>Tax Type</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Tax Base (Rp)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Income Tax Withheld (Rp)</th>
-                                <th className={thCls} style={thTop}>Withholding Slip Number</th>
-                                <th className={thCls} style={thTop}>Withholding Slip Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rowsB.length === 0 && (
-                                <tr><td colSpan={8} className="px-3 py-6 text-center text-sm text-gray-400 italic">No data found.</td></tr>
-                            )}
-                            {rowsB.map((row) => (
-                                <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className={tdCls} style={tdAction}>
-                                        <div className="flex gap-1">
-                                            <button onClick={() => setModalB({ mode: 'edit', row })} title="Edit" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors">
-                                                <EditIcon />
-                                            </button>
-                                            <button onClick={() => handleDeleteB(row.id)} title="Delete" className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
-                                                <DeleteIcon />
-                                            </button>
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    {/* Panel header — title only */}
+                    <div className="px-5 py-3 bg-blue-900">
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                            B. PPh Withheld/Collected by Other Party
+                        </h3>
+                    </div>
+
+                    <div className="border-b border-gray-200 overflow-x-auto overflow-y-auto max-h-[520px]">
+                        <table className="w-full text-sm border-collapse min-w-[1300px]">
+                            {/* ── 2-LEVEL THEAD ────────────────────────────────────────── */}
+                            {/* Kolom: 1=Action, 2=Name, 3=TIN, 4=TaxType, 5=TaxBase,
+                                 6=IncomeWithheld, 7=SlipNumber, 8=SlipDate — total 8 kolom */}
+                            <thead>
+                                {/* Row 1 — parent headers */}
+                                <tr>
+                                    {/* col 1 — Action: rowSpan=2, sticky kiri */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thAction, minWidth: COL_ACTION_W, verticalAlign: 'middle' }}>
+                                        Action
+                                    </th>
+                                    {/* col 2-3 — Income Tax Withholder group */}
+                                    <th colSpan={2} className={thCls}
+                                        style={thTop}>
+                                        Income Tax Withholder
+                                    </th>
+                                    {/* col 4 — Tax Type: rowSpan=2 */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thTop, verticalAlign: 'middle' }}>
+                                        Tax Type
+                                    </th>
+                                    {/* col 5 — Tax Base: rowSpan=2 */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thTop, verticalAlign: 'middle' }}>
+                                        Tax Base
+                                    </th>
+                                    {/* col 6 — Income Tax Withheld: rowSpan=2 */}
+                                    <th rowSpan={2} className={thCls}
+                                        style={{ ...thTop, verticalAlign: 'middle' }}>
+                                        Income Tax Withheld
+                                    </th>
+                                    {/* col 7-8 — Withholding Slip group */}
+                                    <th colSpan={2} className={thCls} style={thTop}>
+                                        Withholding Slip
+                                    </th>
+                                </tr>
+                                {/* Row 2 — child headers (4 cells; cols 1,4,5,6 di-span rowSpan=2) */}
+                                <tr>
+                                    {/* col 2 — Name: sticky kiri */}
+                                    <th className={thCls}
+                                        style={{ ...thTop, top: 36 }}>
+                                        Name
+                                    </th>
+                                    {/* col 3 — TIN */}
+                                    <th className={thCls} style={{ ...thTop, top: 36 }}>TIN</th>
+                                    {/* col 7 — Slip Number */}
+                                    <th className={thCls} style={{ ...thTop, top: 36 }}>Number</th>
+                                    {/* col 8 — Slip Date */}
+                                    <th className={thCls} style={{ ...thTop, top: 36 }}>Date</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {rowsB.length === 0 && (
+                                    <tr><td colSpan={8} className="px-3 py-8 text-center text-sm text-gray-400 border border-gray-200">No data found.</td></tr>
+                                )}
+                                {rowsB.map((row) => (
+                                    <tr key={row.id} className="hover:bg-gray-50">
+                                        <td className={tdCls} style={tdAction}>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => setModalB({ mode: 'edit', row })} title="Edit" className="text-blue-600 hover:text-blue-800">
+                                                    <EditIcon />
+                                                </button>
+                                                <button onClick={() => handleDeleteB(row.id)} title="Delete" className="text-red-500 hover:text-red-700">
+                                                    <DeleteIcon />
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className={tdCls} style={tdName}>{row.name}</td>
+                                        <td className={tdCls}>{row.tin}</td>
+                                        <td className={tdCls}>{getTaxTypeLabel(row.taxType)}</td>
+                                        <td className={tdNum}>{fmtRp(row.taxBaseRp)}</td>
+                                        <td className={tdNum}>{fmtRp(row.taxWithheldRp)}</td>
+                                        <td className={tdCls}>{row.slipNumber}</td>
+                                        <td className={tdCls}>{fmtDate(row.slipDate)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+
+                            {/* ── TFOOT: TOTAL + 3 summary rows menyatu dalam tabel ────── */}
+                            {/* Blueprint: summary lanjutan tabel bukan card terpisah.
+                                 Kolom: 5+1+2=8.
+                                 - col 1-5: label (right-aligned) — dimulai area Tax Type+Tax Base
+                                 - col 6: nilai (sejajar Income Tax Withheld)
+                                 - col 7-8: kosong */}
+                            <tfoot>
+                                {/* TOTAL row — Tax Base (col 5) + Income Tax Withheld (col 6) */}
+                                <tr className="bg-gray-100">
+                                    <td className="px-3 py-2 text-xs font-bold text-gray-700 border border-gray-200" colSpan={4}>
+                                        TOTAL
+                                    </td>
+                                    {/* col 5 — Tax Base total */}
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-gray-800 border border-gray-200">
+                                        {fmtRp(rowsB.reduce((s, r) => s + parse(r.taxBaseRp), 0))}
+                                    </td>
+                                    {/* col 6 — Income Tax Withheld total */}
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-gray-800 border border-gray-200">
+                                        {fmtRp(summary.partB.a)}
+                                    </td>
+                                    <td colSpan={2} className="border border-gray-200" />
+                                </tr>
+
+                                {/* Summary row a — Total Income Tax Withheld (helper di luar tabel) */}
+                                <tr className="bg-white">
+                                    <td colSpan={5} className="px-3 py-1 text-xs font-medium text-gray-600 text-right border border-gray-200">
+                                        a. Total Income Tax Withheld
+                                    </td>
+                                    <td className="px-3 py-1 border border-gray-200">
+                                        <div className="w-full px-2 py-1 bg-gray-100 border border-gray-200 rounded text-sm text-right font-mono text-gray-700">
+                                            {fmtRpZero(summary.partB.a)}
                                         </div>
                                     </td>
-                                    <td className={tdCls} style={tdName}>{row.name}</td>
-                                    <td className={tdCls}>{row.tin}</td>
-                                    <td className={tdCls}>{row.taxType}</td>
-                                    <td className={tdNum}>{fmt(row.taxBaseRp)}</td>
-                                    <td className={tdNum}>{fmt(row.taxWithheldRp)}</td>
-                                    <td className={tdCls}>{row.slipNumber}</td>
-                                    <td className={tdCls}>{row.slipDate}</td>
+                                    <td colSpan={2} className="border border-gray-200" />
                                 </tr>
-                            ))}
-                        </tbody>
-                        {rowsB.length > 0 && (
-                            <tfoot>
-                                <tr className="bg-blue-700">
-                                    <td className="px-3 py-2" colSpan={4} style={{ position: 'sticky', left: 0 }}>
-                                        <span className="text-xs font-bold text-white">TOTAL</span>
+
+                                {/* Summary row b — Foreign Tax Credit (helper di luar tabel) */}
+                                <tr className="bg-white">
+                                    <td colSpan={5} className="px-3 py-1 text-xs font-medium text-gray-600 text-right border border-gray-200">
+                                        b. Foreign Tax Credit (From Part A – Foreign Tax Credit Eligible for Current Year)
                                     </td>
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{fmt(summary.partB.a)}</td>
-                                    <td className="px-3 py-2" colSpan={3} />
+                                    <td className="px-3 py-1 border border-gray-200">
+                                        <div className="w-full px-2 py-1 bg-gray-100 border border-gray-200 rounded text-sm text-right font-mono text-gray-700">
+                                            {fmtRpZero(summary.partB.b)}
+                                        </div>
+                                    </td>
+                                    <td colSpan={2} className="border border-gray-200" />
+                                </tr>
+
+                                {/* Summary row c — Total Income Tax Credit → Main Form E.13 (helper di luar tabel) */}
+                                <tr className="bg-white">
+                                    <td colSpan={5} className="px-3 py-1 text-xs font-medium text-gray-600 text-right border border-gray-200">
+                                        c. Total Income Tax Credit
+                                    </td>
+                                    <td className="px-3 py-1 border border-gray-200">
+                                        <div className="w-full px-2 py-1 bg-gray-100 border border-gray-200 rounded text-sm text-right font-mono text-gray-700">
+                                            {fmtRpZero(summary.partB.c)}
+                                        </div>
+                                    </td>
+                                    <td colSpan={2} className="border border-gray-200" />
                                 </tr>
                             </tfoot>
-                        )}
-                    </table>
-                </div>
-
-                {/* ── Summary Bagian B (a/b/c) — semua derived, TIDAK ada field
-                     editable di sini. b = Part A.c (readonly, otomatis). ── */}
-                <div className="p-5 bg-gray-50 border-t border-gray-200 space-y-3">
-                    <div className="grid grid-cols-3 gap-4 items-end max-w-3xl">
-                        <ReadonlyField label="a. Jumlah PPh yang Dipotong/Dipungut" value={fmt(summary.partB.a)} />
-                        <ReadonlyField label="b. Kredit Pajak Luar Negeri (dari Bagian A.c)" value={fmt(summary.partB.b)} />
-                        <ReadonlyField label="c. Jumlah Kredit Pajak (a − b) → Section E.13" value={fmt(summary.partB.c)} />
+                        </table>
                     </div>
-                    <p className="text-xs text-gray-500 italic">
-                        Nilai c di atas otomatis dikirim ke Main Form Section E Point 13 — tidak perlu input manual.
-                    </p>
+
+                    {/* Calculation Notes Part B + Mapping Info — di luar tabel, di dalam panel */}
+                    <div className="px-5 py-3 border-t border-gray-100 space-y-1">
+                        <p className="text-xs font-semibold text-gray-500 mb-1.5">Calculation Notes</p>
+                        <p className="text-xs text-gray-400 flex items-start gap-1.5">
+                            <span className="shrink-0 mt-px">ⓘ</span>
+                            <span><span className="font-medium text-gray-500">Total Income Tax Withheld</span> = Sum of all &ldquo;Income Tax Withheld&rdquo; values.</span>
+                        </p>
+                        <p className="text-xs text-gray-400 flex items-start gap-1.5">
+                            <span className="shrink-0 mt-px">ⓘ</span>
+                            <span><span className="font-medium text-gray-500">Foreign Tax Credit</span> = Retrieved from Part A – Foreign Tax Credit Eligible for Current Year.</span>
+                        </p>
+                        <p className="text-xs text-gray-400 flex items-start gap-1.5">
+                            <span className="shrink-0 mt-px">ⓘ</span>
+                            <span><span className="font-medium text-gray-500">Total Income Tax Credit</span> = Total Income Tax Withheld − Foreign Tax Credit.</span>
+                        </p>
+                        <p className="mt-2 text-xs text-blue-500 flex items-center gap-1.5">
+                            <span className="shrink-0">ⓘ</span>
+                            <span>Automatically mapped to Main Form → Section E → Point 13.</span>
+                        </p>
+                    </div>
                 </div>
             </div>
 

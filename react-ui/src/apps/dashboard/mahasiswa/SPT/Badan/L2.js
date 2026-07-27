@@ -16,6 +16,12 @@ const fmt = (v) => {
 
 const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) || 0;
 
+// rpDisplay — HANYA untuk tampilan sel tabel (pola L13A: prefix "Rp" menempel
+// tanpa spasi, selalu tampil termasuk untuk nilai 0). TIDAK dipakai oleh RpField
+// (yang butuh string kosong saat nilai 0, untuk placeholder) — fmt/parse asli
+// tetap tidak disentuh sama sekali.
+const rpDisplay = (v) => `Rp${fmt(v) || '0'}`;
+
 const ReadonlyField = ({ label, value }) => (
     <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
@@ -91,8 +97,8 @@ const RpField = ({ label, value, onChange, placeholder = '0' }) => {
     return (
         <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-            <div className="flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
-                <span className="px-2 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-r border-gray-200 select-none whitespace-nowrap">Rp</span>
+            <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
+                <span className="px-3 py-2 text-sm font-medium text-gray-500 bg-gray-100 border-r border-gray-200 select-none whitespace-nowrap">Rp</span>
                 <input
                     ref={inputRef}
                     type="text"
@@ -102,7 +108,7 @@ const RpField = ({ label, value, onChange, placeholder = '0' }) => {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
                 />
             </div>
         </div>
@@ -115,7 +121,7 @@ const SelectField = ({ label, value, onChange, options }) => (
         <select
             value={value}
             onChange={e => onChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
             {options.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -130,7 +136,7 @@ const SelectField = ({ label, value, onChange, options }) => (
 // PENTING: jangan pernah memakai parse() untuk nilai PercentField — parse() menghapus
 // karakter "." sebagai pemisah ribuan Rupiah, yang akan merusak nilai desimal persen
 // (mis. "12.5" → "125"). Gunakan parseFloat() biasa.
-const PercentField = ({ label, value, onChange, placeholder = '0', max = 100 }) => {
+const PercentField = ({ label, value, onChange, placeholder = '0', max = 100, disabled = false }) => {
     const handleChange = (e) => {
         let raw = e.target.value.replace(/[^0-9.]/g, '');
         const parts = raw.split('.');
@@ -145,7 +151,7 @@ const PercentField = ({ label, value, onChange, placeholder = '0', max = 100 }) 
     return (
         <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-            <div className="flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
+            <div className={`flex items-center border rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden ${disabled ? 'border-gray-200' : 'border-gray-300'}`}>
                 <input
                     type="text"
                     inputMode="decimal"
@@ -153,10 +159,112 @@ const PercentField = ({ label, value, onChange, placeholder = '0', max = 100 }) 
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    disabled={disabled}
+                    className={`flex-1 px-3 py-2 text-sm text-right focus:outline-none min-w-0 ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white'}`}
                 />
-                <span className="px-2 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-l border-gray-200 select-none whitespace-nowrap">%</span>
+                <span className="px-3 py-2 text-sm font-medium text-gray-500 bg-gray-100 border-l border-gray-200 select-none whitespace-nowrap">%</span>
             </div>
+        </div>
+    );
+};
+
+// ── Icon helpers — SVG inline, gaya sama dengan icon Edit/Delete yang sudah ada
+// di file ini (viewBox 20 20, fill currentColor). Dipakai HANYA oleh YearPickerField
+// di bawah, sebagai pengganti @mui/icons-material CalendarToday/Close pada L13A
+// (keputusan: skip dependency baru).
+const CalendarIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
+    </svg>
+);
+const ClearIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+    </svg>
+);
+
+// YearPickerField — pola identik L13A.js. User TIDAK BOLEH mengetik tahun secara
+// manual — input readOnly, satu-satunya cara mengisi nilai adalah lewat popover
+// (grid 12 tahun per halaman, navigasi ‹ › antar rentang). Nilai yang tersimpan
+// TETAP string angka tahun murni (mis. "2024"), payload/format tidak berubah.
+// `disabled` — BARU untuk L2 (Blueprint §4): mengunci field Year of Debt/Receivable
+// sampai nilai Debt/Receivable pokok > 0. Saat disabled, popover tidak bisa dibuka
+// dan otomatis tertutup apabila sedang terbuka lalu field dinonaktifkan kembali.
+const YearPickerField = ({ value, onChange, disabled = false }) => {
+    const [open, setOpen] = useState(false);
+    const containerRef = useRef(null);
+    const currentYear = new Date().getFullYear();
+    const [rangeStart, setRangeStart] = useState(() => {
+        const parsed = parseInt(value, 10);
+        const base = !isNaN(parsed) ? parsed : currentYear;
+        return base - (base % 12) - 5;
+    });
+
+    useEffect(() => {
+        if (open) {
+            const parsed = parseInt(value, 10);
+            const base = !isNaN(parsed) ? parsed : currentYear;
+            setRangeStart(base - (base % 12) - 5);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+        };
+        if (open) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [open]);
+
+    useEffect(() => {
+        if (disabled) setOpen(false);
+    }, [disabled]);
+
+    const years = Array.from({ length: 12 }, (_, i) => rangeStart + i);
+    const toggle = () => { if (!disabled) setOpen((o) => !o); };
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <div className="flex items-stretch gap-1.5">
+                <input
+                    type="text"
+                    readOnly
+                    disabled={disabled}
+                    value={value || ''}
+                    placeholder="Select Year"
+                    onClick={toggle}
+                    className={`flex-1 min-w-0 px-3 py-2 border rounded-l-lg text-sm text-left focus:ring-2 focus:ring-blue-500 ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' : 'bg-white cursor-pointer border-gray-300'}`}
+                />
+                <button type="button" onClick={toggle} disabled={disabled} title="Select Year"
+                    className={`w-9 flex items-center justify-center flex-shrink-0 ${disabled ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : 'bg-blue-900 hover:bg-blue-800 text-white'}`}>
+                    <CalendarIcon />
+                </button>
+                <button type="button" onClick={() => { if (!disabled) { onChange(''); setOpen(false); } }} disabled={disabled} title="Clear Year"
+                    className={`w-9 flex items-center justify-center rounded-r-lg flex-shrink-0 ${disabled ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}>
+                    <ClearIcon />
+                </button>
+            </div>
+            {open && !disabled && (
+                <div className="absolute z-30 mt-1 w-60 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                        <button type="button" onClick={() => setRangeStart((r) => r - 12)}
+                            className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">‹</button>
+                        <span className="text-xs font-semibold text-gray-600">{years[0]} – {years[years.length - 1]}</span>
+                        <button type="button" onClick={() => setRangeStart((r) => r + 12)}
+                            className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">›</button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                        {years.map((y) => (
+                            <button key={y} type="button"
+                                onClick={() => { onChange(String(y)); setOpen(false); }}
+                                className={`px-2 py-1.5 text-sm rounded transition-colors ${String(y) === String(value) ? 'bg-blue-900 text-white' : 'hover:bg-blue-50 text-gray-700'}`}>
+                                {y}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -164,16 +272,19 @@ const PercentField = ({ label, value, onChange, placeholder = '0', max = 100 }) 
 // TextField — BARU, tidak ada presedan di L1A/L1C (Account Name/Code di sana selalu
 // ReadonlyField, tidak pernah text input bebas). Dibutuhkan untuk Name/NPWP Part B
 // (manual input penuh, bukan dari data registrasi — Blueprint L2 Final §5).
-const TextField = ({ label, value, onChange, placeholder = '', maxLength }) => (
+const TextField = ({ label, value, onChange, placeholder = '', maxLength, required = false, inputMode }) => (
     <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+            {label} {required && <span className="text-red-500">*</span>}
+        </label>
         <input
             type="text"
+            inputMode={inputMode}
             value={value}
             onChange={e => onChange(e.target.value)}
             placeholder={placeholder}
             maxLength={maxLength}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
     </div>
 );
@@ -254,7 +365,7 @@ const ModalPartA = ({ row, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
                 <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
                     <div>
                         <p className="text-white font-semibold text-sm">Edit Shareholders / Capital Owners and Management</p>
@@ -314,13 +425,13 @@ const ModalPartA = ({ row, onClose, onSave }) => {
                 </div>
 
                 <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition-colors">
+                    <button onClick={onClose} className="px-5 py-2 text-sm font-medium bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors">
                         Close
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={hasError}
-                        className={`px-4 py-2 text-sm rounded text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        className={`px-5 py-2 text-sm font-medium rounded-lg text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-900 hover:bg-blue-800'}`}
                     >
                         Save
                     </button>
@@ -349,12 +460,26 @@ const ModalPartB = ({ mode, row, onClose, onSave }) => {
     });
     const set = (key) => (val) => setForm(prev => ({ ...prev, [key]: val }));
 
-    // Validasi — Blueprint L2 Final §15 (Part B).
-    // NPWP/TIN: boleh kosong (belum diisi), boleh diisi TIN luar negeri (format berbeda
-    // tiap negara). Validasi final diserahkan ke backend. Di sini hanya cek panjang
-    // maksimum sebagai guardrail ringan — tidak memblokir submit hanya karena format.
+    // NPWP/TIN — hanya boleh angka (Blueprint §5, direvisi). Filter diterapkan di
+    // setiap perubahan (baik ketik maupun paste), karena browser tetap mengirim
+    // hasil akhir lewat satu onChange event yang sama — sehingga baik input manual
+    // maupun paste "12.345.678-ABC" otomatis tersaring jadi "12345678".
+    const handleNpwpChange = (val) => set('npwp')(val.replace(/\D/g, ''));
+
+    // Debt/Receivable — Year & Interest terkunci (disabled) sampai nilai pokok > 0
+    // (Blueprint §4). parse() dipakai karena debtRp/receivableRp disimpan sebagai
+    // raw digit string oleh RpField (sama seperti kolom Rupiah lainnya).
+    const debtEnabled       = parse(form.debtRp) > 0;
+    const receivableEnabled = parse(form.receivableRp) > 0;
+
+    // Validasi — Blueprint L2 Final §15 (Part B), direvisi.
+    // NPWP/TIN: WAJIB diisi (data tidak boleh disimpan apabila kosong), tapi TANPA
+    // regex format ketat — field ini juga dipakai untuk TIN luar negeri yang formatnya
+    // berbeda-beda tiap negara. Validasi format detail diserahkan ke backend di tahap
+    // berikutnya. Panjang maksimum tetap dijaga sebagai guardrail ringan saja.
     const errors = {};
-    if (form.npwp && form.npwp.length > 50) errors.npwp = 'NPWP/TIN terlalu panjang (maks. 50 karakter).';
+    if (!form.npwp.trim()) errors.npwp = 'NPWP/TIN wajib diisi.';
+    else if (form.npwp.length > 50) errors.npwp = 'NPWP/TIN terlalu panjang (maks. 50 karakter).';
     if (!form.name.trim()) errors.name = 'Name wajib diisi.';
     if (!form.countryCode) errors.countryCode = 'Country Code wajib dipilih.';
     if (form.debtYear && !/^\d{4}$/.test(form.debtYear)) errors.debtYear = 'Tahun harus 4 digit.';
@@ -372,7 +497,7 @@ const ModalPartB = ({ mode, row, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
                 <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
                     <p className="text-white font-semibold text-sm">{title}</p>
                     <button onClick={onClose} className="text-white/80 hover:text-white text-xl leading-none">&times;</button>
@@ -381,7 +506,7 @@ const ModalPartB = ({ mode, row, onClose, onSave }) => {
                 <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <TextField label="NPWP/TIN Number" value={form.npwp} onChange={set('npwp')} maxLength={50} placeholder="Opsional" />
+                            <TextField label="NPWP/TIN Number" value={form.npwp} onChange={handleNpwpChange} maxLength={50} required inputMode="numeric" />
                             {errors.npwp && <p className="text-xs text-red-500 mt-1">{errors.npwp}</p>}
                         </div>
                         <div>
@@ -403,32 +528,61 @@ const ModalPartB = ({ mode, row, onClose, onSave }) => {
                     <div className="grid grid-cols-3 gap-3">
                         <RpField label="Debt" value={form.debtRp} onChange={set('debtRp')} />
                         <div>
-                            <TextField label="Year of Debt" value={form.debtYear} onChange={set('debtYear')} maxLength={4} placeholder="YYYY" />
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Year of Debt</label>
+                            <YearPickerField value={form.debtYear} onChange={set('debtYear')} disabled={!debtEnabled} />
                             {errors.debtYear && <p className="text-xs text-red-500 mt-1">{errors.debtYear}</p>}
+                            {!debtEnabled && <p className="text-xs text-gray-400 mt-1">Isi Debt terlebih dahulu untuk mengaktifkan field ini.</p>}
                         </div>
-                        <PercentField label="Debt Interest/Year" value={form.debtInterestPercent} onChange={set('debtInterestPercent')} max={1000} />
+                        <PercentField label="Debt Interest/Year" value={form.debtInterestPercent} onChange={set('debtInterestPercent')} max={1000} disabled={!debtEnabled} />
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">
                         <RpField label="Receivable" value={form.receivableRp} onChange={set('receivableRp')} />
                         <div>
-                            <TextField label="Year of Receivable" value={form.receivableYear} onChange={set('receivableYear')} maxLength={4} placeholder="YYYY" />
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Year of Receivable</label>
+                            <YearPickerField value={form.receivableYear} onChange={set('receivableYear')} disabled={!receivableEnabled} />
                             {errors.receivableYear && <p className="text-xs text-red-500 mt-1">{errors.receivableYear}</p>}
+                            {!receivableEnabled && <p className="text-xs text-gray-400 mt-1">Isi Receivable terlebih dahulu untuk mengaktifkan field ini.</p>}
                         </div>
-                        <PercentField label="Receivable Interest/Year" value={form.receivableInterestPercent} onChange={set('receivableInterestPercent')} max={1000} />
+                        <PercentField label="Receivable Interest/Year" value={form.receivableInterestPercent} onChange={set('receivableInterestPercent')} max={1000} disabled={!receivableEnabled} />
                     </div>
                 </div>
 
                 <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition-colors">
+                    <button onClick={onClose} className="px-5 py-2 text-sm font-medium bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors">
                         Close
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={hasError}
-                        className={`px-4 py-2 text-sm rounded text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        className={`px-5 py-2 text-sm font-medium rounded-lg text-white transition-colors ${hasError ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-900 hover:bg-blue-800'}`}
                     >
                         Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Delete Confirmation Dialog — pola identik L13A.js ────────────────────────
+// BARU (Blueprint UI Consistency — konfirmasi pengguna): sebelumnya Part B
+// menghapus baris langsung tanpa konfirmasi. Dialog ini HANYA menambah langkah
+// konfirmasi sebelum handleDeleteB dipanggil — payload, state, dan callback
+// onRowsBChange yang dijalankan tetap identik, tidak ada perubahan business rule.
+const DeleteConfirmDialog = ({ open, onConfirm, onCancel }) => {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+                <h3 className="text-base font-semibold text-gray-800 mb-2">Delete Confirmation</h3>
+                <p className="text-sm text-gray-600 mb-6">Are you sure you want to delete this data?</p>
+                <div className="flex justify-end gap-3">
+                    <button onClick={onCancel} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button onClick={onConfirm} className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        Delete
                     </button>
                 </div>
             </div>
@@ -465,6 +619,11 @@ const L2 = ({
 
     const [editingA, setEditingA] = useState(null); // id row Part A yang sedang diedit, atau null
     const [modalB, setModalB]     = useState(null); // { mode: 'create' | 'edit', row?: object } | null
+
+    // pendingDeleteId — id row Part B yang menunggu konfirmasi delete (pola L13A).
+    // HANYA mengontrol tampilan dialog konfirmasi; logic delete aktual tetap di
+    // handleDeleteB (tidak diubah), dipanggil hanya setelah user menekan "Delete".
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
     // Ref anti-loop — pola identik L1A/L1C (Blueprint §3).
     const skipRestoreA = useRef(false);
@@ -526,6 +685,15 @@ const L2 = ({
         });
     };
 
+    // ── Delete confirmation flow (pola L13A) — hanya membungkus handleDeleteB
+    // dengan langkah konfirmasi; tidak ada perubahan pada logic delete itu sendiri.
+    const handleRequestDeleteB = (id) => setPendingDeleteId(id);
+    const handleCancelDeleteB  = () => setPendingDeleteId(null);
+    const handleConfirmDeleteB = () => {
+        if (pendingDeleteId) handleDeleteB(pendingDeleteId);
+        setPendingDeleteId(null);
+    };
+
     // ── Derived totals — selalu dihitung ulang dari rows, TIDAK pernah disimpan
     // ke state (filosofi L1 — Blueprint §3, §9). parseFloat dipakai untuk kolom
     // persentase (BUKAN parse(), karena parse() menghapus "." sebagai pemisah
@@ -544,19 +712,44 @@ const L2 = ({
 
     // ── Style helpers — disalin dari pola sticky-column L1A/L1C, diadaptasi
     // (Action + Name frozen — L2 tidak punya kolom "Code" seperti L1A/L1C).
-    const thCls = "px-3 py-2 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-    const tdCls = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100";
-    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border-b border-gray-100 font-mono";
+    const thCls = "px-3 py-2 text-left text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap";
+    // thClsGroup — KHUSUS header row1 Part B untuk kolom group (colSpan, bukan rowSpan:
+    // Investment/Debt/Receivable). Border bawah TETAP putih (bukan abu-abu) karena di
+    // bawahnya masih ada baris header kedua (child), bukan body — beda dengan thCls
+    // yang border bawahnya abu-abu karena langsung bersentuhan dengan body/child row.
+    const thClsGroup = "px-3 py-2 text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white whitespace-nowrap";
+    const tdCls = "px-3 py-2 text-xs text-gray-700 border border-gray-200";
+    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border border-gray-200 font-mono";
 
     const COL_ACTION_W = 48;
     const COL_NAME_W   = 160;
 
-    const thAction = { position: 'sticky', left: 0,            top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thName   = { position: 'sticky', left: COL_ACTION_W, top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#f3f4f6' };
+    // Warna sticky header di-hardcode via inline style (Tailwind yellow-400 = #facc15)
+    // karena posisi sticky butuh backgroundColor eksplisit agar tidak transparan
+    // saat di-scroll (pola identik L13A).
+    const thAction = { position: 'sticky', left: 0,            top: 0, zIndex: 4, backgroundColor: '#facc15' };
+    const thName   = { position: 'sticky', left: COL_ACTION_W, top: 0, zIndex: 4, backgroundColor: '#facc15' };
+    const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#facc15' };
 
     const tdAction = { position: 'sticky', left: 0,            zIndex: 1, backgroundColor: '#ffffff' };
     const tdName   = { position: 'sticky', left: COL_ACTION_W, zIndex: 1, backgroundColor: '#ffffff' };
+
+    // ── Style helpers KHUSUS Part B — header 2-level (Blueprint UI Consistency
+    // §2) + kolom "No." baru (pola L13A). Konstanta Part A di atas (thAction/
+    // thName/thTop/tdAction/tdName/COL_ACTION_W/COL_NAME_W) TIDAK disentuh —
+    // Part A tetap header 1 level tanpa kolom "No." seperti sebelumnya.
+    const COL_NO_W = 44;
+    const HEADER_ROW1_H = 36; // tinggi baris header pertama (px) — dipakai top offset baris kedua
+
+    const thActionB = { position: 'sticky', left: 0,                          top: 0, zIndex: 6, backgroundColor: '#facc15', height: HEADER_ROW1_H };
+    const thNoB     = { position: 'sticky', left: COL_ACTION_W,               top: 0, zIndex: 6, backgroundColor: '#facc15', height: HEADER_ROW1_H };
+    const thNameB   = { position: 'sticky', left: COL_ACTION_W + COL_NO_W,    top: 0, zIndex: 6, backgroundColor: '#facc15', height: HEADER_ROW1_H };
+    const thGroupB  = { position: 'sticky', top: 0,  zIndex: 5, backgroundColor: '#facc15', height: HEADER_ROW1_H };
+    const thChildB  = { position: 'sticky', top: HEADER_ROW1_H, zIndex: 5, backgroundColor: '#facc15' };
+
+    const tdActionB = { position: 'sticky', left: 0,                       zIndex: 1, backgroundColor: '#ffffff' };
+    const tdNoB     = { position: 'sticky', left: COL_ACTION_W,            zIndex: 1, backgroundColor: '#ffffff' };
+    const tdNameB   = { position: 'sticky', left: COL_ACTION_W + COL_NO_W, zIndex: 1, backgroundColor: '#ffffff' };
 
     const editRowA = editingA !== null ? rowsA.find(r => r.id === editingA) : null;
 
@@ -591,15 +784,15 @@ const L2 = ({
                                 <th className={thCls} style={thTop}>Country Code</th>
                                 <th className={thCls} style={thTop}>NPWP/TIN</th>
                                 <th className={thCls} style={thTop}>Position</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Paid in Capital (Rp)</th>
+                                <th className={`${thCls} text-right`} style={thTop}>Paid in Capital</th>
                                 <th className={`${thCls} text-right`} style={thTop}>Paid in Capital (%)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Dividend (Rp)</th>
+                                <th className={`${thCls} text-right`} style={thTop}>Dividend</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rowsA.length === 0 && (
                                 <tr>
-                                    <td colSpan={9} className="px-3 py-10 text-center">
+                                    <td colSpan={9} className="px-3 py-10 text-center border border-gray-200">
                                         <p className="text-sm text-gray-500">Belum ada data pemegang saham/pemilik modal yang tersedia.</p>
                                         <p className="text-xs text-gray-400 mt-1">Data akan muncul setelah diisi atau dimuat dari draft.</p>
                                     </td>
@@ -619,21 +812,21 @@ const L2 = ({
                                     <td className={tdCls}>{row.countryCode}</td>
                                     <td className={tdCls}>{row.npwp}</td>
                                     <td className={tdCls}>{row.position}</td>
-                                    <td className={tdNum}>{fmt(row.paidCapitalRp)}</td>
+                                    <td className={tdNum}>{rpDisplay(row.paidCapitalRp)}</td>
                                     <td className={tdNum}>{row.paidCapitalPercent || '0'}</td>
-                                    <td className={tdNum}>{fmt(row.dividendRp)}</td>
+                                    <td className={tdNum}>{rpDisplay(row.dividendRp)}</td>
                                 </tr>
                             ))}
                         </tbody>
                         {rowsA.length > 0 && (
                             <tfoot>
                                 <tr className="bg-blue-700">
-                                    <td className="px-3 py-2" colSpan={6} style={{ position: 'sticky', left: 0 }}>
+                                    <td className="px-3 py-2 border border-white" colSpan={6} style={{ position: 'sticky', left: 0 }}>
                                         <span className="text-xs font-bold text-white">TOTAL</span>
                                     </td>
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{fmt(totalA.paidCapitalRp)}</td>
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{totalA.paidCapitalPercent || '0'}</td>
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{fmt(totalA.dividendRp)}</td>
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white border border-white">{rpDisplay(totalA.paidCapitalRp)}</td>
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white border border-white">{totalA.paidCapitalPercent || '0'}</td>
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white border border-white">{rpDisplay(totalA.dividendRp)}</td>
                                 </tr>
                             </tfoot>
                         )}
@@ -655,59 +848,69 @@ const L2 = ({
                     </h3>
                     <button
                         onClick={() => setModalB({ mode: 'create' })}
-                        className="px-3 py-1.5 text-xs font-semibold bg-white text-blue-700 rounded hover:bg-blue-50 transition-colors"
+                        className="px-4 py-2 text-sm font-medium bg-white text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
                     >
                         + Add
                     </button>
                 </div>
 
                 <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '500px' }}>
-                    <table className="w-full text-sm border-collapse min-w-[1300px]">
+                    <table className="w-full text-sm border-collapse min-w-[1400px]">
                         <thead>
+                            {/* Header 2 level — pola identik L13A (rowSpan untuk kolom tunggal,
+                                colSpan untuk kolom group Investment/Debt/Receivable, sticky
+                                top: 0 untuk baris 1, top: HEADER_ROW1_H untuk baris 2). */}
                             <tr>
-                                <th className={thCls} style={{ ...thAction, minWidth: COL_ACTION_W }}>Action</th>
-                                <th className={thCls} style={{ ...thName, minWidth: COL_NAME_W }}>Name</th>
-                                <th className={thCls} style={thTop}>Country Code</th>
-                                <th className={thCls} style={thTop}>NPWP/TIN</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Investment (Rp)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Investment (%)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Debt (Rp)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Year</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Interest/Year (%)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Receivable (Rp)</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Year</th>
-                                <th className={`${thCls} text-right`} style={thTop}>Interest/Year (%)</th>
+                                <th rowSpan={2} className={thCls} style={{ ...thActionB, minWidth: COL_ACTION_W }}>Action</th>
+                                <th rowSpan={2} className={thCls} style={{ ...thNoB, minWidth: COL_NO_W }}>No</th>
+                                <th rowSpan={2} className={thCls} style={{ ...thNameB, minWidth: COL_NAME_W }}>Name</th>
+                                <th rowSpan={2} className={thCls} style={thGroupB}>Country Code</th>
+                                <th rowSpan={2} className={thCls} style={thGroupB}>NPWP/TIN</th>
+                                <th colSpan={2} className={`${thClsGroup} text-center`} style={thGroupB}>Investment</th>
+                                <th colSpan={3} className={`${thClsGroup} text-center`} style={thGroupB}>Debt</th>
+                                <th colSpan={3} className={`${thClsGroup} text-center`} style={thGroupB}>Receivable</th>
+                            </tr>
+                            <tr>
+                                <th className={`${thCls} text-right`} style={thChildB}>Rupiah</th>
+                                <th className={`${thCls} text-right`} style={thChildB}>%</th>
+                                <th className={`${thCls} text-right`} style={thChildB}>Rupiah</th>
+                                <th className={`${thCls} text-right`} style={thChildB}>Year</th>
+                                <th className={`${thCls} text-right`} style={thChildB}>Interest/Year</th>
+                                <th className={`${thCls} text-right`} style={thChildB}>Rupiah</th>
+                                <th className={`${thCls} text-right`} style={thChildB}>Year</th>
+                                <th className={`${thCls} text-right`} style={thChildB}>Interest/Year</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rowsB.length === 0 && (
-                                <tr><td colSpan={12} className="px-3 py-6 text-center text-sm text-gray-400 italic">No data to display.</td></tr>
+                                <tr><td colSpan={13} className="px-3 py-6 text-center text-sm text-gray-400 italic border border-gray-200">No data to display.</td></tr>
                             )}
-                            {rowsB.map((row) => (
+                            {rowsB.map((row, idx) => (
                                 <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className={tdCls} style={tdAction}>
+                                    <td className={tdCls} style={tdActionB}>
                                         <div className="flex gap-1">
                                             <button onClick={() => setModalB({ mode: 'edit', row })} title="Edit" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors">
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                                 </svg>
                                             </button>
-                                            <button onClick={() => handleDeleteB(row.id)} title="Delete" className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
+                                            <button onClick={() => handleRequestDeleteB(row.id)} title="Delete" className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 112 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
                                         </div>
                                     </td>
-                                    <td className={tdCls} style={tdName}>{row.name}</td>
+                                    <td className={tdCls} style={tdNoB}>{idx + 1}</td>
+                                    <td className={tdCls} style={tdNameB}>{row.name}</td>
                                     <td className={tdCls}>{row.countryCode}</td>
                                     <td className={tdCls}>{row.npwp}</td>
-                                    <td className={tdNum}>{fmt(row.investmentRp)}</td>
+                                    <td className={tdNum}>{rpDisplay(row.investmentRp)}</td>
                                     <td className={tdNum}>{row.investmentPercent || '0'}</td>
-                                    <td className={tdNum}>{fmt(row.debtRp)}</td>
+                                    <td className={tdNum}>{rpDisplay(row.debtRp)}</td>
                                     <td className={tdNum}>{row.debtYear}</td>
                                     <td className={tdNum}>{row.debtInterestPercent || '0'}</td>
-                                    <td className={tdNum}>{fmt(row.receivableRp)}</td>
+                                    <td className={tdNum}>{rpDisplay(row.receivableRp)}</td>
                                     <td className={tdNum}>{row.receivableYear}</td>
                                     <td className={tdNum}>{row.receivableInterestPercent || '0'}</td>
                                 </tr>
@@ -715,16 +918,18 @@ const L2 = ({
                         </tbody>
                         {rowsB.length > 0 && (
                             <tfoot>
+                                {/* TOTAL hanya menjumlahkan kolom nominal Rupiah (Blueprint §2) —
+                                    Year & Interest tetap kosong, sama seperti sebelumnya. */}
                                 <tr className="bg-blue-700">
-                                    <td className="px-3 py-2" colSpan={4} style={{ position: 'sticky', left: 0 }}>
+                                    <td className="px-3 py-2 border border-white" colSpan={5} style={{ position: 'sticky', left: 0 }}>
                                         <span className="text-xs font-bold text-white">TOTAL</span>
                                     </td>
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{fmt(totalB.investmentRp)}</td>
-                                    <td className="px-3 py-2" />
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{fmt(totalB.debtRp)}</td>
-                                    <td className="px-3 py-2" colSpan={2} />
-                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white">{fmt(totalB.receivableRp)}</td>
-                                    <td className="px-3 py-2" colSpan={2} />
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white border border-white">{rpDisplay(totalB.investmentRp)}</td>
+                                    <td className="px-3 py-2 border border-white" />
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white border border-white">{rpDisplay(totalB.debtRp)}</td>
+                                    <td className="px-3 py-2 border border-white" colSpan={2} />
+                                    <td className="px-3 py-2 text-xs font-bold text-right font-mono text-white border border-white">{rpDisplay(totalB.receivableRp)}</td>
+                                    <td className="px-3 py-2 border border-white" colSpan={2} />
                                 </tr>
                             </tfoot>
                         )}
@@ -749,6 +954,11 @@ const L2 = ({
                     onSave={handleSaveB}
                 />
             )}
+            <DeleteConfirmDialog
+                open={!!pendingDeleteId}
+                onConfirm={handleConfirmDeleteB}
+                onCancel={handleCancelDeleteB}
+            />
         </div>
     );
 };

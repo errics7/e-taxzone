@@ -111,6 +111,17 @@ const fmt = (v) => {
 
 const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) || 0;
 
+// fmtRp — DISPLAY-ONLY formatter untuk nominal pada tabel/footer (pola identik
+// L1A/L1C/L1D). Tidak dipakai oleh RpField/input, tidak mengubah fmt/parse di
+// atas maupun state/value manapun. Prefix "Rp" ditambahkan langsung tanpa
+// spasi ("Rp1.000.000"); tanda minus (bila ada) diletakkan SEBELUM "Rp"
+// ("-Rp10.000", bukan "Rp-10.000").
+const fmtRp = (v) => {
+    const n = parseFloat(String(v).replace(/,/g, '')) || 0;
+    if (n === 0) return '';
+    return (n < 0 ? '-Rp' : 'Rp') + Math.abs(n).toLocaleString('id-ID');
+};
+
 // ReadonlyField — mendukung `prefix` opsional (mis. "Rp") untuk field
 // nominal readonly, mengikuti shell visual yang sama dengan RpField (kotak
 // prefix di kiri) agar seluruh field nominal pada halaman ini konsisten.
@@ -189,7 +200,7 @@ const MonthYearPicker = ({ label, value, onChange, error }) => {
                     <path fillRule="evenodd" d="M6 2a1 1 0 011 1v1h6V3a1 1 0 112 0v1h1a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zm10 6H4v8h12V8z" clipRule="evenodd" />
                 </svg>
             </button>
-            {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
 
             {isOpen && (
                 <>
@@ -314,7 +325,7 @@ const RpField = ({ label, value, onChange, placeholder = '0', error }) => {
                     className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
                 />
             </div>
-            {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
     );
 };
@@ -332,24 +343,26 @@ const SelectField = ({ label, value, onChange, options, error }) => (
                 <option key={o} value={o}>{o}</option>
             ))}
         </select>
-        {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
 );
 
-// Sticky / freeze column style — pola identik L1A.
-// Freeze 3 kolom kiri: Action, Code of Assets, Group/Type of Asset(s).
-const thCls  = "px-3 py-2 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-const tdCls  = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100";
-const tdNum  = "px-3 py-2 text-xs text-right text-gray-700 border-b border-gray-100 font-mono";
+// Sticky / freeze column style — pola identik L1A, warna & border mengikuti
+// referensi visual L13A (header kuning center-uppercase, divider putih,
+// border grid penuh pada body). Freeze 3 kolom kiri: Action, Code of Assets,
+// Group/Type of Asset(s) — TIDAK diubah.
+const thCls  = "px-3 py-2 text-center align-middle text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap";
+const tdCls  = "px-3 py-2 text-xs text-gray-700 border border-gray-200";
+const tdNum  = "px-3 py-2 text-xs text-right text-gray-700 border border-gray-200";
 
 const COL_ACTION_W = 72;
 const COL_CODE_W   = 120;
 const COL_TYPE_W   = 220;
 
-const thAction = { position: 'sticky', left: 0,                                    top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-const thCode   = { position: 'sticky', left: COL_ACTION_W,                         top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-const thType   = { position: 'sticky', left: COL_ACTION_W + COL_CODE_W,            top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#f3f4f6' };
+const thAction = { position: 'sticky', left: 0,                                    top: 0, zIndex: 4, height: 36, backgroundColor: '#facc15' };
+const thCode   = { position: 'sticky', left: COL_ACTION_W,                         top: 0, zIndex: 4, height: 36, backgroundColor: '#facc15' };
+const thType   = { position: 'sticky', left: COL_ACTION_W + COL_CODE_W,            top: 0, zIndex: 4, height: 36, backgroundColor: '#facc15' };
+const thTop    = { position: 'sticky', top: 0, zIndex: 2, height: 36, backgroundColor: '#facc15' };
 
 const tdAction = { position: 'sticky', left: 0,                                    zIndex: 1, backgroundColor: '#ffffff' };
 const tdCode   = { position: 'sticky', left: COL_ACTION_W,                         zIndex: 1, backgroundColor: '#ffffff' };
@@ -481,6 +494,15 @@ const AssetModal = ({ category, subgroup, assetOptions, title, initialData, onCl
     const [form, setForm] = useState(() => (initialData ? { ...EMPTY_FORM, ...initialData } : { ...EMPTY_FORM }));
     const [errors, setErrors] = useState({});
 
+    // UI-only terminology switch (Coretax DJP): Intangible Asset menggunakan
+    // istilah "Amortization", sedangkan Tangible Asset & Building(s) tetap
+    // "Depreciation". Ini murni label/display — tidak menyentuh state key,
+    // payload, atau field name (methodCommercial/methodFiscal/fiscalDeprThisYear
+    // tetap sama demi kompatibilitas Save/Load Draft).
+    const isIntangible = category === 'intangible';
+    const methodOfTermLabel = isIntangible ? 'Method Of Amortization' : 'Method Of Depreciation';
+    const fiscalThisYearLabel = isIntangible ? 'Fiscal Amortization In This Year *' : 'Fiscal Depreciation In This Year *';
+
     const set = (key) => (val) => setForm(prev => ({ ...prev, [key]: val }));
 
     const handleSave = () => {
@@ -494,21 +516,21 @@ const AssetModal = ({ category, subgroup, assetOptions, title, initialData, onCl
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
-                {/* Modal Header */}
-                <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+                {/* Modal Header — polos + border-bottom, mengikuti gaya L13A (bukan bar warna) */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
                     <div>
-                        <p className="text-white font-semibold text-sm uppercase">
+                        <h3 className="text-lg font-semibold text-gray-800">
                             {isEdit ? 'Edit Asset' : 'Add Asset'} — {title}
-                        </p>
-                        <p className="text-blue-200 text-xs mt-0.5">{category} · {subgroup}</p>
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">{category} · {subgroup}</p>
                     </div>
-                    <button onClick={onClose} className="text-white/80 hover:text-white text-xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                 </div>
 
                 {/* Modal Body */}
-                <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="px-6 py-5 space-y-4 overflow-y-auto">
                     <ReadonlyField label="Code Of Asset" value={initialData?.code || ''} />
 
                     <SelectField
@@ -542,14 +564,14 @@ const AssetModal = ({ category, subgroup, assetOptions, title, initialData, onCl
 
                     <div className="grid grid-cols-2 gap-3">
                         <SelectField
-                            label="Method Of Depreciation — Commercial *"
+                            label={`${methodOfTermLabel} — Commercial *`}
                             value={form.methodCommercial}
                             onChange={set('methodCommercial')}
                             options={COMMERCIAL_METHODS}
                             error={errors.methodCommercial}
                         />
                         <SelectField
-                            label="Method Of Depreciation — Fiscal *"
+                            label={`${methodOfTermLabel} — Fiscal *`}
                             value={form.methodFiscal}
                             onChange={set('methodFiscal')}
                             options={FISCAL_METHODS}
@@ -558,7 +580,7 @@ const AssetModal = ({ category, subgroup, assetOptions, title, initialData, onCl
                     </div>
 
                     <RpField
-                        label="Fiscal Depreciation In This Year *"
+                        label={fiscalThisYearLabel}
                         value={form.fiscalDeprThisYear}
                         onChange={set('fiscalDeprThisYear')}
                         error={errors.fiscalDeprThisYear}
@@ -575,19 +597,45 @@ const AssetModal = ({ category, subgroup, assetOptions, title, initialData, onCl
                     </div>
                 </div>
 
-                {/* Modal Footer */}
-                <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+                {/* Modal Footer — ukuran & warna tombol mengikuti L13A */}
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 flex-shrink-0">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                        className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
                     >
                         Close
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 rounded hover:bg-blue-800 transition-colors"
+                        className="px-5 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                         Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DELETE CONFIRMATION DIALOG — pola identik L13A/L10A (menggantikan
+// window.confirm() bawaan browser). Murni komponen tampilan: konfirmasi
+// tetap wajib sebelum delete terjadi, tidak ada perubahan pada urutan atau
+// syarat penghapusan (business rule delete tidak berubah).
+// ═══════════════════════════════════════════════════════════════════════════
+const DeleteConfirmDialog = ({ open, onConfirm, onCancel }) => {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+                <h3 className="text-base font-semibold text-gray-800 mb-2">Delete Confirmation</h3>
+                <p className="text-sm text-gray-600 mb-6">Delete this asset row? This action cannot be undone.</p>
+                <div className="flex justify-end gap-3">
+                    <button onClick={onCancel} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button onClick={onConfirm} className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        Delete
                     </button>
                 </div>
             </div>
@@ -621,23 +669,18 @@ const AssetTable = ({ rows, onEdit, onDelete }) => {
                             <th className={thCls} style={{ ...thAction, minWidth: COL_ACTION_W }}>Action</th>
                             <th className={thCls} style={{ ...thCode,   minWidth: COL_CODE_W  }}>Code Of Assets</th>
                             <th className={thCls} style={{ ...thType,   minWidth: COL_TYPE_W  }}>Group/Type Of Asset(s)</th>
-                            <th className={`${thCls} text-right`} style={thTop}>Month/Year of Acquisition</th>
-                            <th className={`${thCls} text-right`} style={thTop}>Acquisition Price</th>
-                            <th className={`${thCls} text-right`} style={thTop}>Remaining Book Value in the Beginning of Year</th>
-                            <th className={`${thCls} text-center`} style={thTop} colSpan={2}>Depreciation/Amortization Method<br />Commercial / Fiscal</th>
-                            <th className={`${thCls} text-right`} style={thTop}>Fiscal Depreciation/Amortization in This Year</th>
+                            <th className={thCls} style={thTop}>Month/Year of Acquisition</th>
+                            <th className={thCls} style={thTop}>Acquisition Price</th>
+                            <th className={thCls} style={thTop}>Remaining Book Value in the Beginning of Year</th>
+                            <th className={thCls} style={thTop} colSpan={2}>Depreciation/Amortization Method<br />Commercial / Fiscal</th>
+                            <th className={thCls} style={thTop}>Fiscal Depreciation/Amortization in This Year</th>
                             <th className={thCls} style={thTop}>Notes</th>
                         </tr>
                     </thead>
                     <tbody>
                         {rows.length === 0 ? (
                             <tr>
-                                <td className={tdCls} style={tdAction} />
-                                <td className={tdCls} style={tdCode} />
-                                <td className={tdCls} style={tdType} />
-                                <td className={tdCls} colSpan={6}>
-                                    <span className="text-gray-400 italic">No data found.</span>
-                                </td>
+                                <td colSpan={9} className="px-3 py-8 text-center text-gray-400 text-sm border border-gray-200">No data found.</td>
                             </tr>
                         ) : (
                             rows.map((row) => (
@@ -673,11 +716,11 @@ const AssetTable = ({ rows, onEdit, onDelete }) => {
                                             ? formatMonthYearDisplay(row.monthYear)
                                             : <span className="text-gray-400">—</span>}
                                     </td>
-                                    <td className={tdNum}>Rp {fmt(row.costOfAcquisition)}</td>
-                                    <td className={tdNum}>Rp {fmt(row.fiscalBookBeginYear)}</td>
+                                    <td className={tdNum}>{fmtRp(row.costOfAcquisition)}</td>
+                                    <td className={tdNum}>{fmtRp(row.fiscalBookBeginYear)}</td>
                                     <td className={tdCls}>{row.methodCommercial}</td>
                                     <td className={tdCls}>{row.methodFiscal}</td>
-                                    <td className={tdNum}>Rp {fmt(row.fiscalDeprThisYear)}</td>
+                                    <td className={tdNum}>{fmtRp(row.fiscalDeprThisYear)}</td>
                                     <td className={tdCls}>{row.notes || <span className="text-gray-400">—</span>}</td>
                                 </tr>
                             ))
@@ -686,7 +729,7 @@ const AssetTable = ({ rows, onEdit, onDelete }) => {
                     <tfoot>
                         <tr className="bg-gray-50">
                             <td className={tdCls} colSpan={8} />
-                            <td className={`${tdNum} font-semibold`}>TOTAL&nbsp;&nbsp;Rp {subtotal !== 0 ? fmt(subtotal) : '0,00'}</td>
+                            <td className={`${tdNum} font-semibold`}>TOTAL&nbsp;&nbsp;{subtotal !== 0 ? fmtRp(subtotal) : 'Rp0'}</td>
                             <td className={tdCls} />
                         </tr>
                     </tfoot>
@@ -707,6 +750,7 @@ const AssetTable = ({ rows, onEdit, onDelete }) => {
 const AssetSection = ({ categoryKey, categoryLabel, subgroups, assetOptions, categoryData, onAddRow, onUpdateRow, onDeleteRow }) => {
     const [expanded, setExpanded]         = useState(false);
     const [modalState, setModalState]     = useState(null); // { subgroupKey, editingRow | null } | null
+    const [pendingDelete, setPendingDelete] = useState(null); // { subgroupKey, uid } | null
 
     const activeSubgroup = modalState ? subgroups.find(sg => sg.key === modalState.subgroupKey) : null;
 
@@ -723,10 +767,14 @@ const AssetSection = ({ categoryKey, categoryLabel, subgroups, assetOptions, cat
         }
     };
 
-    const handleDelete = (subgroupKey, uid) => {
-        if (window.confirm('Delete this asset row? This action cannot be undone.')) {
-            onDeleteRow(categoryKey, subgroupKey, uid);
-        }
+    // Delete flow — konfirmasi via DeleteConfirmDialog (bukan window.confirm),
+    // pola identik L13A. Syarat/urutan penghapusan (harus konfirmasi dulu)
+    // tidak berubah — hanya tampilan dialognya.
+    const handleRequestDelete = (subgroupKey, uid) => setPendingDelete({ subgroupKey, uid });
+    const handleCancelDelete = () => setPendingDelete(null);
+    const handleConfirmDelete = () => {
+        if (pendingDelete) onDeleteRow(categoryKey, pendingDelete.subgroupKey, pendingDelete.uid);
+        setPendingDelete(null);
     };
 
     return (
@@ -758,7 +806,7 @@ const AssetSection = ({ categoryKey, categoryLabel, subgroups, assetOptions, cat
                                 <AssetTable
                                     rows={rows}
                                     onEdit={(row) => handleEdit(sg.key, row)}
-                                    onDelete={(uid) => handleDelete(sg.key, uid)}
+                                    onDelete={(uid) => handleRequestDelete(sg.key, uid)}
                                 />
                             </div>
                         );
@@ -777,6 +825,12 @@ const AssetSection = ({ categoryKey, categoryLabel, subgroups, assetOptions, cat
                     onSave={handleSaveModal}
                 />
             )}
+
+            <DeleteConfirmDialog
+                open={!!pendingDelete}
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+            />
         </div>
     );
 };
@@ -1034,13 +1088,13 @@ const L9 = ({ taxYear = '', tin = '', l9Data: l9DataProp, onL9DataChange } = {})
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                     Rekapitulasi Penyusutan
                 </p>
-                <ReadonlyField label="Total Of Fiscal Depreciation" value={totalFiscalDepreciation !== 0 ? fmt(totalFiscalDepreciation) : '0,00'} prefix="Rp" />
+                <ReadonlyField label="Total Of Fiscal Depreciation" value={totalFiscalDepreciation !== 0 ? fmt(totalFiscalDepreciation) : '0'} prefix="Rp" />
                 <RpField
                     label="Total Of Commercial Depreciation"
                     value={l9Data.totalCommercialDepreciation}
                     onChange={(val) => handleTotalCommercialChange('totalCommercialDepreciation', val)}
                 />
-                <ReadonlyField label="Differences Of Depreciation" value={fmt(differenceDepreciation) || '0,00'} prefix="Rp" />
+                <ReadonlyField label="Differences Of Depreciation" value={fmt(differenceDepreciation) || '0'} prefix="Rp" />
             </div>
 
             {/* ── INTANGIBLE ASSET ────────────────────────────────────────── */}
@@ -1051,13 +1105,13 @@ const L9 = ({ taxYear = '', tin = '', l9Data: l9DataProp, onL9DataChange } = {})
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                     Rekapitulasi Amortisasi
                 </p>
-                <ReadonlyField label="Total Fiscal Amortization" value={totalFiscalAmortization !== 0 ? fmt(totalFiscalAmortization) : '0,00'} prefix="Rp" />
+                <ReadonlyField label="Total Fiscal Amortization" value={totalFiscalAmortization !== 0 ? fmt(totalFiscalAmortization) : '0'} prefix="Rp" />
                 <RpField
                     label="Total Commercial Amortization"
                     value={l9Data.totalCommercialAmortization}
                     onChange={(val) => handleTotalCommercialChange('totalCommercialAmortization', val)}
                 />
-                <ReadonlyField label="Differences Of Amortization" value={fmt(differenceAmortization) || '0,00'} prefix="Rp" />
+                <ReadonlyField label="Differences Of Amortization" value={fmt(differenceAmortization) || '0'} prefix="Rp" />
             </div>
         </div>
     );

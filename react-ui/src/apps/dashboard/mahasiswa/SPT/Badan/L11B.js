@@ -26,8 +26,11 @@ const fmt = (v) => {
 };
 
 const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) || 0;
+// fmtRp — pembungkus tampilan tabel: tambah prefix "Rp" hanya saat ada nilai
+// (sel kosong/nol tetap kosong). Tidak menyentuh fmt()/parse() asli.
+const fmtRp = (v) => { const s = fmt(v); return s ? `Rp${s}` : ''; };
 
-const MONTH_LABELS = ['Ke-1','Ke-2','Ke-3','Ke-4','Ke-5','Ke-6','Ke-7','Ke-8','Ke-9','Ke-10','Ke-11','Ke-12'];
+const MONTH_LABELS = ['Month 1','Month 2','Month 3','Month 4','Month 5','Month 6','Month 7','Month 8','Month 9','Month 10','Month 11','Month 12'];
 
 const emptyMonths = () => Array(12).fill('');
 
@@ -108,7 +111,7 @@ const EbitdaRow = ({ no, label, value, isNull, openClarification, bold }) => (
             )}
         </div>
         <div className={`col-span-4 text-sm text-right font-mono ${bold ? 'font-bold text-gray-900' : 'text-gray-800'}`}>
-            {isNull ? <span className="text-gray-400 italic">— belum ada data</span> : `Rp${fmt(value) || '0'}`}
+            {isNull ? <span className="text-gray-400 italic">— no data yet</span> : `Rp${fmt(value) || '0'}`}
         </div>
     </div>
 );
@@ -179,7 +182,7 @@ const RpField = ({ label, value, onChange, placeholder = '0' }) => {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
                 />
             </div>
         </div>
@@ -219,31 +222,31 @@ const ModalEditUtang = ({ row, onClose, onSave }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl mx-4 overflow-hidden max-h-[90vh] flex flex-col">
                 <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
-                    <p className="text-white font-semibold text-sm">Edit Kreditor — Saldo Rata-rata Utang</p>
+                    <p className="text-white font-semibold text-sm">Edit Creditor — Average Debt Balance</p>
                     <button onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">&times;</button>
                 </div>
                 <div className="p-5 space-y-4 overflow-y-auto">
                     <div className="grid grid-cols-3 gap-3">
-                        <TextField label="Nomor Identitas (NPWP/NIK/Lain-lain)" value={form.creditorIdentity} onChange={(v) => setForm(p => ({ ...p, creditorIdentity: v }))} />
-                        <TextField label="Nama Pemberi Pinjaman" value={form.creditorName} onChange={(v) => setForm(p => ({ ...p, creditorName: v }))} />
-                        <TextField label="Hubungan Istimewa" value={form.relationship} onChange={(v) => setForm(p => ({ ...p, relationship: v }))} />
+                        <TextField label="Identity Number (NPWP/NIK/Other)" value={form.creditorIdentity} onChange={(v) => setForm(p => ({ ...p, creditorIdentity: v }))} />
+                        <TextField label="Lender Name" value={form.creditorName} onChange={(v) => setForm(p => ({ ...p, creditorName: v }))} />
+                        <TextField label="Special Relationship" value={form.relationship} onChange={(v) => setForm(p => ({ ...p, relationship: v }))} />
                     </div>
                     <div>
                         <p className="text-xs font-medium text-gray-700 mb-2">Saldo Utang Tiap Akhir Bulan (Rp)</p>
                         <div className="grid grid-cols-3 gap-3">
                             {MONTH_LABELS.map((label, idx) => (
-                                <RpField key={idx} label={`Bulan ${label}`} value={form.months[idx]} onChange={setMonth(idx)} />
+                                <RpField key={idx} label={label} value={form.months[idx]} onChange={setMonth(idx)} />
                             ))}
                         </div>
                     </div>
                     <div className="bg-gray-50 rounded px-3 py-2 text-sm flex justify-between">
-                        <span className="text-gray-600">Rata-rata (otomatis)</span>
+                        <span className="text-gray-600">Average (automatic)</span>
                         <span className="font-mono font-semibold">Rp{fmt(average) || '0'}</span>
                     </div>
                 </div>
                 <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Batal</button>
-                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Simpan</button>
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Save</button>
                 </div>
             </div>
         </div>
@@ -268,27 +271,27 @@ const ModalEditModal_ = ({ row, onClose, onSave }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl mx-4 overflow-hidden max-h-[90vh] flex flex-col">
                 <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
-                    <p className="text-white font-semibold text-sm">Edit Rincian Modal</p>
+                    <p className="text-white font-semibold text-sm">Edit Equity Detail</p>
                     <button onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">&times;</button>
                 </div>
                 <div className="p-5 space-y-4 overflow-y-auto">
-                    <TextField label="Rincian Modal" value={form.equityDescription} onChange={(v) => setForm(p => ({ ...p, equityDescription: v }))} placeholder="mis. Modal Saham" />
+                    <TextField label="Equity Detail" value={form.equityDescription} onChange={(v) => setForm(p => ({ ...p, equityDescription: v }))} placeholder="e.g. Share Capital" />
                     <div>
                         <p className="text-xs font-medium text-gray-700 mb-2">Saldo Modal Tiap Akhir Bulan (Rp)</p>
                         <div className="grid grid-cols-3 gap-3">
                             {MONTH_LABELS.map((label, idx) => (
-                                <RpField key={idx} label={`Bulan ${label}`} value={form.months[idx]} onChange={setMonth(idx)} />
+                                <RpField key={idx} label={label} value={form.months[idx]} onChange={setMonth(idx)} />
                             ))}
                         </div>
                     </div>
                     <div className="bg-gray-50 rounded px-3 py-2 text-sm flex justify-between">
-                        <span className="text-gray-600">Rata-rata (otomatis)</span>
+                        <span className="text-gray-600">Average (automatic)</span>
                         <span className="font-mono font-semibold">Rp{fmt(average) || '0'}</span>
                     </div>
                 </div>
                 <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Batal</button>
-                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Simpan</button>
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Save</button>
                 </div>
             </div>
         </div>
@@ -310,22 +313,22 @@ const ModalEditBorrowingCost = ({ row, onClose, onSave }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
                 <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
-                    <p className="text-white font-semibold text-sm">Edit Biaya Pinjaman</p>
+                    <p className="text-white font-semibold text-sm">Edit Borrowing Cost</p>
                     <button onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">&times;</button>
                 </div>
                 <div className="p-5 space-y-4">
-                    <TextField label="Kreditor" value={form.creditor} onChange={(v) => setForm(p => ({ ...p, creditor: v }))} />
+                    <TextField label="Creditor" value={form.creditor} onChange={(v) => setForm(p => ({ ...p, creditor: v }))} />
                     {/* OPEN CLARIFICATION #3 (Blueprint L11 §1/§2) — Average of Debt Balance
                         saat ini MANUAL INPUT. Belum dipastikan apakah harus auto-pull dari
                         rata-rata per kreditor yang sama di Bagian II.A. */}
-                    <RpField label="Saldo Rata-rata Utang (manual — OPEN CLARIFICATION #3)" value={form.avgDebtBalance} onChange={(v) => setForm(p => ({ ...p, avgDebtBalance: v }))} />
-                    <RpField label="Biaya Pinjaman (Bunga)" value={form.borrowingCost} onChange={(v) => setForm(p => ({ ...p, borrowingCost: v }))} />
-                    <RpField label="Biaya Pinjaman yang Dapat Diperhitungkan" value={form.deductibleCost} onChange={(v) => setForm(p => ({ ...p, deductibleCost: v }))} />
-                    <RpField label="Biaya Pinjaman yang Tidak Dapat Diperhitungkan" value={form.nonDeductibleCost} onChange={(v) => setForm(p => ({ ...p, nonDeductibleCost: v }))} />
+                    <RpField label="Average Debt Balance (manual — OPEN CLARIFICATION #3)" value={form.avgDebtBalance} onChange={(v) => setForm(p => ({ ...p, avgDebtBalance: v }))} />
+                    <RpField label="Borrowing Cost (Interest)" value={form.borrowingCost} onChange={(v) => setForm(p => ({ ...p, borrowingCost: v }))} />
+                    <RpField label="Deductible Borrowing Cost" value={form.deductibleCost} onChange={(v) => setForm(p => ({ ...p, deductibleCost: v }))} />
+                    <RpField label="Non-Deductible Borrowing Cost" value={form.nonDeductibleCost} onChange={(v) => setForm(p => ({ ...p, nonDeductibleCost: v }))} />
                 </div>
                 <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Batal</button>
-                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Simpan</button>
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Save</button>
                 </div>
             </div>
         </div>
@@ -470,16 +473,26 @@ const L11B = ({
     };
     const handleDeleteBorrowing = (idx) => setBorrowingRows(prev => prev.filter((_, i) => i !== idx));
 
-    // ── Styles ──────────────────────────────────────────────────────────────
-    const thCls = "px-3 py-2 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-    const tdCls = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100 whitespace-nowrap";
+    // ── Styles — UI mengikuti referensi tabel L13A.js (header kuning, border
+    // putih antar-header, border penuh pada body cell, sticky header + sticky
+    // kolom Action). HANYA style/className — tidak ada logic yang berubah. ──
+    const thCls = "px-3 py-2 text-center align-middle text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap";
+    const tdCls = "px-3 py-2 text-xs text-gray-700 border border-gray-200 whitespace-nowrap";
+
+    // Sticky header (top) & sticky kolom Action (left) — pola identik L13A.
+    const thStickyTop    = { position: 'sticky', top: 0, zIndex: 20, backgroundColor: '#facc15' };
+    const thStickyAction = { position: 'sticky', top: 0, left: 0, zIndex: 21, backgroundColor: '#facc15' };
+    const tdStickyAction = { position: 'sticky', left: 0, zIndex: 10, backgroundColor: '#ffffff' };
+    // Baris di dalam tbody yang berlatar abu-abu (mis. "JUMLAH") perlu sticky
+    // Action-nya sendiri agar warnanya tidak tertimpa putih dari tdStickyAction.
+    const tdStickyActionMuted = { ...tdStickyAction, backgroundColor: '#f9fafb' };
 
     return (
         <div className="p-6 space-y-6">
             {/* ── HEADER — identik L1D ─────────────────────────────────────── */}
             <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
                 <h2 className="text-base font-bold text-blue-800 mb-4 uppercase tracking-wide">
-                    Lampiran 11-B — Perhitungan Debt to Equity Ratio (DER)
+                    Lampiran 11-B — Calculation of Debt to Equity Ratio (DER)
                 </h2>
                 <div className="grid grid-cols-2 gap-4 max-w-md">
                     <ReadonlyField label="Tax Year" value={taxYear} />
@@ -514,39 +527,49 @@ const L11B = ({
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">A. Calculation of Debt Balance Average</p>
                             <button onClick={() => setEditingUtang('new')} className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700">+ Add</button>
                         </div>
-                        <div className="overflow-x-auto border border-gray-200 rounded" style={{ maxHeight: 420 }}>
+                        <div className="border border-gray-200 rounded-lg overflow-x-auto overflow-y-auto" style={{ maxHeight: 420 }}>
                             <table className="w-full text-xs border-collapse">
                                 <thead>
                                     <tr>
-                                        <th className={thCls}>Action</th>
-                                        <th className={thCls}>Nomor Identitas</th>
-                                        <th className={thCls}>Nama</th>
-                                        <th className={thCls}>Hub. Istimewa</th>
-                                        {MONTH_LABELS.map(l => <th key={l} className={`${thCls} text-right`}>{l}</th>)}
-                                        <th className={`${thCls} text-right`}>Rata-rata</th>
+                                        <th className={thCls} style={thStickyAction}>Action</th>
+                                        <th className={thCls} style={thStickyTop}>Identity Number</th>
+                                        <th className={thCls} style={thStickyTop}>Name</th>
+                                        <th className={thCls} style={thStickyTop}>Special Rel.</th>
+                                        {MONTH_LABELS.map(l => <th key={l} className={thCls} style={thStickyTop}>{l}</th>)}
+                                        <th className={thCls} style={thStickyTop}>Average</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {rowsUtangComputed.length === 0 && (
-                                        <tr><td colSpan={16} className="px-3 py-6 text-center text-gray-400 text-xs">No data found.</td></tr>
+                                        <tr><td colSpan={16} className="px-3 py-6 text-center text-gray-400 text-xs border border-gray-200">No data found.</td></tr>
                                     )}
                                     {rowsUtangComputed.map((r, idx) => (
                                         <tr key={r.id} className="hover:bg-gray-50">
-                                            <td className={tdCls}>
-                                                <button onClick={() => setEditingUtang(idx)} className="text-blue-600 hover:underline mr-2">Edit</button>
-                                                <button onClick={() => handleDeleteUtang(idx)} className="text-red-600 hover:underline">Del</button>
+                                            <td className={tdCls} style={tdStickyAction}>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => setEditingUtang(idx)} title="Edit" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={() => handleDeleteUtang(idx)} title="Delete" className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </td>
                                             <td className={tdCls}>{r.creditorIdentity}</td>
                                             <td className={tdCls}>{r.creditorName}</td>
                                             <td className={tdCls}>{r.relationship}</td>
-                                            {(r.months || emptyMonths()).map((m, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmt(m)}</td>)}
-                                            <td className={`${tdCls} text-right font-mono font-semibold`}>{fmt(r.average)}</td>
+                                            {(r.months || emptyMonths()).map((m, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmtRp(m)}</td>)}
+                                            <td className={`${tdCls} text-right font-mono font-semibold`}>{fmtRp(r.average)}</td>
                                         </tr>
                                     ))}
                                     <tr className="bg-gray-50 font-semibold">
-                                        <td className={tdCls} colSpan={4}>JUMLAH</td>
-                                        {totalUtangPerBulan.map((t, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmt(t)}</td>)}
-                                        <td className={`${tdCls} text-right font-mono`}>{fmt(totalAvgUtang)}</td>
+                                        <td className={tdCls} style={tdStickyActionMuted} colSpan={4}>TOTAL</td>
+                                        {totalUtangPerBulan.map((t, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmtRp(t)}</td>)}
+                                        <td className={`${tdCls} text-right font-mono`}>{fmtRp(totalAvgUtang)}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -559,35 +582,45 @@ const L11B = ({
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">B. Calculation of Equity Balance Average</p>
                             <button onClick={() => setEditingModal('new')} className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700">+ Add</button>
                         </div>
-                        <div className="overflow-x-auto border border-gray-200 rounded" style={{ maxHeight: 420 }}>
+                        <div className="border border-gray-200 rounded-lg overflow-x-auto overflow-y-auto" style={{ maxHeight: 420 }}>
                             <table className="w-full text-xs border-collapse">
                                 <thead>
                                     <tr>
-                                        <th className={thCls}>Action</th>
-                                        <th className={thCls}>Rincian Modal</th>
-                                        {MONTH_LABELS.map(l => <th key={l} className={`${thCls} text-right`}>{l}</th>)}
-                                        <th className={`${thCls} text-right`}>Rata-rata</th>
+                                        <th className={thCls} style={thStickyAction}>Action</th>
+                                        <th className={thCls} style={thStickyTop}>Equity Detail</th>
+                                        {MONTH_LABELS.map(l => <th key={l} className={thCls} style={thStickyTop}>{l}</th>)}
+                                        <th className={thCls} style={thStickyTop}>Average</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {rowsModalComputed.length === 0 && (
-                                        <tr><td colSpan={14} className="px-3 py-6 text-center text-gray-400 text-xs">No data found.</td></tr>
+                                        <tr><td colSpan={14} className="px-3 py-6 text-center text-gray-400 text-xs border border-gray-200">No data found.</td></tr>
                                     )}
                                     {rowsModalComputed.map((r, idx) => (
                                         <tr key={r.id} className="hover:bg-gray-50">
-                                            <td className={tdCls}>
-                                                <button onClick={() => setEditingModal(idx)} className="text-blue-600 hover:underline mr-2">Edit</button>
-                                                <button onClick={() => handleDeleteModal_(idx)} className="text-red-600 hover:underline">Del</button>
+                                            <td className={tdCls} style={tdStickyAction}>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => setEditingModal(idx)} title="Edit" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={() => handleDeleteModal_(idx)} title="Delete" className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </td>
                                             <td className={tdCls}>{r.equityDescription}</td>
-                                            {(r.months || emptyMonths()).map((m, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmt(m)}</td>)}
-                                            <td className={`${tdCls} text-right font-mono font-semibold`}>{fmt(r.average)}</td>
+                                            {(r.months || emptyMonths()).map((m, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmtRp(m)}</td>)}
+                                            <td className={`${tdCls} text-right font-mono font-semibold`}>{fmtRp(r.average)}</td>
                                         </tr>
                                     ))}
                                     <tr className="bg-gray-50 font-semibold">
-                                        <td className={tdCls} colSpan={2}>JUMLAH</td>
-                                        {totalModalPerBulan.map((t, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmt(t)}</td>)}
-                                        <td className={`${tdCls} text-right font-mono`}>{fmt(totalAvgModal)}</td>
+                                        <td className={tdCls} style={tdStickyActionMuted} colSpan={2}>TOTAL</td>
+                                        {totalModalPerBulan.map((t, i) => <td key={i} className={`${tdCls} text-right font-mono`}>{fmtRp(t)}</td>)}
+                                        <td className={`${tdCls} text-right font-mono`}>{fmtRp(totalAvgModal)}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -616,53 +649,63 @@ const L11B = ({
                 <div className="flex justify-end mb-3">
                     <button onClick={() => setEditingBorrowing('new')} className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700">+ Add</button>
                 </div>
-                <div className="overflow-x-auto border border-gray-200 rounded" style={{ maxHeight: 360 }}>
+                <div className="border border-gray-200 rounded-lg overflow-x-auto overflow-y-auto" style={{ maxHeight: 360 }}>
                     <table className="w-full text-xs border-collapse">
                         <thead>
                             <tr>
-                                <th className={thCls}>Action</th>
-                                <th className={thCls}>Kreditor</th>
-                                <th className={`${thCls} text-right`}>Saldo Rata-rata Utang</th>
-                                <th className={`${thCls} text-right`}>Biaya Pinjaman (Bunga)</th>
-                                <th className={`${thCls} text-right`}>Dapat Diperhitungkan</th>
-                                <th className={`${thCls} text-right`}>Tidak Dapat Diperhitungkan</th>
+                                <th className={thCls} style={thStickyAction}>Action</th>
+                                <th className={thCls} style={thStickyTop}>Creditor</th>
+                                <th className={thCls} style={thStickyTop}>Average Debt Balance</th>
+                                <th className={thCls} style={thStickyTop}>Borrowing Cost (Interest)</th>
+                                <th className={thCls} style={thStickyTop}>Deductible</th>
+                                <th className={thCls} style={thStickyTop}>Non-Deductible</th>
                             </tr>
                         </thead>
                         <tbody>
                             {borrowingRows.length === 0 && (
-                                <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400 text-xs">No data found.</td></tr>
+                                <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400 text-xs border border-gray-200">No data found.</td></tr>
                             )}
                             {borrowingRows.map((r, idx) => (
                                 <tr key={r.id} className="hover:bg-gray-50">
-                                    <td className={tdCls}>
-                                        <button onClick={() => setEditingBorrowing(idx)} className="text-blue-600 hover:underline mr-2">Edit</button>
-                                        <button onClick={() => handleDeleteBorrowing(idx)} className="text-red-600 hover:underline">Del</button>
+                                    <td className={tdCls} style={tdStickyAction}>
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => setEditingBorrowing(idx)} title="Edit" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                                </svg>
+                                            </button>
+                                            <button onClick={() => handleDeleteBorrowing(idx)} title="Delete" className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </td>
                                     <td className={tdCls}>{r.creditor}</td>
-                                    <td className={`${tdCls} text-right font-mono`}>{fmt(r.avgDebtBalance)}</td>
-                                    <td className={`${tdCls} text-right font-mono`}>{fmt(r.borrowingCost)}</td>
-                                    <td className={`${tdCls} text-right font-mono`}>{fmt(r.deductibleCost)}</td>
-                                    <td className={`${tdCls} text-right font-mono`}>{fmt(r.nonDeductibleCost)}</td>
+                                    <td className={`${tdCls} text-right font-mono`}>{fmtRp(r.avgDebtBalance)}</td>
+                                    <td className={`${tdCls} text-right font-mono`}>{fmtRp(r.borrowingCost)}</td>
+                                    <td className={`${tdCls} text-right font-mono`}>{fmtRp(r.deductibleCost)}</td>
+                                    <td className={`${tdCls} text-right font-mono`}>{fmtRp(r.nonDeductibleCost)}</td>
                                 </tr>
                             ))}
                             <tr className="bg-gray-50 font-semibold">
-                                <td className={tdCls} colSpan={2}>JUMLAH</td>
-                                <td className={`${tdCls} text-right font-mono`}>{fmt(totalBorrowing.avgDebtBalance)}</td>
-                                <td className={`${tdCls} text-right font-mono`}>{fmt(totalBorrowing.borrowingCost)}</td>
-                                <td className={`${tdCls} text-right font-mono`}>{fmt(totalBorrowing.deductibleCost)}</td>
-                                <td className={`${tdCls} text-right font-mono`}>{fmt(totalBorrowing.nonDeductibleCost)}</td>
+                                <td className={tdCls} style={tdStickyActionMuted} colSpan={2}>TOTAL</td>
+                                <td className={`${tdCls} text-right font-mono`}>{fmtRp(totalBorrowing.avgDebtBalance)}</td>
+                                <td className={`${tdCls} text-right font-mono`}>{fmtRp(totalBorrowing.borrowingCost)}</td>
+                                <td className={`${tdCls} text-right font-mono`}>{fmtRp(totalBorrowing.deductibleCost)}</td>
+                                <td className={`${tdCls} text-right font-mono`}>{fmtRp(totalBorrowing.nonDeductibleCost)}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-sm text-gray-700 mb-2">Apakah Anda mempunyai utang swasta luar negeri? Jika "Ya", isi Lampiran 11-C.</p>
+                    <p className="text-sm text-gray-700 mb-2">Do you have foreign private debt? If "Yes", complete Lampiran 11-C.</p>
                     <div className="flex gap-4 text-sm">
                         <label className="flex items-center gap-1.5">
-                            <input type="radio" name="hasForeignDebt" checked={hasForeignDebt === 'Ya'} onChange={() => setHasForeignDebt('Ya')} /> Ya
+                            <input type="radio" name="hasForeignDebt" checked={hasForeignDebt === 'Ya'} onChange={() => setHasForeignDebt('Ya')} /> Yes
                         </label>
                         <label className="flex items-center gap-1.5">
-                            <input type="radio" name="hasForeignDebt" checked={hasForeignDebt === 'Tidak'} onChange={() => setHasForeignDebt('Tidak')} /> Tidak
+                            <input type="radio" name="hasForeignDebt" checked={hasForeignDebt === 'Tidak'} onChange={() => setHasForeignDebt('Tidak')} /> No
                         </label>
                     </div>
                 </div>

@@ -164,6 +164,16 @@ const fmt = (v) => {
 
 const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) || 0;
 
+// fmtRp — DISPLAY-ONLY formatter untuk nominal pada tabel (tidak dipakai oleh
+// RpField/input, tidak mengubah fmt/parse di atas maupun state/value manapun).
+// Prefix "Rp" ditambahkan di tampilan tabel; tanda minus (bila ada) diletakkan
+// SEBELUM "Rp" — cth. "-Rp10.000", bukan "Rp-10.000".
+const fmtRp = (v) => {
+    const n = parseFloat(String(v).replace(/,/g, '')) || 0;
+    if (n === 0) return '';
+    return (n < 0 ? '-Rp' : 'Rp') + Math.abs(n).toLocaleString('id-ID');
+};
+
 // Derive isHeader / isSubtotal / isInput dari type + tambahkan internalId.
 // Perluasan dari pola L1C: disable45 sekarang juga true untuk onlyCol3 (Kelompok 3
 // otomatis mewarisi pembatasan Kelompok 2), plus flag baru disable78 (col7/8/9 N/A —
@@ -242,7 +252,10 @@ const ReadonlyField = ({ label, value }) => (
 
 // RpField: input nominal dengan prefix visual "Rp" + format angka Indonesia.
 // Pola identik dengan L1C — lihat komentar L1c.js untuk detail perilaku cursor/format.
-const RpField = ({ label, value, onChange, placeholder = '0', disabled = false }) => {
+// • isContraAccount: true → field contra account (signMinus). User tetap hanya boleh
+//   menginput nilai positif; tanda minus diabaikan di titik input (perilaku sama seperti
+//   sebelum dukungan nilai negatif ditambahkan) — mencegah negasi ganda pada subtotal.
+const RpField = ({ label, value, onChange, placeholder = '0', disabled = false, isContraAccount = false }) => {
     const inputRef  = useRef(null);
     const isFocused = useRef(false);
 
@@ -269,17 +282,28 @@ const RpField = ({ label, value, onChange, placeholder = '0', disabled = false }
         const raw       = input.value;
         const cursorPos = input.selectionStart;
 
+        // Leading minus hanya dihormati untuk field non-contra-account. Minus di posisi
+        // lain (tengah/akhir) tidak dianggap valid — dicegah lewat strip \D di bawah,
+        // sehingga tidak mungkin terjadi "Rp --1.000" atau minus ganda.
+        const isNegative = !isContraAccount && raw.trim().startsWith('-');
+
         const digitsOnly = raw.replace(/\D/g, '');
-        const formatted = digitsOnly === '' ? '' : Number(digitsOnly).toLocaleString('id-ID');
+        const formatted = digitsOnly === ''
+            ? (isNegative ? '-' : '')
+            : (isNegative ? '-' : '') + Number(digitsOnly).toLocaleString('id-ID');
+        const rawValue = digitsOnly === ''
+            ? (isNegative ? '-' : '')
+            : (isNegative ? '-' : '') + digitsOnly;
         const digitsBeforeCursor = raw.slice(0, cursorPos).replace(/\D/g, '').length;
 
         setDisplayValue(formatted);
-        onChange(digitsOnly);
+        onChange(rawValue);
 
         requestAnimationFrame(() => {
             if (!inputRef.current) return;
             if (digitsBeforeCursor === 0) {
-                inputRef.current.setSelectionRange(0, 0);
+                const pos = (isNegative && cursorPos > 0) ? 1 : 0;
+                inputRef.current.setSelectionRange(pos, pos);
                 return;
             }
             let digitCount = 0;
@@ -309,7 +333,7 @@ const RpField = ({ label, value, onChange, placeholder = '0', disabled = false }
                 <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
                 <div className="flex items-center border border-gray-200 rounded overflow-hidden bg-gray-100">
                     <span className="px-2 py-2 text-xs font-medium text-gray-400 bg-gray-100 border-r border-gray-200 select-none whitespace-nowrap">Rp</span>
-                    <div className="flex-1 px-3 py-2 text-sm text-right text-gray-400">0</div>
+                    <div className="flex-1 px-3 py-2 text-sm text-left text-gray-400">0</div>
                 </div>
             </div>
         );
@@ -329,7 +353,7 @@ const RpField = ({ label, value, onChange, placeholder = '0', disabled = false }
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
                 />
             </div>
         </div>
@@ -412,6 +436,7 @@ const ModalEditA = ({ row, onClose, onSave }) => {
                         label="Amount (Commercial)"
                         value={form.commercial}
                         onChange={set('commercial')}
+                        isContraAccount={row.signMinus}
                     />
 
                     <div className="grid grid-cols-2 gap-3">
@@ -420,12 +445,14 @@ const ModalEditA = ({ row, onClose, onSave }) => {
                             value={form.nonTaxable}
                             onChange={set('nonTaxable')}
                             disabled={row.disable45}
+                            isContraAccount={row.signMinus}
                         />
                         <RpField
                             label="Subject to Final Tax"
                             value={form.finalTax}
                             onChange={set('finalTax')}
                             disabled={row.disable45}
+                            isContraAccount={row.signMinus}
                         />
                     </div>
 
@@ -440,12 +467,14 @@ const ModalEditA = ({ row, onClose, onSave }) => {
                             value={form.posCorr}
                             onChange={set('posCorr')}
                             disabled={row.disable78}
+                            isContraAccount={row.signMinus}
                         />
                         <RpField
                             label="Negative Fiscal Correction"
                             value={form.negCorr}
                             onChange={set('negCorr')}
                             disabled={row.disable78}
+                            isContraAccount={row.signMinus}
                         />
                     </div>
 
@@ -512,6 +541,7 @@ const ModalEditB = ({ row, onClose, onSave }) => {
                         label="Amount"
                         value={amount}
                         onChange={setAmount}
+                        isContraAccount={row.signMinus}
                     />
                 </div>
 
@@ -877,17 +907,20 @@ const L1D = ({
     // ── Table style helpers ───────────────────────────────────────────────────
     // (identik dengan L1C/L1A — reusable, tidak diubah)
 
-    const thCls = "px-3 py-2 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-    const tdCls = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100";
-    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border-b border-gray-100 font-mono";
+    // Warna header (kuning), border grid penuh — mengikuti referensi visual L13A.
+    // Alignment, freeze kolom, dan scroll behavior TETAP mengikuti implementasi
+    // L1D yang sudah berjalan (tidak diubah).
+    const thCls = "px-3 py-2 text-left text-xs font-semibold text-gray-800 bg-yellow-400 border border-white whitespace-nowrap";
+    const tdCls = "px-3 py-2 text-xs text-gray-700 border border-gray-200";
+    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border border-gray-200 font-mono";
 
     const COL_ACTION_W = 48;
     const COL_CODE_W   = 100;
 
-    const thAction = { position: 'sticky', left: 0,                          top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thCode   = { position: 'sticky', left: COL_ACTION_W,               top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thName   = { position: 'sticky', left: COL_ACTION_W + COL_CODE_W,  top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#f3f4f6' };
+    const thAction = { position: 'sticky', left: 0,                          top: 0, zIndex: 4, backgroundColor: '#facc15' };
+    const thCode   = { position: 'sticky', left: COL_ACTION_W,               top: 0, zIndex: 4, backgroundColor: '#facc15' };
+    const thName   = { position: 'sticky', left: COL_ACTION_W + COL_CODE_W,  top: 0, zIndex: 4, backgroundColor: '#facc15' };
+    const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#facc15' };
 
     const tdAction = { position: 'sticky', left: 0,                          zIndex: 1, backgroundColor: '#ffffff' };
     const tdCode   = { position: 'sticky', left: COL_ACTION_W,               zIndex: 1, backgroundColor: '#ffffff' };
@@ -969,21 +1002,21 @@ const L1D = ({
                                     <td className={`${tdCls} ${row.isHeader ? 'font-semibold text-blue-800' : ''}`} style={row.isHeader ? tdNameHdr : tdName}>
                                         {row.name}
                                     </td>
-                                    <td className={tdNum}>{row.isHeader ? '' : fmt(row.commercial)}</td>
+                                    <td className={tdNum}>{row.isHeader ? '' : fmtRp(row.commercial)}</td>
                                     <td className={tdNum}>
-                                        {row.isHeader ? '' : (row.disable45 && row.isInput ? <span className="text-gray-300">—</span> : fmt(row.nonTaxable))}
+                                        {row.isHeader ? '' : (row.disable45 && row.isInput ? <span className="text-gray-300">—</span> : fmtRp(row.nonTaxable))}
                                     </td>
                                     <td className={tdNum}>
-                                        {row.isHeader ? '' : (row.disable45 && row.isInput ? <span className="text-gray-300">—</span> : fmt(row.finalTax))}
+                                        {row.isHeader ? '' : (row.disable45 && row.isInput ? <span className="text-gray-300">—</span> : fmtRp(row.finalTax))}
                                     </td>
                                     <td className={`${tdNum} ${row._nonFinal < 0 ? 'text-red-600' : ''}`}>
-                                        {row.isHeader ? '' : fmt(row._nonFinal)}
+                                        {row.isHeader ? '' : fmtRp(row._nonFinal)}
                                     </td>
                                     <td className={tdNum}>
-                                        {row.isHeader ? '' : (row.disable78 && row.isInput ? <span className="text-gray-300">—</span> : fmt(row.posCorr))}
+                                        {row.isHeader ? '' : (row.disable78 && row.isInput ? <span className="text-gray-300">—</span> : fmtRp(row.posCorr))}
                                     </td>
                                     <td className={tdNum}>
-                                        {row.isHeader ? '' : (row.disable78 && row.isInput ? <span className="text-gray-300">—</span> : fmt(row.negCorr))}
+                                        {row.isHeader ? '' : (row.disable78 && row.isInput ? <span className="text-gray-300">—</span> : fmtRp(row.negCorr))}
                                     </td>
                                     <td className={tdCls}>
                                         {row.isHeader || row.isSubtotal ? '' : (
@@ -993,7 +1026,7 @@ const L1D = ({
                                         )}
                                     </td>
                                     <td className={`${tdNum} ${row._fiscalAmt < 0 ? 'text-red-600' : ''}`}>
-                                        {row.isHeader ? '' : fmt(row._fiscalAmt)}
+                                        {row.isHeader ? '' : fmtRp(row._fiscalAmt)}
                                     </td>
                                 </tr>
                             ))}
@@ -1007,7 +1040,7 @@ const L1D = ({
                                     Fiscal Net Income Before Tax Facility (Laba / Rugi Sebelum Pajak — Fiskal)
                                 </td>
                                 <td className={`px-3 py-2 text-xs font-bold text-right font-mono ${a10 < 0 ? 'text-red-300' : 'text-white'}`}>
-                                    {a10 !== 0 ? fmt(a10) : '0'}
+                                    {a10 !== 0 ? fmtRp(a10) : 'Rp0'}
                                 </td>
                             </tr>
                         </tfoot>
@@ -1063,7 +1096,7 @@ const L1D = ({
                                         {row.name}
                                     </td>
                                     <td className={`${tdNum} ${row.isSubtotal ? 'font-semibold' : ''} ${parse(row.amount) < 0 ? 'text-red-600' : ''}`}>
-                                        {row.isHeader ? '' : fmt(row.amount)}
+                                        {row.isHeader ? '' : fmtRp(row.amount)}
                                     </td>
                                 </tr>
                             ))}
@@ -1120,7 +1153,7 @@ const L1D = ({
                                         {row.name}
                                     </td>
                                     <td className={`${tdNum} ${row.isSubtotal ? 'font-semibold' : ''} ${parse(row.amount) < 0 ? 'text-red-600' : ''}`}>
-                                        {row.isHeader ? '' : fmt(row.amount)}
+                                        {row.isHeader ? '' : fmtRp(row.amount)}
                                     </td>
                                 </tr>
                             ))}

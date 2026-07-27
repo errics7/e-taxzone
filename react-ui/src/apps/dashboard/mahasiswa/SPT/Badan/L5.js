@@ -99,7 +99,7 @@ const RpField = ({ label, value, onChange, placeholder = '0' }) => {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
                 />
             </div>
         </div>
@@ -205,19 +205,19 @@ const ModalEditTurnover = ({ row, onClose, onSave }) => {
                         <div className="text-xs font-bold text-gray-700 pb-2">Total</div>
                         <div className="flex items-center border border-gray-200 rounded bg-gray-50 overflow-hidden">
                             <span className="px-2 py-2 text-xs font-medium text-gray-400 bg-gray-100 border-r border-gray-200 select-none">Rp</span>
-                            <span className="flex-1 px-3 py-2 text-sm text-right text-gray-700 font-mono">
+                            <span className="flex-1 px-3 py-2 text-sm text-left text-gray-700 font-mono">
                                 {fmtOrZero(modalBrutoTotal)}
                             </span>
                         </div>
                         <div className="flex items-center border border-gray-200 rounded bg-gray-50 overflow-hidden">
                             <span className="px-2 py-2 text-xs font-medium text-gray-400 bg-gray-100 border-r border-gray-200 select-none">Rp</span>
-                            <span className="flex-1 px-3 py-2 text-sm text-right text-gray-700 font-mono">
+                            <span className="flex-1 px-3 py-2 text-sm text-left text-gray-700 font-mono">
                                 {fmtOrZero(modalDisetorTotal)}
                             </span>
                         </div>
                         <div className="flex items-center border border-gray-200 rounded bg-gray-50 overflow-hidden">
                             <span className="px-2 py-2 text-xs font-medium text-gray-400 bg-gray-100 border-r border-gray-200 select-none">Rp</span>
-                            <span className="flex-1 px-3 py-2 text-sm text-right text-gray-700 font-mono">
+                            <span className="flex-1 px-3 py-2 text-sm text-left text-gray-700 font-mono">
                                 {fmtOrZero(modalDipotongTotal)}
                             </span>
                         </div>
@@ -378,20 +378,25 @@ const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
         };
     }, [rows]);
 
-    // ── Style helpers — identik dengan pola sticky-column L2 ─────────────────
-    const thCls    = "px-3 py-2 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-    const thClsNum = "px-3 py-2 text-right text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-    const tdCls    = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100";
-    const tdNum    = "px-3 py-2 text-xs text-right text-gray-700 border-b border-gray-100 font-mono";
-    const tdSummary= "px-3 py-2 text-xs text-right text-gray-800 border-b border-gray-100 font-mono font-medium bg-gray-50";
-    const tdLabel  = "px-3 py-2 text-xs font-semibold text-gray-700 border-b border-gray-100 bg-gray-50 whitespace-nowrap";
+    // ── Style helpers — UI mengikuti referensi tabel L13A.js (header kuning,
+    // border putih antar-header, border penuh pada body cell, hover abu-abu).
+    // HANYA style/className yang diselaraskan — tidak ada logic yang berubah.
+    const thCls    = "px-3 py-2 text-center align-middle text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap";
+    const thClsNum = "px-3 py-2 text-center align-middle text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap";
+    const tdCls    = "px-3 py-2 text-xs text-gray-700 border border-gray-200";
+    const tdNum    = "px-3 py-2 text-xs text-right text-gray-700 border border-gray-200 font-mono";
+    const tdSummary= "px-3 py-2 text-xs text-right text-gray-800 border border-gray-200 font-mono font-medium bg-gray-50";
+    const tdLabel  = "px-3 py-2 text-xs font-semibold text-gray-700 border border-gray-200 bg-gray-50 whitespace-nowrap";
 
     const COL_ACTION_W = 48;
     const COL_NAME_W   = 200;
 
-    const thAction = { position: 'sticky', left: 0,            top: 0, zIndex: 4, backgroundColor: '#f3f4f6' };
-    const thName   = { position: 'sticky', left: COL_ACTION_W, top: 0, zIndex: 4, backgroundColor: '#f3f4f6', minWidth: COL_NAME_W };
-    const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#f3f4f6' };
+    // Sticky header/kolom — logic posisi TIDAK berubah, hanya warna latar
+    // disesuaikan ke kuning (#facc15 = tailwind yellow-400) agar konsisten
+    // dengan header non-sticky di atas.
+    const thAction = { position: 'sticky', left: 0,            top: 0, zIndex: 4, backgroundColor: '#facc15' };
+    const thName   = { position: 'sticky', left: COL_ACTION_W, top: 0, zIndex: 4, backgroundColor: '#facc15', minWidth: COL_NAME_W };
+    const thTop    = { position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#facc15' };
     const tdAction = { position: 'sticky', left: 0,            zIndex: 1, backgroundColor: '#ffffff' };
     const tdName   = { position: 'sticky', left: COL_ACTION_W, zIndex: 1, backgroundColor: '#ffffff', minWidth: COL_NAME_W };
     const tdNameSummary = { position: 'sticky', left: COL_ACTION_W, zIndex: 1, backgroundColor: '#f9fafb', minWidth: COL_NAME_W };
@@ -475,7 +480,7 @@ const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
                     </p>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto">
                     <table className="w-full text-sm border-collapse" style={{ minWidth: '900px' }}>
                         <thead>
                             <tr>
@@ -524,7 +529,7 @@ const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
                     </p>
                 </div>
 
-                <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '500px' }}>
+                <div className="border border-gray-200 rounded-lg overflow-x-auto overflow-y-auto" style={{ maxHeight: '500px' }}>
                     <table className="w-full text-sm border-collapse" style={{ minWidth: '1400px' }}>
                         <thead>
                             <tr>
@@ -554,7 +559,7 @@ const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
                                 </tr>
                             ) : (
                                 rows.map((row, idx) => (
-                                    <tr key={row.tkuId} className="hover:bg-blue-50 transition-colors">
+                                    <tr key={row.tkuId} className="hover:bg-gray-50 transition-colors">
                                         <td className={tdCls} style={tdAction}>
                                             <button
                                                 onClick={() => setEditingTkuId(row.tkuId)}

@@ -70,6 +70,16 @@ const PRICING_METHOD_OPTIONS = [
 const formatRupiahDisplay = (value) => new Intl.NumberFormat('id-ID').format(value || 0);
 const parseRupiahInput = (str) => parseFloat(String(str).replace(/[.,]/g, '')) || 0;
 
+// fmtRp — DISPLAY-ONLY formatter untuk nominal pada tabel (pola identik
+// L1A/L1C/L1D/L9). Tidak dipakai oleh input Transaction Value (yang tetap
+// pakai formatRupiahDisplay/parseRupiahInput di atas), tidak mengubah
+// state/value manapun. Prefix "Rp" tanpa spasi ("Rp1.000.000"); tanda minus
+// (bila ada) diletakkan SEBELUM "Rp" ("-Rp35.000", bukan "Rp-35.000").
+const fmtRp = (value) => {
+    const n = Number(value) || 0;
+    return (n < 0 ? '-Rp' : 'Rp') + new Intl.NumberFormat('id-ID').format(Math.abs(n));
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // INPUT SANITIZATION — TIN & Name (UI/UX refinement, bukan Business Rule baru)
 //
@@ -487,33 +497,33 @@ const L10A = ({ taxYear, tin, rows, onRowsChange }) => {
                     </button>
                 </div>
 
-                {/* Table — sticky header + freeze kolom Action & No */}
+                {/* Table — sticky header + freeze kolom Action & No — style mengikuti L13A */}
                 <div className="border border-gray-200 rounded-lg overflow-x-auto max-h-[520px] overflow-y-auto">
                     <table className="min-w-full text-sm border-collapse">
                         <thead>
-                            <tr className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase">
-                                <th style={{ position: 'sticky', top: 0, left: 0, zIndex: 20 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 w-20">Action</th>
-                                <th style={{ position: 'sticky', top: 0, left: 80, zIndex: 20 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 w-12">No</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">Name</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">NPWP/TIN</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">Country</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">Type of Relationship</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">Business Activity</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">Type of Transaction</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-right border-b border-gray-200 whitespace-nowrap">Transaction Value</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">Pricing Method Applied</th>
-                                <th style={{ position: 'sticky', top: 0 }} className="bg-gray-50 px-3 py-2 text-left border-b border-gray-200 whitespace-nowrap">Reason of Pricing Method Application</th>
+                            <tr className="bg-yellow-400 text-xs font-bold text-gray-800 uppercase">
+                                <th style={{ position: 'sticky', top: 0, left: 0, zIndex: 20, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 w-20">Action</th>
+                                <th style={{ position: 'sticky', top: 0, left: 80, zIndex: 20, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 w-12">No</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Name</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">NPWP/TIN</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Country</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Type of Relationship</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Business Activity</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Type of Transaction</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Transaction Value</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Pricing Method Applied</th>
+                                <th style={{ position: 'sticky', top: 0, height: 36 }} className="bg-yellow-400 px-3 py-2 text-center align-middle border border-white border-b-gray-300 whitespace-nowrap">Reason of Pricing Method Application</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rowCount === 0 && (
                                 <tr>
-                                    <td colSpan={11} className="px-3 py-8 text-center text-gray-400 text-sm">No data found.</td>
+                                    <td colSpan={11} className="px-3 py-8 text-center text-gray-400 text-sm border border-gray-200">No data found.</td>
                                 </tr>
                             )}
                             {safeRows.map((row, idx) => (
-                                <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td style={{ position: 'sticky', left: 0, zIndex: 10 }} className="bg-white px-3 py-2 whitespace-nowrap">
+                                <tr key={row.id} className="hover:bg-gray-50">
+                                    <td style={{ position: 'sticky', left: 0, zIndex: 10 }} className="bg-white px-3 py-2 whitespace-nowrap border border-gray-200">
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => handleOpenEdit(row)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                 <Edit fontSize="small" />
@@ -523,16 +533,16 @@ const L10A = ({ taxYear, tin, rows, onRowsChange }) => {
                                             </button>
                                         </div>
                                     </td>
-                                    <td style={{ position: 'sticky', left: 80, zIndex: 10 }} className="bg-white px-3 py-2 text-gray-700">{idx + 1}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.name}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.tin}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.country}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.typeOfRelationship}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.businessActivity}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.typeOfTransaction}</td>
-                                    <td className="px-3 py-2 text-gray-700 text-right whitespace-nowrap">Rp {formatRupiahDisplay(row.transactionValue)}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.pricingMethodApplied}</td>
-                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap max-w-xs truncate" title={row.reasonOfPricingMethod}>{row.reasonOfPricingMethod}</td>
+                                    <td style={{ position: 'sticky', left: 80, zIndex: 10 }} className="bg-white px-3 py-2 text-gray-700 border border-gray-200">{idx + 1}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border border-gray-200">{row.name}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border border-gray-200">{row.tin}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border border-gray-200">{row.country}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border border-gray-200">{row.typeOfRelationship}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border border-gray-200">{row.businessActivity}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border border-gray-200">{row.typeOfTransaction}</td>
+                                    <td className="px-3 py-2 text-gray-700 text-right whitespace-nowrap border border-gray-200">{fmtRp(row.transactionValue)}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border border-gray-200">{row.pricingMethodApplied}</td>
+                                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap max-w-xs truncate border border-gray-200" title={row.reasonOfPricingMethod}>{row.reasonOfPricingMethod}</td>
                                 </tr>
                             ))}
                         </tbody>

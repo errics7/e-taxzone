@@ -210,11 +210,15 @@ const L6 = ({
 
             {/* ── Calculation Table ── */}
             <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                    Following Fiscal Year Income Tax Installment
-                </p>
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <table className="w-full">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-gradient-to-r from-yellow-500 to-yellow-400 text-white">
+                                <th className="px-3 py-2 text-left w-12">NO.</th>
+                                <th className="px-3 py-2 text-left">DESCRIPTION</th>
+                                <th className="px-3 py-2 text-center w-56">AMOUNT</th>
+                            </tr>
+                        </thead>
                         <tbody className="divide-y divide-gray-100">
 
                             {/* Angka 1 — Income Base (editable) */}
@@ -300,18 +304,13 @@ const L6 = ({
                             </tr>
 
                             {/* Angka 7 — Installment (read-only, derived, dikirim ke Main Form) */}
-                            <tr className="bg-blue-50 border-t-2 border-blue-200">
-                                <td className="px-4 py-3 text-sm text-blue-800 w-8 font-semibold align-middle">7.</td>
-                                <td className="px-2 py-3 text-sm text-blue-800 font-semibold align-middle">
+                            <tr className="bg-blue-50">
+                                <td className="px-4 py-3 text-sm text-gray-800 w-8 font-semibold align-middle">7.</td>
+                                <td className="px-2 py-3 text-sm font-semibold text-gray-800 align-middle">
                                     Following Fiscal Year Installment
                                 </td>
                                 <td className="px-4 py-3 w-56 align-middle">
-                                    <div className="flex items-center border border-blue-300 rounded overflow-hidden bg-blue-50">
-                                        <span className="px-2 py-2 text-xs font-medium text-blue-500 bg-blue-100 border-r border-blue-200 select-none whitespace-nowrap">Rp</span>
-                                        <span className="flex-1 px-3 py-2 text-sm text-right text-blue-800 font-bold">
-                                            {fmt(derived.installment) || '0'}
-                                        </span>
-                                    </div>
+                                    <ReadonlyRpField value={derived.installment} />
                                 </td>
                             </tr>
 
@@ -325,15 +324,16 @@ const L6 = ({
                 </p>
             </div>
 
-            {/* ── Info box integrasi Main Form ── */}
-            <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-xs">
-                <svg className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>
+            {/*
+                Keterangan — SELALU tampil, di luar tabel, mengikuti pola L8
+                (statis, bukan alert/info box).
+            */}
+            <div className="text-xs text-gray-600 space-y-1 pt-2">
+                <p className="font-semibold text-gray-700">Keterangan</p>
+                <p>
                     Value from Number 7 (Following Fiscal Year Installment) is automatically applied
-                    to <strong>Main Form — Section G, Question 20</strong>.
-                </span>
+                    to Main Form — Section G, Question 20.
+                </p>
             </div>
 
         </div>

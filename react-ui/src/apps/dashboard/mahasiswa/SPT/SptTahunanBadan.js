@@ -17,7 +17,10 @@ import L10C from './Badan/L10C.js';
 import L10D, { buildInitialL10DData, mergeWithInitial as mergeL10DWithInitial } from './Badan/L10D.js';
 import L11A, { buildInitialL11AData, mergeWithInitial as mergeL11AWithInitial } from './Badan/L11A.js';
 import L11B, { buildInitialL11BData, mergeWithInitial as mergeL11BWithInitial } from './Badan/L11B.js';
-import L13  from './Badan/L13.js';
+import L11C, { buildInitialL11CData, mergeWithInitial as mergeL11CWithInitial } from './Badan/L11C.js';
+import L13A from './Badan/L13A.js';
+import L13B, { buildInitialL13BData, mergeWithInitial as mergeL13BWithInitial } from './Badan/L13B.js';
+import L13C from './Badan/L13C.js';
 import L14  from './Badan/L14.js';
 
 const L1_TAB_MAP = {
@@ -379,13 +382,14 @@ const SptTahunanBadan = () => {
     const [l7TotalCol8ForD8,   setL7TotalCol8ForD8]   = useState(0);
     const [l7TotalCol9ForL6,   setL7TotalCol9ForL6]   = useState(0);
 
-    // l7TaxYears BUKAN business rule buatan — ini murni placeholder sementara
-    // (ASSUMPTION-1, Blueprint L7 Final Revision §2) selama backend riwayat tahun
-    // pajak belum tersedia: parent hanya mengirim tahun pajak berjalan (satu baris).
-    // Ketika backend riwayat tahun pajak tersedia, parent akan mengirim seluruh
-    // daftar tahun sesungguhnya — L7.js TIDAK PERLU diubah, karena L7 hanya
-    // menerima array ini sebagai data tanpa mengetahui asalnya.
-    const l7TaxYears = sptData.header?.tax_year ? [sptData.header.tax_year] : [];
+    // l7TaxYears — REVISI BUSINESS RULE: parent sekarang mengirim 10 tahun pajak
+    // (9 tahun sebelumnya + tahun pajak berjalan), bukan hanya 1 tahun berjalan.
+    // L7.js TIDAK diubah — ia tetap hanya menerima array ini sebagai data tanpa
+    // mengetahui asalnya (buildInitialRows() di L7.js murni scaffolding atas
+    // array yang diterima).
+    const l7TaxYears = sptData.header?.tax_year
+        ? Array.from({ length: 10 }, (_, i) => sptData.header.tax_year - 9 + i)
+        : [];
 
     // Stable callback wrappers — direuse untuk live edit (onRowsChange) MAUPUN
     // Load Draft (setL7RowsFromDraft), karena L7 hanya punya satu array rows
@@ -486,6 +490,82 @@ const SptTahunanBadan = () => {
     const handleSetL10dDataFromDraft = useCallback(
         (data) => setL10dData(mergeL10DWithInitial(data)), []);
 
+    // ── L13A — List of Investment Facilities ───────────────────────────────────
+    // Source of Truth: l13aRows (array of rows), pola identik l10aRows —
+    // TIDAK ADA formula/computed value (seluruh field raw input).
+    const [l13aRows, setL13aRows] = useState([]);
+    const handleL13aRowsChange = useCallback((rows) => setL13aRows(rows), []);
+    // Draft Compatibility Contract: draft lama tanpa key l13aRows → fallback [].
+    const handleSetL13aRowsFromDraft = useCallback(
+        (rows) => setL13aRows(Array.isArray(rows) ? rows : []), []);
+
+    // l13aTotalNetIncomeDeduction BUKAN source of truth, BUKAN field editable,
+    // BUKAN disimpan ke Save Draft — ia mirror read-only dari Σ
+    // netIncomeDeductionAmount yang dihitung sepenuhnya di dalam L13A.js,
+    // diterima di sini lewat callback onTotalNetIncomeDeductionChange (pola
+    // identik onCreditAmountChange L3). Dipakai MainFormBadan.js untuk mengisi
+    // Section D Question 5 (p5_investment_facility_amount) saat jawabannya Yes.
+    const [l13aTotalNetIncomeDeduction, setL13aTotalNetIncomeDeduction] = useState(0);
+    const handleTotalNetIncomeDeductionChangeL13A = useCallback((val) => setL13aTotalNetIncomeDeduction(val), []);
+
+    // ── L13B — Additional Gross Income Deduction (Vocational + R&D) ────────────
+    // Source of Truth: l13bData (nested object per section — Pendekatan B, pola
+    // identik l10bData). Initial state SELALU buildInitialL13BData().
+    const [l13bData, setL13bData] = useState(() => buildInitialL13BData());
+    const handleL13bDataChange = useCallback((data) => setL13bData(data), []);
+    // Draft Compatibility Contract: draft lama tanpa key l13bData, atau draft
+    // dengan struktur tidak lengkap → selalu di-merge dengan buildInitialL13BData()
+    // (juga menjamin Section C additionalGrossIncomeDeduction dihitung ulang —
+    // Recalculate Contract).
+    const handleSetL13bDataFromDraft = useCallback(
+        (data) => setL13bData(mergeL13BWithInitial(data)), []);
+
+    // l13bSectionBTotal / l13bSectionDRow5 — pola identik l13aTotalNetIncomeDeduction
+    // di atas: mirror read-only, BUKAN source of truth, BUKAN disimpan ke Save
+    // Draft. Diterima lewat callback onSectionBTotalChange/onSectionDRow5Change
+    // milik L13B.js. Dipakai MainFormBadan.js untuk mengisi Section D Question 6
+    // (p6_vocational_deduction_amount) & Question 10 (p10_rd_deduction_amount)
+    // saat jawabannya Yes.
+    const [l13bSectionBTotal, setL13bSectionBTotal] = useState(0);
+    const [l13bSectionDRow5, setL13bSectionDRow5] = useState(0);
+    const handleSectionBTotalChangeL13B = useCallback((val) => setL13bSectionBTotal(val), []);
+    const handleSectionDRow5ChangeL13B = useCallback((val) => setL13bSectionDRow5(val), []);
+
+    // ── L13C — List of Corporate Income Tax Reduction Facility ─────────────────
+    // Source of Truth: l13cRows (array of rows), pola identik l10aRows/l13aRows.
+    // Field readonly (Taxable Income/Income Tax Payable/Tax Reduction Facility)
+    // TIDAK PERNAH dipersist — selalu dihitung ulang di L13C.js dari raw input.
+    const [l13cRows, setL13cRows] = useState([]);
+    const handleL13cRowsChange = useCallback((rows) => setL13cRows(rows), []);
+    // Draft Compatibility Contract: draft lama tanpa key l13cRows → fallback [].
+    const handleSetL13cRowsFromDraft = useCallback(
+        (rows) => setL13cRows(Array.isArray(rows) ? rows : []), []);
+
+    // l13cTotalTaxReductionFacility BUKAN source of truth, BUKAN field
+    // editable, BUKAN disimpan ke Save Draft — ia mirror read-only dari Σ
+    // Tax Reduction Facility yang dihitung sepenuhnya di dalam L13C.js,
+    // diterima di sini lewat callback onTotalTaxReductionFacilityChange (pola
+    // identik onTotalNetIncomeDeductionChange L13A / onSectionBTotalChange
+    // L13B). Dipakai MainFormBadan.js untuk mengisi Section E Question 16
+    // (q16_payable_deduction_amount) saat jawabannya Yes.
+    const [l13cTotalTaxReductionFacility, setL13cTotalTaxReductionFacility] = useState(0);
+    const handleTotalTaxReductionFacilityChangeL13C = useCallback((val) => setL13cTotalTaxReductionFacility(val), []);
+
+    // ── L14 — Penggunaan Sisa Lebih Untuk Pembangunan Dan Pengadaan Sarana Dan
+    // Prasarana ──────────────────────────────────────────────────────────────
+    // Source of Truth: l14Rows (array of raw rows, HANYA raw input per year —
+    // bentukPenanaman/penyediaan/tahun1-4). Pola pass-through polos, identik
+    // l13aRows/l13cRows di atas: parent TIDAK melakukan merge dengan skeleton
+    // 5-row historical (taxYear-4..taxYear) — merge tersebut sepenuhnya menjadi
+    // tanggung jawab L14.js sendiri (buildInitialRows + mergeRowsWithDraft di
+    // dalam L14.js), sama seperti L1A yang merge terhadap chart-of-account roster
+    // di dalam file L1A.js sendiri, bukan di parent ini.
+    const [l14Rows, setL14Rows] = useState([]);
+    const handleL14RowsChange = useCallback((rows) => setL14Rows(rows), []);
+    // Draft Compatibility Contract: draft lama tanpa key l14Rows → fallback [].
+    const handleSetL14RowsFromDraft = useCallback(
+        (rows) => setL14Rows(Array.isArray(rows) ? rows : []), []);
+
     // ── L11A — Rekapitulasi Biaya-Biaya Tertentu (Blueprint L11 §2/§4/§5) ──────
     // Source of Truth: l11aData (nested object — 6 sub-bagian, pola identik
     // l9Data/l10bData/l10dData). Initial state SELALU buildInitialL11AData()
@@ -508,6 +588,15 @@ const SptTahunanBadan = () => {
     const handleL11BDataChange = useCallback((data) => setL11bData(data), []);
     const handleSetL11bDataFromDraft = useCallback(
         (data) => setL11bData(mergeL11BWithInitial(data)), []);
+
+    // ── L11C — Laporan Utang Swasta Luar Negeri (Blueprint L11C, FINAL) ────────
+    // Source of Truth: l11cData ({ foreignDebtRows: [...] }). Callback tunggal
+    // onChange (Parent–Child Contract Blueprint §10) — parent menerima object
+    // wrapper, bukan array telanjang, pola identik l11aData/l11bData di atas.
+    const [l11cData, setL11cData] = useState(() => buildInitialL11CData());
+    const handleL11CDataChange = useCallback((data) => setL11cData(data), []);
+    const handleSetL11cDataFromDraft = useCallback(
+        (data) => setL11cData(mergeL11CWithInitial(data)), []);
 
     // ── EBITDA Components handlers (Blueprint L11 §4 EBITDA Contract) ──────────
     // Pola identik handleA10ChangeL1A/C/D — 1 callback per Lampiran L1, stabil
@@ -582,13 +671,28 @@ const SptTahunanBadan = () => {
     const showL9    = sptData.transactions?.q21e_fiscal_depreciation  === 'Yes';
     const showL11A  = sptData.transactions?.q21f_entertainment_expense === 'Yes';
 
+    // L11C — visibility BUKAN dari sptData (berbeda dari tab lain), melainkan
+    // dari state Lampiran lain (l11bData.hasForeignDebt). Ini derived value
+    // murni (bukan useState terpisah) — dependency Blueprint L11C §Dependency
+    // dengan L11B: L11C tampil hanya jika user menjawab "Ya" pada pertanyaan
+    // "Apakah Anda mempunyai utang swasta luar negeri?" di L11B. Tidak ada
+    // komunikasi langsung L11B↔L11C — keduanya hanya berbicara lewat parent ini.
+    const showL11C = l11bData?.hasForeignDebt === 'Ya';
+
     // H Q21g → L13 Part A (investment) — merged with D Q5
     const showL13PartG = sptData.transactions?.q21g_investment_facility === 'Yes';
 
     const showL14 = sptData.transactions?.q21h_reinvestment === 'Yes';
 
-    // L13 — show if any part active
-    const showL13 = showL13PartA || showL13PartB || showL13PartC || showL13PartD || showL13PartG;
+    // L13A/L13B/L13C — masing-masing sekarang tab terpisah (Blueprint L13
+    // Implementasi: pecah L13.js → L13A.js/L13B.js/L13C.js). Kombinasi show
+    // flag per tab mengikuti pengelompokan pada L13.js sebelumnya:
+    //   - L13A: D-Q5 (showL13PartA) ATAU H-Q21g (showL13PartG) — investment facility.
+    //   - L13B: D-Q6 vocational (showL13PartB) ATAU D-Q10 R&D (showL13PartD).
+    //   - L13C: E-Q16 (showL13PartC) — income tax payable deduction.
+    const showL13A = showL13PartA || showL13PartG;
+    const showL13B = showL13PartB || showL13PartD;
+    const showL13C = showL13PartC;
 
     // ── L5 source data mapping ───────────────────────────────────────────────
     // Prioritas sumber data (Blueprint L5 Final §Bagian A):
@@ -605,8 +709,13 @@ const SptTahunanBadan = () => {
     const handleResetSectionD = useCallback(() => {
         // derived state handles visibility; just nav away from now-hidden tabs
         if (['L7', 'L8'].includes(activeTab)) setActiveTab('main');
-        if (activeTab === 'L13' && !showL13PartC && !showL13PartG) setActiveTab('main');
-    }, [activeTab, showL13PartC, showL13PartG]);
+        // L13A tetap tampil selama H-Q21g (showL13PartG) masih aktif — hanya
+        // dinavigasi keluar apabila KEDUA sumber (D-Q5 dan H-Q21g) tidak aktif.
+        if (activeTab === 'L13A' && !showL13PartG) setActiveTab('main');
+        // L13B (vocational D-Q6 & R&D D-Q10) sepenuhnya bergantung pada Section D —
+        // begitu Section D dinonaktifkan, tab ini tidak lagi relevan.
+        if (activeTab === 'L13B') setActiveTab('main');
+    }, [activeTab, showL13PartG]);
 
     // ── Tabs ──────────────────────────────────────────────────────────────────
     const tabs = [
@@ -628,7 +737,10 @@ const SptTahunanBadan = () => {
         { id: 'L10D',  label: 'L-10D',     show: showL10PartD },
         { id: 'L11A',  label: 'L-11A',     show: showL11A },
         { id: 'L11B',  label: 'L-11B',     show: true },
-        { id: 'L13',   label: 'L-13',      show: showL13  },
+        { id: 'L11C',  label: 'L-11C',     show: showL11C },
+        { id: 'L13A',  label: 'L-13A',     show: showL13A },
+        { id: 'L13B',  label: 'L-13B',     show: showL13B },
+        { id: 'L13C',  label: 'L-13C',     show: showL13C },
         { id: 'L14',   label: 'L-14',      show: showL14  },
     ].filter(t => t.show);
 
@@ -723,10 +835,24 @@ const SptTahunanBadan = () => {
                         setL10cRowsFromDraft={handleSetL10cRowsFromDraft}
                         l10dData={l10dData}
                         setL10dDataFromDraft={handleSetL10dDataFromDraft}
+                        l13aRows={l13aRows}
+                        setL13aRowsFromDraft={handleSetL13aRowsFromDraft}
+                        l13aTotalNetIncomeDeduction={l13aTotalNetIncomeDeduction}
+                        l13bData={l13bData}
+                        setL13bDataFromDraft={handleSetL13bDataFromDraft}
+                        l13bSectionBTotal={l13bSectionBTotal}
+                        l13bSectionDRow5={l13bSectionDRow5}
+                        l13cRows={l13cRows}
+                        setL13cRowsFromDraft={handleSetL13cRowsFromDraft}
+                        l13cTotalTaxReductionFacility={l13cTotalTaxReductionFacility}
+                        l14Rows={l14Rows}
+                        setL14RowsFromDraft={handleSetL14RowsFromDraft}
                         l11aData={l11aData}
                         setL11aDataFromDraft={handleSetL11aDataFromDraft}
                         l11bData={l11bData}
                         setL11bDataFromDraft={handleSetL11bDataFromDraft}
+                        l11cData={l11cData}
+                        setL11cDataFromDraft={handleSetL11cDataFromDraft}
                     />
                 </div>
                 {l1Tab?.id === 'L1A' && (
@@ -898,15 +1024,48 @@ const SptTahunanBadan = () => {
                         onL11BDataChange={handleL11BDataChange}
                     />
                 </div>
-                {showL13  && (
-                    <div style={{ display: activeTab === 'L13' ? 'block' : 'none' }}>
-                        <L13
-                            showPartA={showL13PartA || showL13PartG}
+                {showL11C && <div style={{ display: activeTab === 'L11C' ? 'block' : 'none' }}>
+                    <L11C
+                        taxYear={sptData.header?.tax_year}
+                        tin={sptData.company_identity?.npwp}
+                        initialData={l11cData}
+                        onChange={handleL11CDataChange}
+                    />
+                </div>}
+                {showL13A && (
+                    <div style={{ display: activeTab === 'L13A' ? 'block' : 'none' }}>
+                        <L13A
+                            taxYear={sptData.header?.tax_year}
+                            tin={sptData.company_identity?.npwp}
+                            rows={l13aRows}
+                            onRowsChange={handleL13aRowsChange}
+                            onTotalNetIncomeDeductionChange={handleTotalNetIncomeDeductionChangeL13A}
+                        />
+                    </div>
+                )}
+                {showL13B && (
+                    <div style={{ display: activeTab === 'L13B' ? 'block' : 'none' }}>
+                        <L13B
                             showPartB={showL13PartB}
-                            showPartC={showL13PartC}
                             showPartD={showL13PartD}
                             taxYear={sptData.header?.tax_year}
                             tin={sptData.company_identity?.npwp}
+                            data={l13bData}
+                            onDataChange={handleL13bDataChange}
+                            onSectionBTotalChange={handleSectionBTotalChangeL13B}
+                            onSectionDRow5Change={handleSectionDRow5ChangeL13B}
+                        />
+                    </div>
+                )}
+                {showL13C && (
+                    <div style={{ display: activeTab === 'L13C' ? 'block' : 'none' }}>
+                        <L13C
+                            taxYear={sptData.header?.tax_year}
+                            tin={sptData.company_identity?.npwp}
+                            rows={l13cRows}
+                            onRowsChange={handleL13cRowsChange}
+                            taxableIncome={sptData.profit_loss?.p9_taxable_income}
+                            onTotalTaxReductionFacilityChange={handleTotalTaxReductionFacilityChangeL13C}
                         />
                     </div>
                 )}
@@ -915,6 +1074,8 @@ const SptTahunanBadan = () => {
                         <L14
                             taxYear={sptData.header?.tax_year}
                             tin={sptData.company_identity?.npwp}
+                            l14Rows={l14Rows}
+                            onRowsChange={handleL14RowsChange}
                         />
                     </div>
                 )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { setSptType } from '../../../../../redux/sptSlice';
 import {
@@ -638,11 +638,27 @@ const ProfitLossSection = ({ sptData, updateSectionData, updateNestedData }) => 
     );
 };
 
-const FinalTaxIncomeSection = ({ sptData, updateSectionData, onTabTrigger, onResetSectionD }) => {
+// FinalTaxIncomeSection — Section C dari MainForm.
+// CR2 (Change Request 2): Menerima dua prop baru yang merupakan DERIVED TOTAL
+// dari Lampiran 4. Nilai ini dihitung di SptTahunanBadanForm via useMemo dan
+// diteruskan ke sini sebagai read-only display. Tidak ada callback balik ke L4
+// maupun ke parent — murni one-way data flow (CR3/anti-circular).
+//
+// Aliran data (CR3):
+//   L4.js → onRowsAChange/onRowsBChange → SptTahunanBadan (l4RowsA/l4RowsB)
+//   → SptTahunanBadanForm props → useMemo l4TotalTaxBase/l4TotalGrossIncome
+//   → FinalTaxIncomeSection props → readonly display
+//
+// Tidak ada nilai yang dikirim balik dari FinalTaxIncomeSection ke L4.
+// MainForm tidak menghitung ulang — hanya menerima dan menampilkan.
+const FinalTaxIncomeSection = ({ sptData, updateSectionData, onTabTrigger, onResetSectionD, l4TotalTaxBase, l4TotalGrossIncome }) => {
     const q1  = sptData.balance_sheet.q1_gr23         || '';
     const q1b = sptData.balance_sheet.q1b_solely_gr23  || '';
     const q2  = sptData.balance_sheet.q2_final_tax     || '';
     const q3  = sptData.balance_sheet.q3_excluded_tax   || '';
+    // fmt — identik dengan helper yang dipakai di Section D (IncomeTaxCalculationSection).
+    // Didefinisikan lokal karena setiap Section component berdiri sendiri di file ini.
+    const fmt = (v) => new Intl.NumberFormat('id-ID').format(v || 0);
     const handleChange = (field, value) => {
         updateSectionData('balance_sheet', { [field]: value });
         if (onTabTrigger) onTabTrigger(field, value);
@@ -656,6 +672,8 @@ const FinalTaxIncomeSection = ({ sptData, updateSectionData, onTabTrigger, onRes
             <span>{text}</span>
         </div>
     );
+    // fmt — menggunakan fungsi fmt yang sudah ada di scope FinalTaxIncomeSection (didefinisikan di atas).
+
     return (
         <div className="p-6 space-y-6">
             <div>
@@ -695,6 +713,10 @@ const FinalTaxIncomeSection = ({ sptData, updateSectionData, onTabTrigger, onRes
                     2. Do you have any income that is subject to Final Income Tax?
                     <span className="text-red-500 ml-1">*</span>
                 </label>
+                {/* Layout identik Point 5/6 Section D:
+                    radio buttons → ReadonlyAmount (selalu tampil) → InfoBlock (conditional).
+                    l4TotalTaxBase adalah derived read-only dari L4 Bagian A — realtime via
+                    useMemo di SptTahunanBadanForm, tidak disimpan di sini (CR2/CR3/CR4). */}
                 <div className="flex flex-wrap items-center gap-4">
                     {['No', 'Yes'].map(opt => (
                         <label key={opt} className="flex items-center gap-2 cursor-pointer">
@@ -703,6 +725,8 @@ const FinalTaxIncomeSection = ({ sptData, updateSectionData, onTabTrigger, onRes
                             <span className="text-sm text-gray-700">{opt}</span>
                         </label>
                     ))}
+                    <input type="text" value={fmt(l4TotalTaxBase || 0)} readOnly
+                        className="w-36 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 text-right" placeholder="0" />
                     {q2 === 'Yes' && <InfoBlock text="Yes, fill out the Attachment 4 Part A" />}
                 </div>
             </div>
@@ -711,6 +735,8 @@ const FinalTaxIncomeSection = ({ sptData, updateSectionData, onTabTrigger, onRes
                     3. Do you have any income that is excluded from Income Tax?
                     <span className="text-red-500 ml-1">*</span>
                 </label>
+                {/* Layout identik Point 5/6 Section D — pola sama dengan Q2 di atas.
+                    l4TotalGrossIncome adalah derived read-only dari L4 Bagian B (CR2/CR3/CR4). */}
                 <div className="flex flex-wrap items-center gap-4">
                     {['No', 'Yes'].map(opt => (
                         <label key={opt} className="flex items-center gap-2 cursor-pointer">
@@ -719,6 +745,8 @@ const FinalTaxIncomeSection = ({ sptData, updateSectionData, onTabTrigger, onRes
                             <span className="text-sm text-gray-700">{opt}</span>
                         </label>
                     ))}
+                    <input type="text" value={fmt(l4TotalGrossIncome || 0)} readOnly
+                        className="w-36 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 text-right" placeholder="0" />
                     {q3 === 'Yes' && <InfoBlock text="Yes, fill out the Attachment 4 Part B" />}
                 </div>
             </div>
@@ -1919,10 +1947,37 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
     l10bData, setL10bDataFromDraft,
     l10cRows, setL10cRowsFromDraft,
     l10dData, setL10dDataFromDraft,
+    l13aRows, setL13aRowsFromDraft,
+    l13aTotalNetIncomeDeduction,
+    l13bData, setL13bDataFromDraft,
+    l13bSectionBTotal, l13bSectionDRow5,
+    l13cRows, setL13cRowsFromDraft,
+    l13cTotalTaxReductionFacility,
+    l14Rows, setL14RowsFromDraft,
     l11aData, setL11aDataFromDraft,
     l11bData, setL11bDataFromDraft,
+    l11cData, setL11cDataFromDraft,
     onCompanyDataChange }) => {
     const dispatch = useDispatch();
+
+    // ── L4 Derived Totals (CR2/CR3) ──────────────────────────────────────────
+    // l4TotalTaxBase dan l4TotalGrossIncome adalah DERIVED VALUE — dihitung ulang
+    // setiap kali l4RowsA/l4RowsB berubah (onRowsAChange/onRowsBChange dari L4.js).
+    // Nilai ini diteruskan ke FinalTaxIncomeSection sebagai read-only display.
+    // TIDAK disimpan ke state baru — tidak ada state tambahan di sini.
+    // TIDAK ada callback balik dari FinalTaxIncomeSection → tidak ada circular update.
+    // Realtime (CR4): L4.js edit → onRowsAChange → SptTahunanBadan setL4RowsA →
+    //   prop l4RowsA berubah → useMemo recalculate → re-render FinalTaxIncomeSection.
+    // parse lokal — tidak import shared util (pola self-contained project ini).
+    const parseL4 = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) || 0;
+    // TODO: Konfirmasi aturan pembulatan DJP untuk finalTaxPayable (identik komentar di L4.js).
+    const l4TotalTaxBase = useMemo(() =>
+        (Array.isArray(l4RowsA) ? l4RowsA : []).reduce((acc, r) => acc + parseL4(r.taxBase), 0)
+    , [l4RowsA]); // eslint-disable-line react-hooks/exhaustive-deps
+    const l4TotalGrossIncome = useMemo(() =>
+        (Array.isArray(l4RowsB) ? l4RowsB : []).reduce((acc, r) => acc + parseL4(r.grossIncome), 0)
+    , [l4RowsB]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -2165,6 +2220,70 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
             tax_calculation: { ...prev.tax_calculation, q13_overseas_credit_amount: val }
         }));
     }, [l3CreditAmount, sptData.tax_calculation?.q13_overseas_credit]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Sync Total Net Income Deduction Facility (L13A) → D.5 (p5_investment_facility_amount)
+    // — readonly, pola identik sync l3CreditAmount → E.13 di atas.
+    // l13aTotalNetIncomeDeduction adalah CACHED DERIVED VALUE (Σ netIncomeDeductionAmount,
+    // dihitung sepenuhnya di L13A.js, MainForm hanya membaca). DI-GATE oleh jawaban
+    // Question 5 (p5_investment_facility): saat 'No', Point 5 amount DIPAKSA 0
+    // walaupun l13aTotalNetIncomeDeduction mungkin masih menyimpan nilai lama (tab
+    // L13A unmount, tapi l13aRows/totalnya tetap tersimpan di state
+    // SptTahunanBadan.js — sengaja tidak direset, pola identik l3CreditAmount).
+    // Data Lampiran 13-A TIDAK PERNAH dihapus hanya karena jawaban ini 'No'.
+    useEffect(() => {
+        const isNetIncomeDeductionYes = sptData.profit_loss?.p5_investment_facility === 'Yes';
+        const val = isNetIncomeDeductionYes ? (parseFloat(l13aTotalNetIncomeDeduction) || 0) : 0;
+        setSptData(prev => ({
+            ...prev,
+            profit_loss: { ...prev.profit_loss, p5_investment_facility_amount: val }
+        }));
+    }, [l13aTotalNetIncomeDeduction, sptData.profit_loss?.p5_investment_facility]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Sync Section B Total / Cost Recapitulation (L13B) → D.6 (p6_vocational_deduction_amount)
+    // — readonly, pola identik sync di atas. DI-GATE oleh jawaban Question 6
+    // (p6_vocational_deduction). Data Lampiran 13-B TIDAK PERNAH dihapus hanya
+    // karena jawaban ini 'No'.
+    useEffect(() => {
+        const isVocationalYes = sptData.profit_loss?.p6_vocational_deduction === 'Yes';
+        const val = isVocationalYes ? (parseFloat(l13bSectionBTotal) || 0) : 0;
+        setSptData(prev => ({
+            ...prev,
+            profit_loss: { ...prev.profit_loss, p6_vocational_deduction_amount: val }
+        }));
+    }, [l13bSectionBTotal, sptData.profit_loss?.p6_vocational_deduction]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Sync Section D Row No.5 (L13B, BUKAN Row No.6) → D.10 (p10_rd_deduction_amount)
+    // — readonly, pola identik sync di atas. DI-GATE oleh jawaban Question 10
+    // (p10_rd_deduction). Data Lampiran 13-B TIDAK PERNAH dihapus hanya karena
+    // jawaban ini 'No'.
+    useEffect(() => {
+        const isRdDeductionYes = sptData.profit_loss?.p10_rd_deduction === 'Yes';
+        const val = isRdDeductionYes ? (parseFloat(l13bSectionDRow5) || 0) : 0;
+        setSptData(prev => ({
+            ...prev,
+            profit_loss: { ...prev.profit_loss, p10_rd_deduction_amount: val }
+        }));
+    }, [l13bSectionDRow5, sptData.profit_loss?.p10_rd_deduction]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Sync Total Tax Reduction Facility (L13C) → E.16 (q16_payable_deduction_amount)
+    // — readonly, pola identik sync L13A/L13B di atas. l13cTotalTaxReductionFacility
+    // adalah CACHED DERIVED VALUE (Σ Tax Reduction Facility, dihitung sepenuhnya
+    // di L13C.js, MainForm hanya membaca). DI-GATE oleh jawaban Question 16
+    // (q16_payable_deduction): saat 'No', Point 16 amount DIPAKSA 0 walaupun
+    // l13cTotalTaxReductionFacility mungkin masih menyimpan nilai lama (tab L13C
+    // unmount, tapi l13cRows/totalnya tetap tersimpan di state SptTahunanBadan.js
+    // — sengaja tidak direset, pola identik l3CreditAmount). Saat jawaban
+    // dikembalikan ke 'Yes', L13C.js remount → total dihitung ulang → effect ini
+    // otomatis mengirim ulang nilainya — user TIDAK PERLU mengisi ulang data.
+    // Data Lampiran 13-C TIDAK PERNAH dihapus hanya karena jawaban ini 'No'.
+    useEffect(() => {
+        const isPayableDeductionYes = sptData.tax_calculation?.q16_payable_deduction === 'Yes';
+        const val = isPayableDeductionYes ? (parseFloat(l13cTotalTaxReductionFacility) || 0) : 0;
+        setSptData(prev => ({
+            ...prev,
+            tax_calculation: { ...prev.tax_calculation, q16_payable_deduction_amount: val }
+        }));
+    }, [l13cTotalTaxReductionFacility, sptData.tax_calculation?.q16_payable_deduction]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Sync Point 9 (Taxable Income / Penghasilan Kena Pajak) → p9_taxable_income
     // — readonly, CACHED DERIVED VALUE (Blueprint_L8.md FINAL §A.2). Point 9
@@ -2726,6 +2845,78 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                         console.warn('Gagal membaca L10D dari localStorage:', e);
                     }
                 }
+                // Restore data L13A dari localStorage (sementara — sebelum persist ke
+                // backend). l13aRows adalah array of rows (pola identik L10A) — TIDAK
+                // ADA formula/computed value, fallback [] ditangani di
+                // setL13aRowsFromDraft (Draft Compatibility Contract).
+                if (typeof setL13aRowsFromDraft === 'function' && sptDetail.id) {
+                    try {
+                        const rawL13a = localStorage.getItem(`spt_l13a_rows_${sptDetail.id}`);
+                        if (rawL13a) {
+                            const parsed = JSON.parse(rawL13a);
+                            if (parsed?.rows) {
+                                setL13aRowsFromDraft(parsed.rows);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Gagal membaca L13A dari localStorage:', e);
+                    }
+                }
+                // Restore data L13B dari localStorage (sementara — sebelum persist ke
+                // backend). l13bData adalah nested object per section (pola identik
+                // L10B) — struktur lengkap (sectionA/sectionB/sectionC) DAN recalculate
+                // Section C additionalGrossIncomeDeduction dijamin oleh mergeWithInitial()
+                // di dalam handleSetL13bDataFromDraft (SptTahunanBadan.js), bukan
+                // tanggung jawab MainFormBadan.js (Draft Compatibility Contract).
+                if (typeof setL13bDataFromDraft === 'function' && sptDetail.id) {
+                    try {
+                        const rawL13b = localStorage.getItem(`spt_l13b_data_${sptDetail.id}`);
+                        if (rawL13b) {
+                            const parsed = JSON.parse(rawL13b);
+                            if (parsed?.l13bData) {
+                                setL13bDataFromDraft(parsed.l13bData);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Gagal membaca L13B dari localStorage:', e);
+                    }
+                }
+                // Restore data L13C dari localStorage (sementara — sebelum persist ke
+                // backend). Pola identik L13A di atas — array of rows, HANYA raw input
+                // (Taxable Income/Income Tax Payable/Tax Reduction Facility TIDAK
+                // PERNAH disimpan — selalu dihitung ulang di L13C.js).
+                if (typeof setL13cRowsFromDraft === 'function' && sptDetail.id) {
+                    try {
+                        const rawL13c = localStorage.getItem(`spt_l13c_rows_${sptDetail.id}`);
+                        if (rawL13c) {
+                            const parsed = JSON.parse(rawL13c);
+                            if (parsed?.rows) {
+                                setL13cRowsFromDraft(parsed.rows);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Gagal membaca L13C dari localStorage:', e);
+                    }
+                }
+                // Restore data L14 dari localStorage (sementara — sebelum persist ke
+                // backend). Pola identik L13A/L13C di atas — array of rows, HANYA raw
+                // input per year (bentukPenanaman/penyediaan/tahun1-4). Skeleton 5-row
+                // historical (taxYear-4..taxYear) DAN merge-by-year terhadap draft ini
+                // sepenuhnya dilakukan di dalam L14.js sendiri (mergeRowsWithDraft) —
+                // MainFormBadan.js hanya bertugas memindahkan raw array apa adanya.
+                if (typeof setL14RowsFromDraft === 'function' && sptDetail.id) {
+                    try {
+                        const rawL14 = localStorage.getItem(`spt_l14_rows_${sptDetail.id}`);
+                        if (rawL14) {
+                            const parsed = JSON.parse(rawL14);
+                            if (parsed?.rows) {
+                                setL14RowsFromDraft(parsed.rows);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Gagal membaca L14 dari localStorage:', e);
+                    }
+                }
                 // Restore data L11A dari localStorage (sementara — sebelum persist ke
                 // backend). l11aData adalah nested object (6 sub-bagian, pola identik
                 // L9/L10B/L10D). Struktur lengkap dijamin oleh mergeWithInitial() di
@@ -2759,6 +2950,24 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                         }
                     } catch (e) {
                         console.warn('Gagal membaca L11B dari localStorage:', e);
+                    }
+                }
+                // Restore data L11C dari localStorage (sementara — sebelum persist ke
+                // backend). l11cData adalah object wrapper { foreignDebtRows: [...] }
+                // (Blueprint L11C §8/§9 Save/Load Draft) — struktur lengkap dijamin
+                // oleh mergeWithInitial() di dalam setL11cDataFromDraft (Draft
+                // Compatibility Contract, pola identik L11A/L11B di atas).
+                if (typeof setL11cDataFromDraft === 'function' && sptDetail.id) {
+                    try {
+                        const rawL11c = localStorage.getItem(`spt_l11c_data_${sptDetail.id}`);
+                        if (rawL11c) {
+                            const parsed = JSON.parse(rawL11c);
+                            if (parsed?.l11cData) {
+                                setL11cDataFromDraft(parsed.l11cData);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Gagal membaca L11C dari localStorage:', e);
                     }
                 }
                 setSuccess('Data SPT Badan berhasil dimuat');
@@ -2890,6 +3099,10 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                 // { section: 'l10b_data',         data: { l10bData: l10bData } },
                 // { section: 'l10c_rows',         data: { rows: l10cRows || [] } },
                 // { section: 'l10d_data',         data: { l10dData: l10dData } },
+                // { section: 'l13a_rows',         data: { rows: l13aRows || [] } },
+                // { section: 'l13b_data',         data: { l13bData: l13bData } },
+                // { section: 'l13c_rows',         data: { rows: l13cRows || [] } },
+                // { section: 'l14_rows',          data: { rows: l14Rows || [] } },
                 // { section: 'l11a_data',         data: { l11aData: l11aData } },
                 // { section: 'l11b_data',         data: { l11bData: l11bData } },
             ];
@@ -3071,6 +3284,45 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                 } catch (e) {
                     console.warn('Gagal menyimpan L10D ke localStorage:', e);
                 }
+                // Simpan data L13A ke localStorage (sementara — sebelum persist ke
+                // backend). HANYA raw input: array of rows apa adanya, pola identik L10A.
+                try {
+                    localStorage.setItem(`spt_l13a_rows_${sptId}`, JSON.stringify({ rows: l13aRows || [] }));
+                } catch (e) {
+                    console.warn('Gagal menyimpan L13A ke localStorage:', e);
+                }
+                // Simpan data L13B ke localStorage (sementara — sebelum persist ke
+                // backend). l13bData SELALU berstruktur lengkap (sectionA/sectionB/
+                // sectionC) karena Source of Truth di SptTahunanBadan.js diinisialisasi
+                // via buildInitialL13BData() — pola identik l10bData. Section C
+                // additionalGrossIncomeDeduction (derived) TIDAK ikut tersimpan sebagai
+                // sumber kebenaran — akan dihitung ulang saat Load Draft (Recalculate
+                // Contract); disimpan apa adanya di sini karena sudah computed ulang
+                // setiap kali sectionC berubah, bukan dipersist secara independen.
+                try {
+                    localStorage.setItem(`spt_l13b_data_${sptId}`, JSON.stringify({ l13bData: l13bData }));
+                } catch (e) {
+                    console.warn('Gagal menyimpan L13B ke localStorage:', e);
+                }
+                // Simpan data L13C ke localStorage (sementara — sebelum persist ke
+                // backend). HANYA raw input: array of rows, pola identik L13A/L10A.
+                // Field readonly (Taxable Income/Income Tax Payable/Tax Reduction
+                // Facility) TIDAK PERNAH ikut tersimpan di dalam row.
+                try {
+                    localStorage.setItem(`spt_l13c_rows_${sptId}`, JSON.stringify({ rows: l13cRows || [] }));
+                } catch (e) {
+                    console.warn('Gagal menyimpan L13C ke localStorage:', e);
+                }
+                // Simpan data L14 ke localStorage (sementara — sebelum persist ke
+                // backend). HANYA raw input: array of rows per year (bentukPenanaman/
+                // penyediaan/tahun1-4), pola identik L13A/L13C. Field hasil perhitungan
+                // (Jumlah Penggunaan/Sisa Belum Ditanamkan/Sisa Melewati Jangka Waktu)
+                // TIDAK PERNAH ikut tersimpan — selalu dihitung ulang di L14.js.
+                try {
+                    localStorage.setItem(`spt_l14_rows_${sptId}`, JSON.stringify({ rows: l14Rows || [] }));
+                } catch (e) {
+                    console.warn('Gagal menyimpan L14 ke localStorage:', e);
+                }
                 // Simpan data L11A ke localStorage (sementara — sebelum persist ke
                 // backend). l11aData SELALU berstruktur lengkap (6 sub-bagian) karena
                 // Source of Truth di SptTahunanBadan.js diinisialisasi via
@@ -3090,6 +3342,15 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                     localStorage.setItem(`spt_l11b_data_${sptId}`, JSON.stringify({ l11bData: l11bData }));
                 } catch (e) {
                     console.warn('Gagal menyimpan L11B ke localStorage:', e);
+                }
+                // Simpan data L11C ke localStorage (sementara — sebelum persist ke
+                // backend). l11cData adalah object wrapper { foreignDebtRows: [...] }
+                // (Blueprint L11C §8 Save Draft Blueprint) — HANYA raw input per baris,
+                // tidak ada computed value (pokokUtangAkhirTahun derived, tidak disimpan).
+                try {
+                    localStorage.setItem(`spt_l11c_data_${sptId}`, JSON.stringify({ l11cData: l11cData }));
+                } catch (e) {
+                    console.warn('Gagal menyimpan L11C ke localStorage:', e);
                 }
             }
             if (errors.length > 0) {
@@ -3199,6 +3460,10 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                 // { section: 'l10b_data',         data: { l10bData: l10bData } },
                 // { section: 'l10c_rows',         data: { rows: l10cRows || [] } },
                 // { section: 'l10d_data',         data: { l10dData: l10dData } },
+                // { section: 'l13a_rows',         data: { rows: l13aRows || [] } },
+                // { section: 'l13b_data',         data: { l13bData: l13bData } },
+                // { section: 'l13c_rows',         data: { rows: l13cRows || [] } },
+                // { section: 'l14_rows',          data: { rows: l14Rows || [] } },
                 // { section: 'l11a_data',         data: { l11aData: l11aData } },
                 // { section: 'l11b_data',         data: { l11bData: l11bData } },
             ];
@@ -3330,6 +3595,28 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
             } catch (e) {
                 console.warn('Gagal menyimpan L10D ke localStorage saat submit:', e);
             }
+            // Simpan data L13A-C ke localStorage saat submit — pola identik saveDraft.
+            try {
+                localStorage.setItem(`spt_l13a_rows_${currentSptId}`, JSON.stringify({ rows: l13aRows || [] }));
+            } catch (e) {
+                console.warn('Gagal menyimpan L13A ke localStorage saat submit:', e);
+            }
+            try {
+                localStorage.setItem(`spt_l13b_data_${currentSptId}`, JSON.stringify({ l13bData: l13bData }));
+            } catch (e) {
+                console.warn('Gagal menyimpan L13B ke localStorage saat submit:', e);
+            }
+            try {
+                localStorage.setItem(`spt_l13c_rows_${currentSptId}`, JSON.stringify({ rows: l13cRows || [] }));
+            } catch (e) {
+                console.warn('Gagal menyimpan L13C ke localStorage saat submit:', e);
+            }
+            // Simpan data L14 ke localStorage saat submit — pola identik saveDraft.
+            try {
+                localStorage.setItem(`spt_l14_rows_${currentSptId}`, JSON.stringify({ rows: l14Rows || [] }));
+            } catch (e) {
+                console.warn('Gagal menyimpan L14 ke localStorage saat submit:', e);
+            }
             try {
                 localStorage.setItem(`spt_l11a_data_${currentSptId}`, JSON.stringify({ l11aData: l11aData }));
             } catch (e) {
@@ -3339,6 +3626,11 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                 localStorage.setItem(`spt_l11b_data_${currentSptId}`, JSON.stringify({ l11bData: l11bData }));
             } catch (e) {
                 console.warn('Gagal menyimpan L11B ke localStorage saat submit:', e);
+            }
+            try {
+                localStorage.setItem(`spt_l11c_data_${currentSptId}`, JSON.stringify({ l11cData: l11cData }));
+            } catch (e) {
+                console.warn('Gagal menyimpan L11C ke localStorage saat submit:', e);
             }
             const submitResponse = await fetch(`${API.HOST}/api/v2/spt-tahunan-badan/${currentSptId}/submit`, {
                 method: 'PUT',
@@ -3568,7 +3860,7 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
             case 'general_info':
                 return <FinancialStatementInfoSection sptData={sptData} updateSectionData={updateSectionData} onBusinessClassificationChange={onBusinessClassificationChange} />;
             case 'balance_sheet':
-                return <FinalTaxIncomeSection sptData={sptData} updateSectionData={updateSectionData} onTabTrigger={onTabTrigger} onResetSectionD={resetSectionD} />;
+                return <FinalTaxIncomeSection sptData={sptData} updateSectionData={updateSectionData} onTabTrigger={onTabTrigger} onResetSectionD={resetSectionD} l4TotalTaxBase={l4TotalTaxBase} l4TotalGrossIncome={l4TotalGrossIncome} />;
             case 'profit_loss':
                 return <IncomeTaxCalculationSection sptData={sptData} updateSectionData={updateSectionData} onTabTrigger={onTabTrigger} l8TotalIncomeTax={l8TotalIncomeTax} l8Eligible={l8Eligible} />;
             case 'tax_calculation':

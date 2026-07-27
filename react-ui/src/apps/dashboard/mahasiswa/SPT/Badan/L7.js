@@ -129,8 +129,8 @@ const RpField = ({ label, value, onChange, placeholder = '0' }) => {
     return (
         <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-            <div className="flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
-                <span className="px-2 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-r border-gray-200 select-none whitespace-nowrap">Rp</span>
+            <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
+                <span className="px-3 py-2 text-sm font-medium text-gray-500 bg-gray-100 border-r border-gray-200 select-none whitespace-nowrap">Rp</span>
                 <input
                     ref={inputRef}
                     type="text"
@@ -140,7 +140,7 @@ const RpField = ({ label, value, onChange, placeholder = '0' }) => {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder={placeholder}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
                 />
             </div>
         </div>
@@ -171,7 +171,7 @@ const ModalEditL7Row = ({ row, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
                 {/* Modal Header */}
                 <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
                     <div>
@@ -232,13 +232,13 @@ const ModalEditL7Row = ({ row, onClose, onSave }) => {
                 <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="px-5 py-2 text-sm font-medium bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition-colors"
                     >
                         Close
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                        className="px-5 py-2 text-sm font-medium bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
                     >
                         Save
                     </button>
@@ -336,33 +336,43 @@ const L7 = ({
         if (onTotalCol9Change) onTotalCol9Change(totalCol9);
     }, [totalCol9]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Styling: sticky header 2-tingkat + freeze 2 kolom kiri (Action, No) ────
-    // Catatan: kolom Tahun TIDAK di-freeze (berbeda dari draft sebelumnya).
-    // Alasan: Screenshot Coretax menampilkan grup header "FISCAL NETT PROFIT
-    // (LOSS) INCOME" yang membentang di atas kolom Tahun + Nilai. Jika kolom
-    // Tahun tetap di-freeze, sel header grup (yang membentang 2 kolom, salah
-    // satunya freeze dan satunya tidak) akan tidak sejajar saat tabel di-scroll
-    // horizontal. Freeze dipersempit menjadi Action + No agar grouping header
-    // sesuai Screenshot tanpa bug visual.
-    const thCls = "px-3 py-2 text-center text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-    const tdCls = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100";
-    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border-b border-gray-100 font-mono";
+    // Styling: sticky header + freeze 2 kolom kiri (Action, No). Diselaraskan
+    // PERSIS dengan skema L13A: warna, border putih antar kolom, typography,
+    // dan z-index (header sticky-left=21, header sticky-top biasa=20, body
+    // sticky-left=10) — bukan style baru, hanya menyalin konvensi yang sudah
+    // dipakai di L13A/L2/L4/L14.
+    //
+    // Catatan (TIDAK diubah dari versi sebelumnya): kolom Tahun sengaja TIDAK
+    // di-freeze — berbeda dari kebanyakan lampiran lain. Alasan: layout Coretax
+    // untuk L7 memiliki kolom "Fiscal Net Profit Income" tepat di sebelah kolom
+    // Tahun; jika Tahun ikut freeze sementara kolom lain tidak, potensi migrasi
+    // ke header 2-tingkat (grup header) di masa depan bisa membuat sel freeze
+    // dan non-freeze tidak sejajar saat scroll horizontal. Freeze dipersempit
+    // menjadi Action + No saja untuk menghindari risiko itu.
+    const thCls = "px-3 py-2 text-center align-middle text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap";
+    const tdCls = "px-3 py-2 text-xs text-gray-700 border border-gray-200";
+    const tdNum = "px-3 py-2 text-xs text-right text-gray-700 border border-gray-200 font-mono";
 
     const COL_ACTION_W = 56;
     const COL_NO_W     = 48;
 
-    const thAction = { position: 'sticky', left: 0,             top: 0, zIndex: 5, backgroundColor: '#f3f4f6' };
-    const thNo     = { position: 'sticky', left: COL_ACTION_W,  top: 0, zIndex: 5, backgroundColor: '#f3f4f6' };
-    const thTop    = { position: 'sticky', top: 0,                       zIndex: 3, backgroundColor: '#f3f4f6' };
+    const thAction = { position: 'sticky', left: 0,             top: 0, zIndex: 21, backgroundColor: '#facc15', height: 36 };
+    const thNo     = { position: 'sticky', left: COL_ACTION_W,  top: 0, zIndex: 21, backgroundColor: '#facc15', height: 36 };
+    const thTop    = { position: 'sticky', top: 0,                       zIndex: 20, backgroundColor: '#facc15', height: 36 };
 
-    const tdAction = { position: 'sticky', left: 0,             zIndex: 1, backgroundColor: '#ffffff' };
-    const tdNo     = { position: 'sticky', left: COL_ACTION_W,  zIndex: 1, backgroundColor: '#ffffff' };
+    const tdAction = { position: 'sticky', left: 0,             zIndex: 10, backgroundColor: '#ffffff' };
+    const tdNo     = { position: 'sticky', left: COL_ACTION_W,  zIndex: 10, backgroundColor: '#ffffff' };
 
-    // Display wrapper murni UI — TIDAK mengubah formatter/parser yang sudah ada.
-    // Sama seperti pola "Rp {formatRupiahDisplay(...)}" pada L10A.js: fmt() tetap
-    // dipakai apa adanya, hanya ditambah prefix "Rp" dan fallback tampilan "0"
-    // ketika fmt() mengembalikan string kosong (nilai 0).
-    const rp = (v) => `Rp ${fmt(v) || '0'}`;
+    // Display wrapper murni UI — TIDAK mengubah formatter/parser yang sudah ada
+    // (fmt/parse tetap dipakai apa adanya). Diseragamkan dengan pola fmtRp di
+    // L14.js: tanpa spasi setelah "Rp", nilai 0 tetap tampil "Rp0" (bukan string
+    // kosong), dan tanda minus (untuk Fiscal Net Profit Income yang bisa Loss)
+    // diletakkan SEBELUM "Rp" (mis. "-Rp350.000"), bukan di antara "Rp" dan angka.
+    const rp = (v) => {
+        const n = parse(v);
+        const sign = n < 0 ? '-' : '';
+        return `${sign}Rp${Math.abs(n).toLocaleString('id-ID')}`;
+    };
 
     return (
         <div className="p-6 space-y-6">
@@ -379,14 +389,14 @@ const L7 = ({
 
             {/* ── PART A — Carried Forward of Losses ────────────────────────────── */}
             <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                    <h3 className="font-semibold text-gray-800">Part A — Carried Forward of Losses</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">Kompensasi kerugian tahun-tahun sebelumnya</p>
+                <div className="bg-blue-700 px-4 py-3">
+                    <h3 className="font-semibold text-white text-sm">Part A — Carried Forward of Losses</h3>
+                    <p className="text-xs text-blue-100 mt-0.5">Kompensasi kerugian tahun-tahun sebelumnya</p>
                 </div>
 
                 {rows.length === 0 ? (
-                    <div className="p-4">
-                        <p className="text-sm text-gray-500 italic">
+                    <div className="border border-gray-200 rounded-lg m-4 p-10 text-center">
+                        <p className="text-sm text-gray-400 italic">
                             Belum ada data tahun pajak tersedia.
                         </p>
                     </div>
@@ -438,16 +448,16 @@ const L7 = ({
                             {/* Baris JUMLAH — hanya SUM kolom (8) dan (9), sesuai Excel row 27 */}
                             <tfoot>
                                 <tr className="bg-blue-700">
-                                    <td className="px-3 py-2" style={{ ...tdAction, backgroundColor: '#1d4ed8' }} />
-                                    <td className="px-3 py-2" style={{ ...tdNo, backgroundColor: '#1d4ed8' }} />
-                                    <td className="px-3 py-2 text-xs font-bold text-white text-center" colSpan={2}>
+                                    <td className="px-3 py-2 border border-white" style={{ ...tdAction, backgroundColor: '#1d4ed8' }} />
+                                    <td className="px-3 py-2 border border-white" style={{ ...tdNo, backgroundColor: '#1d4ed8' }} />
+                                    <td className="px-3 py-2 text-xs font-bold text-white text-center border border-white" colSpan={2}>
                                         JUMLAH
                                     </td>
-                                    <td className="px-3 py-2" colSpan={4} />
-                                    <td className={`px-3 py-2 text-xs font-bold text-right font-mono ${totalCol8 < 0 ? 'text-red-300' : 'text-white'}`}>
+                                    <td className="px-3 py-2 border border-white" colSpan={4} />
+                                    <td className={`px-3 py-2 text-xs font-bold text-right font-mono border border-white ${totalCol8 < 0 ? 'text-red-300' : 'text-white'}`}>
                                         {rp(totalCol8)}
                                     </td>
-                                    <td className={`px-3 py-2 text-xs font-bold text-right font-mono ${totalCol9 < 0 ? 'text-red-300' : 'text-white'}`}>
+                                    <td className={`px-3 py-2 text-xs font-bold text-right font-mono border border-white ${totalCol9 < 0 ? 'text-red-300' : 'text-white'}`}>
                                         {rp(totalCol9)}
                                     </td>
                                 </tr>

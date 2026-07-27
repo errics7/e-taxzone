@@ -243,7 +243,7 @@ const L8 = ({
                         <tr className="bg-gradient-to-r from-yellow-500 to-yellow-400 text-white">
                             <th className="px-3 py-2 text-left w-12">NO.</th>
                             <th className="px-3 py-2 text-left">DESCRIPTION</th>
-                            <th className="px-3 py-2 text-right w-56">AMOUNT (Rupiah)</th>
+                            <th className="px-3 py-2 text-center w-56">AMOUNT</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">

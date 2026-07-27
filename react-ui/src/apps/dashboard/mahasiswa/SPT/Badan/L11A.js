@@ -31,6 +31,9 @@ const fmt = (v) => {
     return n === 0 ? '' : n.toLocaleString('id-ID');
 };
 const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) || 0;
+// fmtRp — pembungkus tampilan tabel: tambah prefix "Rp" hanya saat ada nilai
+// (sel kosong/nol tetap kosong). Tidak menyentuh fmt()/parse() asli.
+const fmtRp = (v) => { const s = fmt(v); return s ? `Rp${s}` : ''; };
 
 let _uid = 0;
 const genId = (prefix) => `${prefix}-${Date.now()}-${_uid++}`;
@@ -77,65 +80,65 @@ export const mergeWithInitial = (draft) => {
 // type: 'text' | 'rp' | 'date' | 'select'
 
 const FIELDS_PROMOTION = [
-    { key: 'identityNumber', label: 'Nomor Identitas (NPWP/NIK/Lainnya)', type: 'text' },
-    { key: 'recipientName',  label: 'Nama Penerima', type: 'text' },
-    { key: 'address',        label: 'Alamat', type: 'text' },
-    { key: 'date',            label: 'Tanggal', type: 'date' },
-    { key: 'expenseType',    label: 'Bentuk dan Jenis Biaya', type: 'select', options: [
+    { key: 'identityNumber', label: 'Identity Number (NPWP/NIK/Other)', type: 'text' },
+    { key: 'recipientName',  label: 'Recipient Name', type: 'text' },
+    { key: 'address',        label: 'Address', type: 'text' },
+    { key: 'date',            label: 'Date', type: 'date' },
+    { key: 'expenseType',    label: 'Form and Type of Expense', type: 'select', options: [
         'Biaya Promosi', 'Biaya Penjualan', 'Natura/Kenikmatan', 'Lainnya',
     ]},
-    { key: 'amount',          label: 'Nilai', type: 'rp' },
-    { key: 'description',    label: 'Keterangan', type: 'text' },
-    { key: 'withholdingAmount', label: 'Jumlah PPh', type: 'rp' },
-    { key: 'withholdingSlipNumber', label: 'Nomor Bukti Potong', type: 'text' },
+    { key: 'amount',          label: 'Value', type: 'rp' },
+    { key: 'description',    label: 'Description', type: 'text' },
+    { key: 'withholdingAmount', label: 'Withholding Tax Amount', type: 'rp' },
+    { key: 'withholdingSlipNumber', label: 'Withholding Slip Number', type: 'text' },
 ];
 
 const FIELDS_ENTERTAINMENT = [
-    { key: 'date',    label: 'Tanggal', type: 'date' },
-    { key: 'place',   label: 'Tempat', type: 'text' },
-    { key: 'address', label: 'Alamat', type: 'text' },
-    { key: 'type',    label: 'Jenis', type: 'select', options: ['Jamuan', 'Hiburan', 'Representasi', 'Lainnya'] },
-    { key: 'amount',  label: 'Nilai', type: 'rp' },
-    { key: 'partnerName',        label: 'Nama Relasi', type: 'text' },
-    { key: 'partnerPosition',    label: 'Jabatan', type: 'text' },
-    { key: 'partnerCompanyName', label: 'Nama Perusahaan Relasi', type: 'text' },
-    { key: 'partnerBusinessType', label: 'Jenis Usaha Relasi', type: 'text' },
-    { key: 'description', label: 'Keterangan', type: 'text' },
+    { key: 'date',    label: 'Date', type: 'date' },
+    { key: 'place',   label: 'Place', type: 'text' },
+    { key: 'address', label: 'Address', type: 'text' },
+    { key: 'type',    label: 'Type', type: 'select', options: ['Jamuan', 'Hiburan', 'Representasi', 'Lainnya'] },
+    { key: 'amount',  label: 'Value', type: 'rp' },
+    { key: 'partnerName',        label: 'Partner Name', type: 'text' },
+    { key: 'partnerPosition',    label: 'Position', type: 'text' },
+    { key: 'partnerCompanyName', label: 'Partner Company Name', type: 'text' },
+    { key: 'partnerBusinessType', label: 'Partner Business Type', type: 'text' },
+    { key: 'description', label: 'Description', type: 'text' },
 ];
 
 const FIELDS_BAD_DEBT = [
-    { key: 'identityNumber', label: 'Nomor Identitas', type: 'text' },
-    { key: 'debtorName',     label: 'Nama Debitur', type: 'text' },
-    { key: 'address',         label: 'Alamat', type: 'text' },
-    { key: 'creditCeiling',  label: 'Plafon Piutang', type: 'rp' },
-    { key: 'uncollectibleDebt', label: 'Piutang Tidak Tertagih', type: 'rp' },
-    { key: 'deductionMethod', label: 'Metode Pembebanan', type: 'select', options: ['Metode Langsung', 'Metode Tidak Langsung'] },
-    { key: 'documentType', label: 'Jenis Dokumen Pembuktian', type: 'select', options: [
+    { key: 'identityNumber', label: 'Identity Number', type: 'text' },
+    { key: 'debtorName',     label: 'Debtor Name', type: 'text' },
+    { key: 'address',         label: 'Address', type: 'text' },
+    { key: 'creditCeiling',  label: 'Credit Ceiling', type: 'rp' },
+    { key: 'uncollectibleDebt', label: 'Uncollectible Debt', type: 'rp' },
+    { key: 'deductionMethod', label: 'Deduction Method', type: 'select', options: ['Metode Langsung', 'Metode Tidak Langsung'] },
+    { key: 'documentType', label: 'Type of Supporting Document', type: 'select', options: [
         'Daftar Piutang yang Nyata Tidak Dapat Ditagih', 'Bukti Penyerahan Perkara Pengadilan',
         'Perjanjian Penyelesaian Utang Piutang', 'Publikasi Media Massa', 'Lainnya',
     ]},
 ];
 
 const FIELDS_FACILITIES = [
-    { key: 'assetType',           label: 'Jenis Harta Berwujud', type: 'select', options: [
+    { key: 'assetType',           label: 'Type of Tangible Asset', type: 'select', options: [
         'Bangunan', 'Kendaraan', 'Peralatan', 'Perabotan', 'Lainnya',
     ]},
-    { key: 'acquisitionYear',     label: 'Tahun Perolehan', type: 'text' },
-    { key: 'acquisitionValue',    label: 'Nilai Perolehan', type: 'rp' },
+    { key: 'acquisitionYear',     label: 'Year of Acquisition', type: 'year' },
+    { key: 'acquisitionValue',    label: 'Acquisition Value', type: 'rp' },
     // OPEN CLARIFICATION #4 (Blueprint L11 §1/§2) — MANUAL INPUT, belum computed,
     // belum ada link ke L9. Lihat Blueprint L11 §8 Cross Lampiran Contract.
-    { key: 'depreciationPriorYear', label: 'Penyusutan s.d. Tahun Lalu (manual — OPEN CLARIFICATION #4)', type: 'rp' },
-    { key: 'depreciationCurrentYear', label: 'Penyusutan Tahun Ini (manual — OPEN CLARIFICATION #4)', type: 'rp' },
+    { key: 'depreciationPriorYear', label: 'Depreciation up to Last Year (manual — OPEN CLARIFICATION #4)', type: 'rp' },
+    { key: 'depreciationCurrentYear', label: 'Depreciation This Year (manual — OPEN CLARIFICATION #4)', type: 'rp' },
 ];
 
 const FIELDS_NPL = [
-    { key: 'identityNumber', label: 'Nomor Identitas', type: 'text' },
-    { key: 'debtorName',      label: 'Nama Debitur', type: 'text' },
-    { key: 'address',          label: 'Alamat', type: 'text' },
-    { key: 'creditBeginning', label: 'Nilai Kredit Kurang Lancar Awal Tahun', type: 'rp' },
-    { key: 'creditEnding',    label: 'Nilai Kredit Kurang Lancar Akhir Tahun', type: 'rp' },
-    { key: 'interestAmount', label: 'Jumlah Bunga pada Tahun Buku/Akrual', type: 'rp' },
-    { key: 'category', label: 'Kategori', type: 'select', options: ['Kurang Lancar', 'Diragukan', 'Macet'] },
+    { key: 'identityNumber', label: 'Identity Number', type: 'text' },
+    { key: 'debtorName',      label: 'Debtor Name', type: 'text' },
+    { key: 'address',          label: 'Address', type: 'text' },
+    { key: 'creditBeginning', label: 'Substandard Credit Value at Beginning of Year', type: 'rp' },
+    { key: 'creditEnding',    label: 'Substandard Credit Value at End of Year', type: 'rp' },
+    { key: 'interestAmount', label: 'Interest Amount for Fiscal Year/Accrual', type: 'rp' },
+    { key: 'category', label: 'Category', type: 'select', options: ['Kurang Lancar', 'Diragukan', 'Macet'] },
 ];
 
 // ─── Generic field components ──────────────────────────────────────────────
@@ -179,7 +182,7 @@ const RpField = ({ label, value, onChange }) => {
                 <input
                     ref={inputRef} type="text" inputMode="numeric" value={displayValue}
                     onFocus={handleFocus} onChange={handleChange} onBlur={handleBlur}
-                    className="flex-1 px-3 py-2 text-sm text-right bg-white focus:outline-none min-w-0"
+                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
                 />
             </div>
         </div>
@@ -237,10 +240,95 @@ const DateField = ({ label, value, onChange }) => (
     </div>
 );
 
+// YearPickerField — Year Picker (bukan free-text) untuk "Year of Acquisition"
+// (IV.A & IV.B). User TIDAK mengetik tahun secara manual — input readOnly,
+// satu-satunya cara mengisi nilai adalah klik lalu memilih salah satu tahun
+// pada panel (grid 12 tahun per halaman, navigasi ‹ › antar rentang). Nilai
+// yang tersimpan TETAP `acquisitionYear` berupa string angka tahun murni
+// (mis. "2021") — shape data tidak berubah. Pola identik YearPickerField L13A,
+// diimplementasikan ulang di sini secara mandiri (tanpa dependency MUI baru,
+// karena L11A belum memakai MUI icons — icon kalender pakai inline SVG).
+const YearPickerField = ({ label, value, onChange }) => {
+    const [open, setOpen] = useState(false);
+    const containerRef = useRef(null);
+    const currentYear = new Date().getFullYear();
+    const [rangeStart, setRangeStart] = useState(() => {
+        const parsed = parseInt(value, 10);
+        const base = !isNaN(parsed) ? parsed : currentYear;
+        return base - (base % 12) - 5;
+    });
+
+    useEffect(() => {
+        if (open) {
+            const parsed = parseInt(value, 10);
+            const base = !isNaN(parsed) ? parsed : currentYear;
+            setRangeStart(base - (base % 12) - 5);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+        };
+        if (open) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [open]);
+
+    const years = Array.from({ length: 12 }, (_, i) => rangeStart + i);
+
+    return (
+        <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+            <div className="relative" ref={containerRef}>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="text"
+                        readOnly
+                        value={value || ''}
+                        placeholder="Select Year"
+                        onClick={() => setOpen((o) => !o)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm text-left bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => onChange('')}
+                        title="Clear year"
+                        className="w-8 h-8 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-sm shrink-0"
+                    >
+                        &times;
+                    </button>
+                </div>
+                {open && (
+                    <div className="absolute z-30 mt-1 w-60 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <button type="button" onClick={() => setRangeStart((r) => r - 12)}
+                                className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">‹</button>
+                            <span className="text-xs font-semibold text-gray-600">{years[0]} – {years[years.length - 1]}</span>
+                            <button type="button" onClick={() => setRangeStart((r) => r + 12)}
+                                className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">›</button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            {years.map((y) => (
+                                <button key={y} type="button"
+                                    onClick={() => { onChange(String(y)); setOpen(false); }}
+                                    className={`px-2 py-1.5 text-sm rounded transition-colors ${String(y) === String(value) ? 'bg-blue-900 text-white' : 'hover:bg-blue-50 text-gray-700'}`}>
+                                    {y}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const renderField = (field, value, onChange) => {
     switch (field.type) {
         case 'rp':     return <RpField key={field.key} label={field.label} value={value} onChange={onChange} />;
         case 'date':   return <DateField key={field.key} label={field.label} value={value} onChange={onChange} />;
+        case 'year':   return <YearPickerField key={field.key} label={field.label} value={value} onChange={onChange} />;
         case 'select': return <SelectField key={field.key} label={field.label} value={value} onChange={onChange} options={field.options} />;
         default:       return <TextField key={field.key} label={field.label} value={value} onChange={onChange} />;
     }
@@ -267,8 +355,8 @@ const GenericRowModal = ({ title, fields, row, onClose, onSave }) => {
                     {fields.map(f => renderField(f, form[f.key], setField(f.key)))}
                 </div>
                 <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Batal</button>
-                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Simpan</button>
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                    <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded">Save</button>
                 </div>
             </div>
         </div>
@@ -277,8 +365,16 @@ const GenericRowModal = ({ title, fields, row, onClose, onSave }) => {
 
 // ─── Generic Section: header + Add button + table + modal wiring ─────────────
 
-const thCls = "px-3 py-2 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap";
-const tdCls = "px-3 py-2 text-xs text-gray-700 border-b border-gray-100 whitespace-nowrap";
+// Style tabel — UI mengikuti referensi tabel L13A.js (header kuning, border
+// putih antar-header, border penuh pada body cell, sticky header + sticky
+// kolom Action). HANYA style/className — tidak ada logic yang berubah.
+const thCls = "px-3 py-2 text-center align-middle text-xs font-bold text-gray-800 uppercase bg-yellow-400 border border-white border-b-gray-300 whitespace-nowrap";
+const tdCls = "px-3 py-2 text-xs text-gray-700 border border-gray-200 whitespace-nowrap";
+
+// Sticky header (top) & sticky kolom Action (left) — pola identik L13A.
+const thStickyTop    = { position: 'sticky', top: 0, zIndex: 20, backgroundColor: '#facc15' };
+const thStickyAction = { position: 'sticky', top: 0, left: 0, zIndex: 21, backgroundColor: '#facc15' };
+const tdStickyAction = { position: 'sticky', left: 0, zIndex: 10, backgroundColor: '#ffffff' };
 
 // ─── CollapsibleSection — REUSE 100% dari pola AssetSection di L9.js ──────────
 // (styling, icon ▾/▸, default collapsed, transisi) — tidak ada implementasi
@@ -325,32 +421,50 @@ const GenericSection = ({ title, fields, rows, onRowsChange, idPrefix, computedC
             <div className="flex justify-end mb-3">
                 <button onClick={() => setEditing('new')} className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700">+ Add</button>
             </div>
-            <div className="overflow-x-auto" style={{ maxHeight: 420 }}>
+            <div className="border border-gray-200 rounded-lg overflow-x-auto overflow-y-auto" style={{ maxHeight: 420 }}>
                 <table className="w-full text-xs border-collapse">
                     <thead>
                         <tr>
-                            <th className={thCls}>Action</th>
-                            {fullFields.map(f => <th key={f.key} className={`${thCls} ${f.type === 'rp' ? 'text-right' : ''}`}>{f.label.split('(')[0].trim()}</th>)}
-                            {computedColumns.map(c => <th key={c.key} className={`${thCls} text-right`}>{c.label}</th>)}
+                            <th className={thCls} style={thStickyAction}>Action</th>
+                            {fullFields.map(f => <th key={f.key} className={thCls} style={thStickyTop}>{f.label.split('(')[0].trim()}</th>)}
+                            {computedColumns.map(c => <th key={c.key} className={thCls} style={thStickyTop}>{c.label}</th>)}
                         </tr>
                     </thead>
                     <tbody>
                         {rows.length === 0 && (
-                            <tr><td colSpan={fullFields.length + 1 + computedColumns.length} className="px-3 py-6 text-center text-gray-400 text-xs">No data found.</td></tr>
+                            <tr><td colSpan={fullFields.length + 1 + computedColumns.length} className="px-3 py-6 text-center text-gray-400 text-xs border border-gray-200">No data found.</td></tr>
                         )}
                         {rows.map((r, idx) => (
                             <tr key={r.id || idx} className="hover:bg-gray-50">
-                                <td className={tdCls}>
-                                    <button onClick={() => setEditing(idx)} className="text-blue-600 hover:underline mr-2">Edit</button>
-                                    <button onClick={() => handleDelete(idx)} className="text-red-600 hover:underline">Del</button>
+                                <td className={tdCls} style={tdStickyAction}>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setEditing(idx)}
+                                            title="Edit"
+                                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(idx)}
+                                            title="Delete"
+                                            className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </td>
                                 {fullFields.map(f => (
                                     <td key={f.key} className={`${tdCls} ${f.type === 'rp' ? 'text-right font-mono' : ''}`}>
-                                        {f.type === 'rp' ? fmt(r[f.key]) : (r[f.key] || '')}
+                                        {f.type === 'rp' ? fmtRp(r[f.key]) : (r[f.key] || '')}
                                     </td>
                                 ))}
                                 {computedColumns.map(c => (
-                                    <td key={c.key} className={`${tdCls} text-right font-mono font-semibold`}>{fmt(c.compute(r))}</td>
+                                    <td key={c.key} className={`${tdCls} text-right font-mono font-semibold`}>{fmtRp(c.compute(r))}</td>
                                 ))}
                             </tr>
                         ))}
@@ -359,7 +473,7 @@ const GenericSection = ({ title, fields, rows, onRowsChange, idPrefix, computedC
             </div>
             {editing !== null && (
                 <GenericRowModal
-                    title={editing === 'new' ? `Tambah — ${title}` : `Edit — ${title}`}
+                    title={editing === 'new' ? `Add — ${title}` : `Edit — ${title}`}
                     fields={fields}
                     row={editing === 'new' ? null : rows[editing]}
                     onClose={() => setEditing(null)}
@@ -438,7 +552,7 @@ const L11A = ({ taxYear, tin, l11aData, onL11ADataChange }) => {
             {/* ── HEADER — identik L1D ─────────────────────────────────────── */}
             <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
                 <h2 className="text-base font-bold text-blue-800 mb-4 uppercase tracking-wide">
-                    Lampiran 11-A — Rekapitulasi Biaya-Biaya Tertentu
+                    Lampiran 11-A — Recapitulation of Certain Expenses
                 </h2>
                 <div className="grid grid-cols-2 gap-4 max-w-md">
                     <div>
@@ -496,7 +610,7 @@ const L11A = ({ taxYear, tin, l11aData, onL11ADataChange }) => {
                         nested
                         computedColumns={[{
                             key: 'depreciationToDate',
-                            label: 'Penyusutan s.d. Tahun Ini',
+                            label: 'Depreciation to Date',
                             compute: (r) => parse(r.depreciationPriorYear) + parse(r.depreciationCurrentYear),
                         }]}
                     />
@@ -515,19 +629,19 @@ const L11A = ({ taxYear, tin, l11aData, onL11ADataChange }) => {
                                 <DateField label="Date Of Decree Of Extensification" value={regionalBenefitData.extDecreeDate} onChange={setRegionalField('extDecreeDate')} />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
-                                <RpField label="a. Tempat Tinggal" value={regionalBenefitData.costs.housing} onChange={setRegionalCost('housing')} />
-                                <RpField label="b. Kesehatan" value={regionalBenefitData.costs.healthcare} onChange={setRegionalCost('healthcare')} />
-                                <RpField label="c. Pendidikan" value={regionalBenefitData.costs.education} onChange={setRegionalCost('education')} />
-                                <RpField label="d. Peribadatan" value={regionalBenefitData.costs.worship} onChange={setRegionalCost('worship')} />
-                                <RpField label="e. Pengangkutan" value={regionalBenefitData.costs.transport} onChange={setRegionalCost('transport')} />
-                                <RpField label="f. Olahraga" value={regionalBenefitData.costs.sports} onChange={setRegionalCost('sports')} />
+                                <RpField label="a. Housing" value={regionalBenefitData.costs.housing} onChange={setRegionalCost('housing')} />
+                                <RpField label="b. Healthcare" value={regionalBenefitData.costs.healthcare} onChange={setRegionalCost('healthcare')} />
+                                <RpField label="c. Education" value={regionalBenefitData.costs.education} onChange={setRegionalCost('education')} />
+                                <RpField label="d. Worship" value={regionalBenefitData.costs.worship} onChange={setRegionalCost('worship')} />
+                                <RpField label="e. Transportation" value={regionalBenefitData.costs.transport} onChange={setRegionalCost('transport')} />
+                                <RpField label="f. Sports" value={regionalBenefitData.costs.sports} onChange={setRegionalCost('sports')} />
                             </div>
                             <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm flex justify-between">
-                                <span className="text-gray-600">Jumlah Biaya (otomatis)</span>
+                                <span className="text-gray-600">Total Cost (automatic)</span>
                                 <span className="font-mono font-semibold">Rp{fmt(jumlahBiayaRegional) || '0'}</span>
                             </div>
                             <GenericSection
-                                title="IV.B Sarana &amp; Fasilitas (Daerah Tertentu)"
+                                title="IV.B Facilities (Specific Areas)"
                                 fields={FIELDS_FACILITIES}
                                 rows={regionalBenefitData.facilitiesRows}
                                 onRowsChange={setRegionalFacilitiesRows}
@@ -535,7 +649,7 @@ const L11A = ({ taxYear, tin, l11aData, onL11ADataChange }) => {
                                 nested
                                 computedColumns={[{
                                     key: 'depreciationToDate',
-                                    label: 'Penyusutan s.d. Tahun Ini',
+                                    label: 'Depreciation to Date',
                                     compute: (r) => parse(r.depreciationPriorYear) + parse(r.depreciationCurrentYear),
                                 }]}
                             />
