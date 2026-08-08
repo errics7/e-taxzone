@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.2
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost:3306
--- Generation Time: Mar 11, 2026 at 08:38 PM
--- Server version: 10.6.24-MariaDB-cll-lve
--- PHP Version: 8.4.18
+-- Host: 127.0.0.1
+-- Generation Time: Jul 16, 2026 at 03:00 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -36,7 +36,7 @@ CREATE TABLE `blog` (
   `created_date` datetime DEFAULT NULL,
   `updated_by` int(11) DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `blog`
@@ -104,7 +104,8 @@ INSERT INTO `companies` (`id`, `pic_user_id`, `company_name`, `company_type`, `c
 (1, 237, 'Raisa', 'badan-internasional', '000000000000000', '2025-06-02', '111111111111111', 'Malang', '2025-06-01', '3326160608070197', 'Yukafi', 'PT - Perseroan Terbatas', 'test modal dasar', 'company1@gmail.com', '08345346456', '', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Malang\",\"rt\":\"002\",\"rw\":\"001\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"67361\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Malang\",\"rt\":\"002\",\"rw\":\"001\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"67361\",\"coordinates\":\"\"}]', '{\"metodePembukuan\":\"Pembukuan\",\"mataUangPembukuan\":\"Rupiah Indonesia\",\"periodePembukuan\":\"01-12\",\"kluUtama\":[{\"kluCode\":\"Z3000\",\"kluName\":\"PRAJURIT TNI DAN ANGGOTA POLRI\",\"uraian\":\"sosial\",\"id\":1749567860507}],\"kluTambahan\":[{\"kluCode\":\"A0111\",\"kluName\":\"USAHA TANAMAN PADI\",\"uraian\":\"keagamaan\",\"id\":1749567869011}],\"merekDagang\":\"Test merek\",\"memilikiKaryawan\":\"Ya\",\"omsetPerTahun\":\"< 300 juta\"}', '[{\"apakahPIC\":true,\"jenisOrangTerkait\":\"Direktur\",\"personNikTin\":\"5315031911150001\",\"personName\":\"Ridlo\",\"kewarganegaraan\":\"WNI\",\"negaraAsal\":\"Indonesia\",\"email\":\"ridlo@company1.com\",\"mobilePhoneNumber\":\"084556456456\",\"tanggalMulai\":\"2025-06-01\",\"tanggalBerakhir\":\"2029-12-10\",\"id\":1749567768085},{\"apakahPIC\":false,\"jenisOrangTerkait\":\"Pengurus\",\"personNikTin\":\"3322070009000046\",\"personName\":\"company1 pengurus\",\"kewarganegaraan\":\"WNI\",\"negaraAsal\":\"Indonesia\",\"email\":\"pengurus@company1.com\",\"mobilePhoneNumber\":\"08734534543\",\"tanggalMulai\":\"2025-06-01\",\"tanggalBerakhir\":\"2028-12-10\",\"id\":1749567844512}]', '[{\"id\":\"default-owner\",\"jenisWajibPajak\":\"Pemilik\",\"nikTin\":\"3326160608070197\",\"namaWajibPajak\":\"Yukafi\",\"hubunganIstimewa\":\"Ya\",\"persentaseKepemilikan\":\"100\",\"isDefault\":true}]', 'establishment-1749569170773-870573060.pdf', 'authorization-1749569170777-504731097.pdf', 'pending', '2025-06-10 15:26:11', '2025-06-10 15:26:11', 237),
 (2, 239, 'Testing', 'badan-internasional', '00000000000000000', '2025-07-09', '10000000000000001', 'Malang', '2025-07-09', '1234567890123456', 'Testing', 'PT - Perseroan Terbatas', 'Testing ', 'nop@gmail.com', '085607287537', '', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Malang\",\"rt\":\"002\",\"rw\":\"001\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"67361\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Malang\",\"rt\":\"002\",\"rw\":\"001\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"67361\",\"coordinates\":\"\"}]', '{\"metodePembukuan\":\"Pembukuan\",\"mataUangPembukuan\":\"Rupiah Indonesia\",\"periodePembukuan\":\"01-12\",\"kluUtama\":[{\"kluCode\":\"Z3000\",\"kluName\":\"PRAJURIT TNI DAN ANGGOTA POLRI\",\"uraian\":\"keagamaan\",\"id\":1752071240063},{\"kluCode\":\"A0111\",\"kluName\":\"USAHA TANAMAN PADI\",\"uraian\":\"keagamaan\",\"id\":1752071262044}],\"kluTambahan\":[{\"kluCode\":\"Z6000\",\"kluName\":\"PEGAWAI BADAN USAHA ASING\",\"uraian\":\"keagamaan\",\"id\":1752071248528}],\"merekDagang\":\"Testing\",\"memilikiKaryawan\":\"Ya\",\"omsetPerTahun\":\"< 300 juta\"}', '[{\"apakahPIC\":true,\"jenisOrangTerkait\":\"Direktur\",\"personNikTin\":\"1234545454554601\",\"personName\":\"Nopa\",\"kewarganegaraan\":\"WNI\",\"negaraAsal\":\"Indonesia\",\"email\":\"nopa@mail.com\",\"mobilePhoneNumber\":\"085607287537\",\"tanggalMulai\":\"2025-07-10\",\"tanggalBerakhir\":\"2026-06-27\",\"id\":1752071195648}]', '[{\"id\":\"default-owner\",\"jenisWajibPajak\":\"Pemilik\",\"nikTin\":\"1234567890123456\",\"namaWajibPajak\":\"Testing\",\"hubunganIstimewa\":\"Ya\",\"persentaseKepemilikan\":\"100\",\"isDefault\":true}]', 'establishment-1752071331313-607618216.jpg', 'authorization-1752071331314-403481838.jpg', 'pending', '2025-07-09 14:28:51', '2025-07-09 14:28:51', 239),
 (3, 240, 'Eva', 'badan-internasional', '454645645645', '2025-07-09', '344543645656', 'Malang', '2025-07-09', '343534545456', 'Eva', 'PT - Perseroan Terbatas', 'sdsdf', 'eva@gmail.com', '0834545456', '', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Malang\",\"rt\":\"002\",\"rw\":\"001\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"67361\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Malang\",\"rt\":\"002\",\"rw\":\"001\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"67361\",\"coordinates\":\"\"}]', '{\"metodePembukuan\":\"Pencatatan\",\"mataUangPembukuan\":\"USD\",\"periodePembukuan\":\"01-12\",\"kluUtama\":[{\"kluCode\":\"Z4000\",\"kluName\":\"PEGAWAI BADAN USAHA MILIK NEGARA/ BADAN USAHA MILIK DAERAH\",\"uraian\":\"keagamaan\",\"id\":1752071521761}],\"kluTambahan\":[{\"kluCode\":\"Z5000\",\"kluName\":\"PEGAWAI SWASTA\",\"uraian\":\"komunikasi\",\"id\":1752071530777}],\"merekDagang\":\"Testing\",\"memilikiKaryawan\":\"Ya\",\"omsetPerTahun\":\"< 300 juta\"}', '[{\"apakahPIC\":true,\"jenisOrangTerkait\":\"Direktur\",\"personNikTin\":\"05456546546546\",\"personName\":\"Eva\",\"kewarganegaraan\":\"WNI\",\"negaraAsal\":\"Indonesia\",\"email\":\"ep@gmail.com\",\"mobilePhoneNumber\":\"085607287537\",\"tanggalMulai\":\"2025-07-09\",\"tanggalBerakhir\":\"2025-07-31\",\"id\":1752071510363}]', '[{\"id\":\"default-owner\",\"jenisWajibPajak\":\"Pemilik\",\"nikTin\":\"343534545456\",\"namaWajibPajak\":\"Eva\",\"hubunganIstimewa\":\"Ya\",\"persentaseKepemilikan\":\"100\",\"isDefault\":true}]', 'establishment-1752071586288-165250738.jpg', 'authorization-1752071586289-489635331.jpg', 'pending', '2025-07-09 14:33:06', '2025-07-09 14:33:06', 240),
-(4, 243, 'PT Citra Jaya Mandiri', 'yayasan', 'AHU-12345.AH.01.01.Tahun 2024', '2024-05-12', '02/Not/IV/2024', 'Malang', '2024-04-01', '3276011205980005', 'Hana Putri S.H., M.Kn.', 'Yayasan', '100000000', 'ptduacitramandiri@gmail.com', '082244303053', '', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Jalan Borobudur\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Tunggulwulung\",\"postalCode\":\"65141\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Jalan Borobudur\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Tunggulwulung\",\"postalCode\":\"65141\",\"coordinates\":\"\"}]', '{\"metodePembukuan\":\"Pembukuan\",\"mataUangPembukuan\":\"Rupiah Indonesia\",\"periodePembukuan\":\"01-12\",\"kluUtama\":[{\"kluCode\":\"Z4000\",\"kluName\":\"PEGAWAI BADAN USAHA MILIK NEGARA/ BADAN USAHA MILIK DAERAH\",\"uraian\":\"sosial\",\"id\":1752497297843}],\"kluTambahan\":[],\"memilikiKaryawan\":\"Ya\",\"omsetPerTahun\":\"< 300 juta\"}', '[]', '[{\"id\":\"default-owner\",\"jenisWajibPajak\":\"Pemilik\",\"nikTin\":\"3276011205980005\",\"namaWajibPajak\":\"Hana Putri S.H., M.Kn.\",\"hubunganIstimewa\":\"Ya\",\"persentaseKepemilikan\":\"100\",\"isDefault\":true},{\"jenisWajibPajak\":\"Pengurus\",\"nikTin\":\"3276011205980000\",\"namaWajibPajak\":\"Citra\",\"hubunganIstimewa\":\"Tidak\",\"persentaseKepemilikan\":\"0\",\"id\":1752497259041,\"isDefault\":false}]', 'establishment-1752498525626-400160052.pdf', 'authorization-1752498525652-329736689.pdf', 'pending', '2025-07-14 13:08:47', '2025-07-14 13:08:47', 243);
+(4, 243, 'PT Citra Jaya Mandiri', 'yayasan', 'AHU-12345.AH.01.01.Tahun 2024', '2024-05-12', '02/Not/IV/2024', 'Malang', '2024-04-01', '3276011205980005', 'Hana Putri S.H., M.Kn.', 'Yayasan', '100000000', 'ptduacitramandiri@gmail.com', '082244303053', '', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Jalan Borobudur\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Tunggulwulung\",\"postalCode\":\"65141\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Jalan Borobudur\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Tunggulwulung\",\"postalCode\":\"65141\",\"coordinates\":\"\"}]', '{\"metodePembukuan\":\"Pembukuan\",\"mataUangPembukuan\":\"Rupiah Indonesia\",\"periodePembukuan\":\"01-12\",\"kluUtama\":[{\"kluCode\":\"Z4000\",\"kluName\":\"PEGAWAI BADAN USAHA MILIK NEGARA/ BADAN USAHA MILIK DAERAH\",\"uraian\":\"sosial\",\"id\":1752497297843}],\"kluTambahan\":[],\"memilikiKaryawan\":\"Ya\",\"omsetPerTahun\":\"< 300 juta\"}', '[]', '[{\"id\":\"default-owner\",\"jenisWajibPajak\":\"Pemilik\",\"nikTin\":\"3276011205980005\",\"namaWajibPajak\":\"Hana Putri S.H., M.Kn.\",\"hubunganIstimewa\":\"Ya\",\"persentaseKepemilikan\":\"100\",\"isDefault\":true},{\"jenisWajibPajak\":\"Pengurus\",\"nikTin\":\"3276011205980000\",\"namaWajibPajak\":\"Citra\",\"hubunganIstimewa\":\"Tidak\",\"persentaseKepemilikan\":\"0\",\"id\":1752497259041,\"isDefault\":false}]', 'establishment-1752498525626-400160052.pdf', 'authorization-1752498525652-329736689.pdf', 'pending', '2025-07-14 13:08:47', '2025-07-14 13:08:47', 243),
+(5, 251, 'teto', 'perseroan-terbatas', '1', '2026-04-02', '2', 'malang', '2026-04-01', '1234567890987654', 'piyu', 'CV - Commanditaire Vennootschap', '123456677', 'test@gmail.com', '081234567890', '', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"klantor\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Sukun\",\"village\":\"Mojolangu\",\"postalCode\":\"65111\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"klantor\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Sukun\",\"village\":\"Mojolangu\",\"postalCode\":\"65111\",\"coordinates\":\"\"}]', '{\"metodePembukuan\":\"Pembukuan\",\"mataUangPembukuan\":\"Rupiah Indonesia\",\"periodePembukuan\":\"01-12\",\"kluUtama\":[{\"kluCode\":\"A0111\",\"kluName\":\"USAHA TANAMAN PADI\",\"uraian\":\"padi\",\"id\":1777572613714}],\"kluTambahan\":[]}', '[]', '[{\"id\":\"default-owner\",\"jenisWajibPajak\":\"Pemilik\",\"nikTin\":\"1234567890987654\",\"namaWajibPajak\":\"piyu\",\"hubunganIstimewa\":\"Ya\",\"persentaseKepemilikan\":\"100\",\"isDefault\":true}]', 'establishment-1777573493372-768872993.pdf', 'authorization-1777573493373-292669293.pdf', 'pending', '2026-04-30 18:24:53', '2026-04-30 18:24:53', 251);
 
 -- --------------------------------------------------------
 
@@ -121,7 +122,7 @@ CREATE TABLE `course` (
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL,
   `status` int(11) DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `course`
@@ -222,7 +223,7 @@ CREATE TABLE `data_fileuploaded` (
   `updated_by` int(11) DEFAULT 0,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `data_fileuploaded`
@@ -387,7 +388,7 @@ CREATE TABLE `gallery_view` (
   `isright` int(11) NOT NULL,
   `buttonlink` text NOT NULL,
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `gallery_view`
@@ -409,7 +410,7 @@ CREATE TABLE `gs1_bank` (
   `name` varchar(200) NOT NULL,
   `nominal` double NOT NULL DEFAULT 0,
   `jenis` varchar(10) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `gs1_bank`
@@ -456,7 +457,7 @@ CREATE TABLE `gs1_config` (
   `last_scen` int(11) DEFAULT 0,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `gs1_config`
@@ -546,7 +547,7 @@ CREATE TABLE `gs2_config` (
   `last_scen` int(11) DEFAULT 0,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `gs2_config`
@@ -615,7 +616,7 @@ CREATE TABLE `gs3_config` (
   `last_scen` int(11) DEFAULT 0,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `gs3_config`
@@ -658,7 +659,7 @@ CREATE TABLE `gs9_bank` (
   `debit` int(11) DEFAULT 0,
   `saldodebit` int(11) DEFAULT 0,
   `jenis` varchar(10) DEFAULT ''
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `gs9_bank`
@@ -687,7 +688,7 @@ CREATE TABLE `gs9_config` (
   `last_scen` int(11) DEFAULT 0,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `gs9_config`
@@ -720,7 +721,7 @@ CREATE TABLE `gs_virtualtour` (
   `updated_by` int(11) DEFAULT 0,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `gs_virtualtour`
@@ -945,7 +946,7 @@ CREATE TABLE `gs_worksheet` (
   `updated_by` int(11) DEFAULT 0,
   `updated_date` datetime DEFAULT NULL,
   `created_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 -- --------------------------------------------------------
 
@@ -961,7 +962,7 @@ CREATE TABLE `items` (
   `ytlink` varchar(150) DEFAULT NULL,
   `position` varchar(1000) NOT NULL,
   `updated` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `items`
@@ -985,7 +986,7 @@ CREATE TABLE `kelas` (
   `namakelas` varchar(200) NOT NULL,
   `k_code` varchar(20) NOT NULL,
   `id_worksheet` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `kelas`
@@ -1032,7 +1033,7 @@ CREATE TABLE `pathway` (
   `spot_destination` int(11) NOT NULL,
   `position` varchar(255) NOT NULL,
   `updated` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `pathway`
@@ -1737,7 +1738,7 @@ INSERT INTO `question_options` (`id`, `question_id`, `option_text`, `is_correct`
 CREATE TABLE `role_permission` (
   `role_id` int(11) NOT NULL,
   `role_name` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `role_permission`
@@ -1771,7 +1772,7 @@ CREATE TABLE `scenario` (
   `created_date` datetime(6) DEFAULT NULL,
   `updated_date` datetime(6) DEFAULT NULL,
   `status_delete` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `scenario`
@@ -1851,7 +1852,7 @@ CREATE TABLE `sentence` (
   `text` varchar(255) NOT NULL,
   `mode` varchar(25) NOT NULL,
   `file_url` varchar(1000) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `sentence`
@@ -1876,7 +1877,7 @@ INSERT INTO `sentence` (`id`, `items_id`, `text`, `mode`, `file_url`) VALUES
 
 CREATE TABLE `sequelizemeta` (
   `name` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Dumping data for table `sequelizemeta`
@@ -1887,23 +1888,7 @@ INSERT INTO `sequelizemeta` (`name`) VALUES
 ('20250215041343-create-question.js'),
 ('20250215041347-create-question-options.js'),
 ('20250215041353-create-question-drag-items.js'),
-('20250215043615-logs.js');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `SequelizeMeta`
---
-
-CREATE TABLE `SequelizeMeta` (
-  `name` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
-
---
--- Dumping data for table `SequelizeMeta`
---
-
-INSERT INTO `SequelizeMeta` (`name`) VALUES
+('20250215043615-logs.js'),
 ('20250215041336-create-worksheet.js'),
 ('20250215041343-create-question.js'),
 ('20250215041347-create-question-options.js'),
@@ -1931,7 +1916,7 @@ CREATE TABLE `spot` (
   `path` varchar(255) DEFAULT NULL,
   `rotation` varchar(150) DEFAULT NULL,
   `date_time` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `spot`
@@ -2057,6 +2042,12 @@ INSERT INTO `spt_tahunan` (`id`, `user_id`, `tax_year`, `tax_type`, `tax_return_
 (25, 247, 2023, NULL, NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'approved', NULL, '{\"nik\":\"1802023020000010\",\"name\":\"Revaldi\",\"identity_type\":\"KTP\",\"id_number\":\"1802023020000010\",\"mobile_phone\":\"087123456789\",\"email\":\"revaldi@gmail.com\",\"tax_obligation_status\":\"Married\",\"spouse_nik\":\"\"}', '{\"employment_income\":true,\"business_income\":true,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":\"92625000\",\"is_oppt\":true,\"oppt_type\":\"yes_oppt\",\"use_norms\":true,\"norms_type\":\"yes_qualified\",\"show_business_net_income\":true,\"business_net_income_amount\":\"100000000\"}', '{\"net_income_deduction\":false,\"net_income_year\":192625000,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":192625000,\"tax_exemptions\":\"K/1\",\"tax_exemptions_amount\":63000000,\"taxable_income\":129625000,\"income_tax_payable\":13443750,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":13443750}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":13443750,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":13443750}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":13443750}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":true,\"debt_end_year\":true,\"final_income_tax\":false,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false,\"assets_end_year_amount\":900000000,\"debt_end_year_amount\":150000000}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"DJP20250728DZ8CC0\",\"tin_nik\":\"1802023020000010\",\"full_name\":\"Revaldi\",\"representative\":\"\"}', '2025-07-28 22:50:21', '2025-07-28 22:50:21', NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[{\"id\":1753715666185,\"code\":\"0401\",\"description_type\":\"Mobil Penumpang\",\"description_merk_model\":\"Pajero\",\"police_registration_number\":\"L 23 TC\",\"ownership\":\"Pribadi\",\"tin\":\"1802023020000010 \",\"name\":\"Revaldi\",\"year_of_acquisition\":\"2020\",\"cost_of_acquisition\":\"200000000\",\"fair_market_value\":\"200000000\",\"remark\":\"Harta PPS\"}],\"non_movable_assets\":[{\"id\":1753715574519,\"code\":\"0501\",\"description\":\"Tanah dan/atau Bangunan untuk Tempat Tinggal\",\"location_of_asset\":\"Surabaya\",\"property_size_land\":\"100\",\"property_size_building\":\"100\",\"source_of_ownership\":\"Hasil Sendiri\",\"certificate_number\":\"1234567\",\"year_of_acquisition\":\"2019\",\"cost_of_acquisition\":\"700000000\",\"fair_market_value\":\"700000000\",\"remark\":\"Harta PPS\"}],\"other_assets\":[],\"debt_at_end_of_year\":[{\"id\":1753715803204,\"code\":\"0701\",\"description\":\"Utang Bank /Lembaga Keuangan Bukan Bank (KPR, Leasing Kendaraan Bermotor, dan sejenisnya)\",\"creditor_tin\":\"18020230200000010 \",\"creditor_name\":\"Revaldi\",\"country_of_creditor\":\"Indonesia\",\"year_of_acquisition\":\"2019\",\"balance_of_debt\":\"150000000\",\"remark\":\"Harta PPS\"}],\"employment_income\":[{\"id\":1753715928290,\"code\":\"0101\",\"tin_of_employer\":\"1802023020000010 \",\"employer_name\":\"Revaldi\",\"gross_income\":\"97500000\",\"deduction_of_gross_income\":\"4875000\",\"net_income\":\"92625000\"}],\"withholding_tax\":[{\"id\":1753716225355,\"code\":\"0101\",\"name\":\"PT Amerta Indah Otsuka\",\"tin\":\"180202402000401\",\"slipNumber\":\"-\",\"slipDate\":\"2024-01-10\",\"taxType\":\"PPh Pasal 21\",\"taxBase\":\"29625000\",\"taxAmount\":\"1481250\"}]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-07-28 22:04:13', '2025-07-28 22:50:21'),
 (26, 247, 2024, NULL, NULL, NULL, '2024 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'approved', NULL, '{\"nik\":\"1802023020000010\",\"name\":\"Revaldi\",\"identity_type\":\"KTP\",\"id_number\":\"1802023020000010\",\"mobile_phone\":\"087123456789\",\"email\":\"revaldi@gmail.com\",\"tax_obligation_status\":\"Married\",\"spouse_nik\":\"\"}', '{\"employment_income\":true,\"business_income\":true,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":\"92625000\",\"is_oppt\":true,\"oppt_type\":\"yes_oppt\",\"use_norms\":true,\"norms_type\":\"yes_qualified\",\"show_business_net_income\":true,\"business_net_income_amount\":\"100000000\",\"other_domestic_income_amount\":\"-1\"}', '{\"net_income_deduction\":false,\"net_income_year\":192625000,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":192625000,\"tax_exemptions\":\"K/1\",\"tax_exemptions_amount\":63000000,\"taxable_income\":129625000,\"income_tax_payable\":13443750,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":13443749.99}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":13443750,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":13443750}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":13443750}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":true,\"debt_end_year\":true,\"final_income_tax\":true,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false,\"assets_end_year_amount\":899999999,\"debt_end_year_amount\":150000000}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"DJP20250728DZ8CC0\",\"tin_nik\":\"1802023020000010\",\"full_name\":\"Revaldi\",\"representative\":\"\"}', '2025-07-29 08:32:22', '2025-07-29 08:32:22', NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[{\"id\":1753752298948,\"code\":\"0401\",\"description_type\":\"Mobil Penumpang\",\"description_merk_model\":\"Pajero \",\"police_registration_number\":\"L 23 TC\",\"ownership\":\"Pribadi\",\"tin\":\"182\",\"name\":\"Revaldi\",\"year_of_acquisition\":\"2020\",\"cost_of_acquisition\":\"200000000\",\"fair_market_value\":\"199999999.99\",\"remark\":\"Harta PPS\"}],\"non_movable_assets\":[{\"id\":1753752373333,\"code\":\"0501\",\"description\":\"Tanah dan/atau Bangunan untuk Tempat Tinggal\",\"location_of_asset\":\"Malang\",\"property_size_land\":\"100\",\"property_size_building\":\"100\",\"source_of_ownership\":\"Hasil Sendiri\",\"certificate_number\":\"1234\",\"year_of_acquisition\":\"2019\",\"cost_of_acquisition\":\"700000000\",\"fair_market_value\":\"700000000\",\"remark\":\"\"}],\"other_assets\":[],\"debt_at_end_of_year\":[{\"id\":1753752628355,\"code\":\"0701\",\"description\":\"Utang Bank /Lembaga Keuangan Bukan Bank (KPR, Leasing Kendaraan Bermotor, dan sejenisnya)\",\"creditor_tin\":\"1234\",\"creditor_name\":\"Rervaldi\",\"country_of_creditor\":\"Indonesia\",\"year_of_acquisition\":\"2019\",\"balance_of_debt\":\"150000000\",\"remark\":\"\"}],\"employment_income\":[{\"id\":1753751479897,\"code\":\"0101\",\"tin_of_employer\":\"180202302000010\",\"employer_name\":\"Revaldi\",\"gross_income\":\"97500000\",\"deduction_of_gross_income\":\"4875000\",\"net_income\":\"92625000\"}],\"withholding_tax\":[{\"id\":1753751706806,\"code\":\"0101\",\"name\":\"PT Amerta Indah Otsuka\",\"tin\":\"180202402000401\",\"slipNumber\":\"123456\",\"slipDate\":\"2024-01-10\",\"taxType\":\"PPh Pasal 21\",\"taxBase\":\"29625000\",\"taxAmount\":\"1481250\"}]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-07-29 08:09:20', '2025-07-29 08:32:22'),
 (27, 248, 2023, NULL, NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'graded', NULL, '{\"nik\":\"0517345790980005\",\"name\":\"Felix Wahyudi\",\"identity_type\":\"KTP\",\"id_number\":\"0517345790980005\",\"mobile_phone\":\"082244303053\",\"email\":\"felixwahyudi@gmail.com\",\"tax_obligation_status\":\"Single\",\"spouse_nik\":\"\"}', '{\"employment_income\":true,\"business_income\":false,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":\"45600000\"}', '{\"net_income_deduction\":false,\"net_income_year\":45600000,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":45600000,\"tax_exemptions\":\"TK/0\",\"tax_exemptions_amount\":54000000,\"taxable_income\":0,\"income_tax_payable\":0,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":0}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":0,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":0}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":\"\"}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":true,\"debt_end_year\":false,\"final_income_tax\":false,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false,\"assets_end_year_amount\":22600000}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"DJP20250821VI2XE3\",\"tin_nik\":\"0517345790980005\",\"full_name\":\"Felix Wahyudi\",\"representative\":\"\"}', '2025-08-21 13:19:08', '2025-08-21 13:25:32', 143, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[{\"id\":1755756737987,\"code\":\"0401\",\"description_type\":\"Sepeda Motor\",\"description_merk_model\":\"Yamaha\",\"police_registration_number\":\"000\",\"ownership\":\"Pribadi\",\"tin\":\"0517345790980005\",\"name\":\"Felix Wahyudi\",\"year_of_acquisition\":\"2023\",\"cost_of_acquisition\":\"20000000\",\"fair_market_value\":\"20000000\",\"remark\":\"\"}],\"non_movable_assets\":[],\"other_assets\":[{\"id\":1755756883806,\"code\":\"0601\",\"description\":\"Peralatan elektronik\",\"year_of_acquisition\":\"2023\",\"cost_of_acquisition\":\"2600000\",\"fair_market_value\":\"2600000\",\"account_number\":\"000\",\"additional_information\":\"-\",\"remark\":\"\"}],\"debt_at_end_of_year\":[],\"employment_income\":[{\"id\":1755755404532,\"code\":\"0101\",\"tin_of_employer\":\"0517345790980005\",\"employer_name\":\"Felix Wahyudi\",\"gross_income\":\"48000000\",\"deduction_of_gross_income\":\"2400000\",\"net_income\":\"45600000\"}],\"withholding_tax\":[{\"id\":1755755765718,\"code\":\"0101\",\"name\":\"PT Jaya Shakti\",\"tin\":\"180202402600401\",\"slipNumber\":\"001\",\"slipDate\":\"2023-01-12\",\"taxType\":\"PPh Pasal 21\",\"taxBase\":\"45600000\",\"taxAmount\":\"0\"}]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-08-21 12:44:02', '2025-08-21 13:25:32');
+INSERT INTO `spt_tahunan` (`id`, `user_id`, `tax_year`, `tax_type`, `tax_return_type`, `tax_period_type`, `tax_period`, `tax_return_model`, `bookkeeping_type`, `source_of_income`, `status`, `reference_number`, `taxpayer_identity`, `income_summary`, `income_tax_calculation`, `income_tax_credit`, `underpayment_overpayment`, `amendment_tax_return`, `refund_data`, `income_tax_installment`, `other_transactions`, `additional_attachments`, `statement_data`, `submission_date`, `processed_date`, `processed_by`, `rejection_reason`, `payment_amount`, `payment_status`, `payment_date`, `payment_reference`, `payment_method`, `detail`, `created_date`, `updated_date`) VALUES
+(50, 251, 2024, 'Corporate Income Tax', NULL, NULL, '2024 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'draft', NULL, '{\"company_name\":\"teto\",\"npwp\":\"12345677\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyu\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"address\":\"\",\"business_activity\":\"\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"business_status\":\"Normal Operations\",\"tax_facility\":\"General Rate\",\"bookkeeping_standard\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"financial_year_start\":\"01 January\",\"financial_year_end\":\"31 December\",\"business_classification\":\"Jasa\",\"is_audited\":\"Yes\",\"audit_opinion\":\"Wajar Tanpa Pengecualian\",\"kap_npwp\":\"\",\"kap_name\":\"\",\"tax_year\":2024,\"reporting_period\":\"01 January 2024 - 31 December 2024\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"submission_type\":\"Electronic\"}', '{\"q1_gr23\":\"Yes\",\"q1b_solely_gr23\":\"No\",\"q2_final_tax\":\"Yes\",\"q3_excluded_tax\":\"Yes\",\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":\"123456677\",\"retained_earnings\":0,\"other_equity\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"gross_profit\":0,\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0},\"operating_profit\":0,\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0},\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0,\"fiscal_net_income_before_facility\":0,\"p5_investment_facility\":\"Yes\",\"p5_investment_facility_amount\":0,\"p6_vocational_deduction\":\"No\",\"p6_vocational_deduction_amount\":0,\"p8_carried_losses\":\"No\",\"p8_carried_forward_losses\":0,\"p9_taxable_income\":0,\"p10_rd_deduction\":\"Yes\",\"p10_rd_deduction_amount\":0,\"p11_tax_rate\":\"\",\"p11a_custom_tax_rate\":\"\",\"p12_income_tax_in_year\":0,\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', '{\"commercial_profit\":0,\"fiscal_adjustments\":{\"positive_corrections\":0,\"negative_corrections\":0,\"total_adjustments\":0},\"fiscal_profit\":0,\"loss_compensation\":0,\"taxable_income\":0,\"tax_rate\":25,\"income_tax_payable\":0,\"q13_overseas_credit\":\"Yes\",\"q13_overseas_credit_amount\":0,\"p14_installment_art25\":0,\"p15_notice_art25\":121011,\"q16_payable_deduction\":\"Yes\",\"q16_payable_deduction_amount\":0}', '{\"withholding_tax_article_23\":0,\"withholding_tax_article_22\":0,\"withholding_tax_article_26\":0,\"installment_article_25\":0,\"overpayment_previous_year\":0,\"foreign_tax_credit\":0,\"total_tax_credit\":0,\"p17b_has_postponement\":\"Yes\",\"p17b_postponement_amount\":0,\"p18a_previous_underpayment\":1000000,\"p19a_refund_method\":\"Fast Refund\",\"p19b_bank_account\":\"BCA-001\",\"p19b_account_no\":\"1234567890\",\"p19b_bank_name\":\"Bank Central Asia (BCA)\",\"p19b_account_holder\":\"teto\"}', '{\"income_tax_payable\":0,\"total_tax_credit\":0,\"tax_underpayment\":0,\"tax_overpayment\":0,\"final_status\":\"Nihil\",\"q20_art25_obliged\":\"No\",\"q20_art25_amount\":0}', NULL, NULL, '{\"financial_statements\":{\"required\":true,\"file\":null},\"audit_report\":{\"required\":false,\"file\":null},\"tax_withholding_certificates\":{\"required\":false,\"file\":null},\"related_party_transactions\":{\"required\":false,\"file\":null},\"transfer_pricing_documentation\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\",\"date\":\"2026-07-09\",\"stamp\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-07 04:01:51', '2026-07-12 17:31:39'),
+(53, 251, 2023, 'Individual', NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'draft', NULL, '{\"nik\":\"1234567890987654\",\"name\":\"piyu\",\"identity_type\":\"KTP\",\"id_number\":\"1234567890987654\",\"mobile_phone\":\"081234567890\",\"email\":\"test@gmail.com\",\"tax_obligation_status\":\"\",\"spouse_nik\":\"\"}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{\"declaration\":false,\"signature\":\"\",\"tin_nik\":\"1234567890987654\",\"full_name\":\"piyu\",\"representative\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-08 23:02:27', '2026-05-08 23:02:27'),
+(55, 251, 2025, 'Individual', NULL, NULL, '2025 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'draft', NULL, '{\"nik\":\"1234567890987654\",\"name\":\"piyu\",\"identity_type\":\"KTP\",\"id_number\":\"1234567890987654\",\"mobile_phone\":\"081234567890\",\"email\":\"test@gmail.com\",\"tax_obligation_status\":\"\",\"spouse_nik\":\"\"}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{\"declaration\":false,\"signature\":\"\",\"tin_nik\":\"1234567890987654\",\"full_name\":\"piyu\",\"representative\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-09 00:34:49', '2026-05-09 00:34:49'),
+(57, 251, 2023, 'Corporate Income Tax', 'Rupiah', 'Yearly', '2023 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'approved', NULL, '{\"company_name\":\"teto\",\"npwp\":\"\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyu\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"address\":\"\",\"business_activity\":\"\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"business_status\":\"Normal Operations\",\"tax_facility\":\"General Rate\",\"bookkeeping_standard\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"financial_year_start\":\"01 January\",\"financial_year_end\":\"31 December\",\"business_classification\":\"\",\"is_audited\":\"\",\"audit_opinion\":\"\",\"kap_npwp\":\"\",\"kap_name\":\"\",\"tax_year\":2023,\"reporting_period\":\"01 January 2023 - 31 December 2023\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"submission_type\":\"Electronic\"}', '{\"q1_gr23\":\"\",\"q1b_solely_gr23\":\"\",\"q2_final_tax\":\"\",\"q3_excluded_tax\":\"\",\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":\"123456677\",\"retained_earnings\":0,\"other_equity\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"gross_profit\":0,\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0},\"operating_profit\":0,\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0},\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0,\"fiscal_net_income_before_facility\":0,\"p5_investment_facility\":\"\",\"p5_investment_facility_amount\":0,\"p6_vocational_deduction\":\"\",\"p6_vocational_deduction_amount\":0,\"p8_carried_losses\":\"\",\"p8_carried_forward_losses\":0,\"p10_rd_deduction\":\"\",\"p10_rd_deduction_amount\":0,\"p11_tax_rate\":\"\",\"p11a_custom_tax_rate\":\"\",\"p12_income_tax_in_year\":0,\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', '{\"commercial_profit\":0,\"fiscal_adjustments\":{\"positive_corrections\":0,\"negative_corrections\":0,\"total_adjustments\":0},\"fiscal_profit\":0,\"loss_compensation\":0,\"taxable_income\":0,\"tax_rate\":25,\"income_tax_payable\":0,\"q13_overseas_credit\":\"\",\"q13_overseas_credit_amount\":0,\"p14_installment_art25\":0,\"p15_notice_art25\":0,\"q16_payable_deduction\":\"\",\"q16_payable_deduction_amount\":0}', '{\"withholding_tax_article_23\":0,\"withholding_tax_article_22\":0,\"withholding_tax_article_26\":0,\"installment_article_25\":0,\"overpayment_previous_year\":0,\"foreign_tax_credit\":0,\"total_tax_credit\":0,\"p17b_has_postponement\":\"\",\"p17b_postponement_amount\":0,\"p18a_previous_underpayment\":0,\"p19a_refund_method\":\"\",\"p19b_bank_account\":\"\",\"p19b_account_no\":\"\",\"p19b_bank_name\":\"\",\"p19b_account_holder\":\"\"}', '{\"income_tax_payable\":0,\"total_tax_credit\":0,\"tax_underpayment\":0,\"tax_overpayment\":0,\"final_status\":\"Nihil\",\"q20_art25_obliged\":\"\",\"q20_art25_amount\":0}', NULL, NULL, '{\"financial_statements\":{\"required\":true,\"file\":null},\"audit_report\":{\"required\":false,\"file\":null},\"tax_withholding_certificates\":{\"required\":false,\"file\":null},\"related_party_transactions\":{\"required\":false,\"file\":null},\"transfer_pricing_documentation\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyu\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\",\"date\":\"\",\"stamp\":\"\"}', '2026-05-28 10:17:04', '2026-05-28 10:17:04', NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-24 00:37:49', '2026-05-28 10:17:04'),
+(58, 251, 2025, 'Corporate Income Tax', 'Dollar', 'Yearly', '2025 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'draft', NULL, '{\"company_name\":\"teto\",\"npwp\":\"1297554331331331\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"address\":\"\",\"business_activity\":\"\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"business_status\":\"Normal Operations\",\"tax_facility\":\"General Rate\",\"bookkeeping_standard\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"financial_year_start\":\"01 January\",\"financial_year_end\":\"31 December\",\"business_classification\":\"Dagang\",\"is_audited\":\"Yes\",\"audit_opinion\":\"Wajar Tanpa Pengecualian\",\"kap_npwp\":\"\",\"kap_name\":\"\",\"tax_year\":2025,\"reporting_period\":\"01 January 2025 - 31 December 2025\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"submission_type\":\"Electronic\"}', '{\"q1_gr23\":\"Yes\",\"q1b_solely_gr23\":\"No\",\"q2_final_tax\":\"Yes\",\"q3_excluded_tax\":\"Yes\",\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":\"123456677\",\"retained_earnings\":0,\"other_equity\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"gross_profit\":0,\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0},\"operating_profit\":0,\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0},\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0,\"fiscal_net_income_before_facility\":580000,\"p5_investment_facility\":\"Yes\",\"p5_investment_facility_amount\":0,\"p6_vocational_deduction\":\"Yes\",\"p6_vocational_deduction_amount\":0,\"p8_carried_losses\":\"Yes\",\"p8_carried_forward_losses\":20000,\"p9_taxable_income\":560000,\"p10_rd_deduction\":\"Yes\",\"p10_rd_deduction_amount\":0,\"p11_tax_rate\":\"Tarif Fasilitas Pasal 31E ayat (1)\",\"p11a_custom_tax_rate\":\"2\",\"p12_income_tax_in_year\":83125,\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', '{\"commercial_profit\":0,\"fiscal_adjustments\":{\"positive_corrections\":0,\"negative_corrections\":0,\"total_adjustments\":0},\"fiscal_profit\":0,\"loss_compensation\":0,\"taxable_income\":0,\"tax_rate\":25,\"income_tax_payable\":0,\"q13_overseas_credit\":\"Yes\",\"q13_overseas_credit_amount\":-240000,\"p14_installment_art25\":0,\"p15_notice_art25\":2000000,\"q16_payable_deduction\":\"Yes\",\"q16_payable_deduction_amount\":0}', '{\"withholding_tax_article_23\":0,\"withholding_tax_article_22\":0,\"withholding_tax_article_26\":0,\"installment_article_25\":0,\"overpayment_previous_year\":0,\"foreign_tax_credit\":0,\"total_tax_credit\":0,\"p17b_has_postponement\":\"No\",\"p17b_postponement_amount\":0,\"p18a_previous_underpayment\":0,\"p19a_refund_method\":\"Normal Refund\",\"p19b_bank_account\":\"BNI-001\",\"p19b_account_no\":\"0987654321\",\"p19b_bank_name\":\"Bank Negara Indonesia (BNI)\",\"p19b_account_holder\":\"teto\"}', '{\"income_tax_payable\":0,\"total_tax_credit\":0,\"tax_underpayment\":0,\"tax_overpayment\":0,\"final_status\":\"Nihil\",\"q20_art25_obliged\":\"No\",\"q20_art25_amount\":0}', NULL, NULL, '{\"financial_statements\":{\"required\":true,\"file\":null},\"audit_report\":{\"required\":false,\"file\":null},\"tax_withholding_certificates\":{\"required\":false,\"file\":null},\"related_party_transactions\":{\"required\":false,\"file\":null},\"transfer_pricing_documentation\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\",\"date\":\"\",\"stamp\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-07-11 23:40:05', '2026-07-13 21:48:39');
 
 -- --------------------------------------------------------
 
@@ -2315,7 +2306,9 @@ INSERT INTO `taxpayer` (`id`, `user_id`, `taxpayer_type`, `has_nik`, `registrati
 (42, 245, 'individual', 1, 'nik-activation', '0517345790980001', 'Felix', 'Malang', '1999-01-12', 'Individual or Undivided Inheritance', 'Indonesia', 'Islam', 'Male', 'Single', 'Employee', 'Septien', '0517345790980002', 'Child', 'felix@gmail.com', '082244303053', '', '', '[{\"source\":\"Pekerjaan\",\"kluCode\":\"Z5000\",\"kluName\":\"PEGAWAI SWASTA\",\"workplace\":\"PT Jaya Shakti\",\"incomePerMonth\":\"Kurang dari Rp. 4.500.000\",\"id\":1753619616739}]', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\" Jl. Terusan Sulfat No. 20, Kel. Pandanwangi, Kec. Blimbing, Kota Malang, Jawa Timur,  65126\",\"rt\":\"004\",\"rw\":\"003\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\" Jl. Terusan Sulfat No. 20, Kel. Pandanwangi, Kec. Blimbing, Kota Malang, Jawa Timur,  65126\",\"rt\":\"004\",\"rw\":\"003\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"}]', '[]', 'pending', NULL, NULL, NULL, 0, 245, NULL, '2025-07-27 19:34:55.000000', '2025-07-27 19:34:55.889000'),
 (43, 246, 'individual', 1, 'nik-activation', '3576026906010007', 'Farah', 'Mojokerto', '2001-06-29', 'Individual or Undivided Inheritance', 'Indonesia', 'Islam', 'Female', 'Single', 'Employee', 'Septien', '3576026906010007', 'Head of Family', 'farah@gmail.com', '082244303053', '0321323747', '0321323747', '[{\"source\":\"Pekerjaan\",\"kluCode\":\"Z5000\",\"kluName\":\"PEGAWAI SWASTA\",\"workplace\":\"PT ABC\",\"incomePerMonth\":\"Rp. 4.500.000 - Rp. 10.000.000\",\"id\":1753669236710}]', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Gedongan II/76\",\"rt\":\"004\",\"rw\":\"003\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Gedongan II/76\",\"rt\":\"004\",\"rw\":\"003\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"}]', '[{\"type\":\"Keluarga\",\"nikTin\":\"3576026906010008\",\"name\":\"Septien\",\"id\":1753668284895}]', 'pending', NULL, NULL, NULL, 0, 246, NULL, '2025-07-28 11:19:08.000000', '2025-07-28 11:19:08.394000'),
 (44, 247, 'individual', 1, 'nik-activation', '1802023020000010', 'Revaldi', 'Malang', '2000-01-01', 'Individual or Undivided Inheritance', 'Indonesia', 'Islam', 'Male', 'Married', 'Employee', 'Rini', '1802023020000000', 'Head of Family', 'revaldi@gmail.com', '087123456789', '', '', '[{\"source\":\"Pekerjaan\",\"kluCode\":\"Z5000\",\"kluName\":\"PEGAWAI SWASTA\",\"workplace\":\"PT Amerta Indah Otsuka\",\"incomePerMonth\":\"Rp. 4.500.000 - Rp. 10.000.000\",\"id\":1753714430139},{\"source\":\"Usaha\",\"kluCode\":\"A0112\",\"kluName\":\"USAHA TANAMAN JAGUNG\",\"workplace\":\"Kantor Jasa Akuntan\",\"incomePerMonth\":\"Lebih dari Rp. 10.000.000\",\"id\":1753714617850}]', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Jl. Papah Biru No. 74\",\"rt\":\"004\",\"rw\":\"003\",\"province\":\"Jawa Timur\",\"city\":\"Surabaya\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Jl. Papah Biru No. 74\",\"rt\":\"004\",\"rw\":\"003\",\"province\":\"Jawa Timur\",\"city\":\"Surabaya\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"}]', '[{\"type\":\"Keluarga\",\"nikTin\":\"3524150207880002\",\"name\":\"Radika Putri\",\"id\":1753714367643}]', 'pending', NULL, NULL, NULL, 0, 247, NULL, '2025-07-28 22:00:13.000000', '2025-07-28 22:00:13.832000'),
-(45, 248, 'individual', 1, 'nik-activation', '0517345790980005', 'Felix Wahyudi', 'Surabaya', '2000-01-01', 'Individual or Undivided Inheritance', 'Indonesia', 'Islam', 'Male', 'Single', 'Employee', 'Stefani', '0517345790980000', 'Head of Family', 'felixwahyudi@gmail.com', '082244303053', '', '', '[{\"source\":\"Pekerjaan\",\"kluCode\":\"Z5000\",\"kluName\":\"PEGAWAI SWASTA\",\"workplace\":\"PT Jaya Shakti\",\"incomePerMonth\":\"Rp. 4.500.000 - Rp. 10.000.000\",\"id\":1755754728939}]', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Jl Keputih No 50 Surabaya\",\"rt\":\"001\",\"rw\":\"002\",\"province\":\"Jawa Timur\",\"city\":\"Surabaya\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Jl Keputih No 50 Surabaya\",\"rt\":\"001\",\"rw\":\"002\",\"province\":\"Jawa Timur\",\"city\":\"Surabaya\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"}]', '[{\"type\":\"Keluarga\",\"nikTin\":\"0517345790980000\",\"name\":\"Stefani\",\"id\":1755754699755}]', 'pending', NULL, NULL, NULL, 0, 248, NULL, '2025-08-21 12:39:40.000000', '2025-08-21 12:39:40.187000');
+(45, 248, 'individual', 1, 'nik-activation', '0517345790980005', 'Felix Wahyudi', 'Surabaya', '2000-01-01', 'Individual or Undivided Inheritance', 'Indonesia', 'Islam', 'Male', 'Single', 'Employee', 'Stefani', '0517345790980000', 'Head of Family', 'felixwahyudi@gmail.com', '082244303053', '', '', '[{\"source\":\"Pekerjaan\",\"kluCode\":\"Z5000\",\"kluName\":\"PEGAWAI SWASTA\",\"workplace\":\"PT Jaya Shakti\",\"incomePerMonth\":\"Rp. 4.500.000 - Rp. 10.000.000\",\"id\":1755754728939}]', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"Jl Keputih No 50 Surabaya\",\"rt\":\"001\",\"rw\":\"002\",\"province\":\"Jawa Timur\",\"city\":\"Surabaya\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"Jl Keputih No 50 Surabaya\",\"rt\":\"001\",\"rw\":\"002\",\"province\":\"Jawa Timur\",\"city\":\"Surabaya\",\"district\":\"Lowokwaru\",\"village\":\"Mojolangu\",\"postalCode\":\"65141\",\"coordinates\":\"\"}]', '[{\"type\":\"Keluarga\",\"nikTin\":\"0517345790980000\",\"name\":\"Stefani\",\"id\":1755754699755}]', 'pending', NULL, NULL, NULL, 0, 248, NULL, '2025-08-21 12:39:40.000000', '2025-08-21 12:39:40.187000'),
+(46, 249, 'individual', 1, 'nik-activation', '1234567890123451', 'teto', 'malang', '2000-08-04', 'Individual or Undivided Inheritance', 'Indonesia', 'Islam', 'Male', 'Single', 'Employee', 'asdf', '1234567890123452', 'Child', 'fakerdino13@gmail.com', '081234567890', '081234567890', '', '[{\"source\":\"Pekerjaan\",\"kluCode\":\"Z5000\",\"kluName\":\"PEGAWAI SWASTA\",\"workplace\":\"Malang\",\"incomePerMonth\":\"Kurang dari Rp. 4.500.000\",\"id\":1777488340863}]', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"alamat rumah\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Klojen\",\"village\":\"Mojolangu\",\"postalCode\":\"65111\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"alamat rumah\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Klojen\",\"village\":\"Mojolangu\",\"postalCode\":\"65111\",\"coordinates\":\"\"}]', '[]', 'pending', NULL, NULL, NULL, 0, 249, NULL, '2026-04-30 01:46:31.000000', '2026-04-30 01:46:31.723000'),
+(48, 251, 'company', 1, '', '1234567890987654', 'piyu', '', '0000-00-00', '', '', '', 'Male', '', '', '', '', '', 'test@gmail.com', '081234567890', '081234567890', '', '{\"metodePembukuan\":\"Pembukuan\",\"mataUangPembukuan\":\"Rupiah Indonesia\",\"periodePembukuan\":\"01-12\",\"kluUtama\":[{\"kluCode\":\"A0111\",\"kluName\":\"USAHA TANAMAN PADI\",\"uraian\":\"padi\",\"id\":1777572613714}],\"kluTambahan\":[]}', '[{\"type\":\"Alamat Domisili (Alamat Utama)\",\"address\":\"klantor\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Sukun\",\"village\":\"Mojolangu\",\"postalCode\":\"65111\",\"coordinates\":\"\"},{\"type\":\"Alamat sesuai di KTP\",\"address\":\"klantor\",\"rt\":\"000\",\"rw\":\"000\",\"province\":\"Jawa Timur\",\"city\":\"Malang\",\"district\":\"Sukun\",\"village\":\"Mojolangu\",\"postalCode\":\"65111\",\"coordinates\":\"\"}]', NULL, 'pending', NULL, NULL, NULL, 0, 251, NULL, '2026-05-01 01:24:53.000000', '2026-05-01 01:24:53.538000');
 
 -- --------------------------------------------------------
 
@@ -2339,7 +2332,7 @@ CREATE TABLE `users` (
   `created_date` datetime(6) DEFAULT NULL,
   `updated_date` datetime(6) DEFAULT NULL,
   `company_id` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=COMPACT;
 
 --
 -- Dumping data for table `users`
@@ -2354,18 +2347,18 @@ INSERT INTO `users` (`id`, `nim`, `nama`, `email`, `kelas`, `role`, `password`, 
 (115, '130_xGKYB_12345123', 'Fahmi', '130_xGKYB_null', 'AK 2', 1, '$2b$10$r9bz7IH3dSpqVEpv.oDSSeGJnOJYfCrPMVTI.e.fPFehcZzKJAvza', 'https://t4.ftcdn.net/jpg/03/46/93/61/360_F_346936114_RaxE6OQogebgAWTalE1myseY1Hbb5qPM.jpg', '2022-03-19 23:14:01.000000', 1, 1, 130, NULL, '2025-04-26 04:46:40.680000', NULL),
 (117, '130_XXM9K_00012345', 'Dewi Hanggraeni, Dr., SE, MBA.', '130_XXM9K_dosen1@test.com', 'Dosen', 2, '$2b$10$6D/mQG240gRrKgpiscwDLeSbtIVYs5xZz0olTnlDinp7/Pf/ralti', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-02-23 16:56:05.000000', 1, 1, 130, '2022-03-11 03:47:46.000000', '2025-04-26 04:46:30.256000', NULL),
 (120, '130_PckFH_11112345', ' Anna Amalyah Agus, SE.MBA', '130_PckFH_dosen2@test.com', 'Dosen', 2, '$2b$10$xZZ61Uu0uS2ZOcNcL0.cVOrCyoLiqz05FRV.hb2MXr82lP1dN0hry', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-02-23 19:10:36.000000', 1, 1, 130, '2022-03-18 19:03:23.000000', '2025-04-26 04:46:36.010000', NULL),
-(121, '12121212', 'Naufal Yukafi Ridlo', 'naufalyukafi10@gmail.com', 'AK1', 1, '$2b$10$KOi/1de7gM0XhUzxBkHWsuLkHHZ43tqfc8R7fgF/Se3zbDeocrWcm', '/assets/uploads/img/profile-1747558802819-305897799.jpg', '2025-11-09 14:42:51.000000', 1, 0, 143, '2022-03-30 03:06:57.000000', '2025-11-09 14:42:51.291000', NULL),
+(121, '12121212', 'Naufal Yukafi Ridlo', 'naufalyukafi10@gmail.com', 'AK1', 1, '$2b$10$Lqt/lE0aU79b9ExootZGPOvuRsRFMTTYyV7zcUtgkcW6KG5gF95aS', '/assets/uploads/img/profile-1747558802819-305897799.jpg', '2026-04-30 01:39:19.000000', 1, 0, 130, '2022-03-30 03:06:57.000000', '2026-04-30 01:39:19.450000', NULL),
 (122, '130_LZkUC_12345678', 'Anggi Saputra', '130_LZkUC_null', 'AK-1A', 1, '$2b$10$tD47wSIHw/fFnPFqAry1WOD2i6m.ft0gLPOvXXRwyehjhNvyM.L6y', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2022-04-01 18:26:10.000000', 1, 1, 130, '2022-04-01 18:24:55.000000', '2025-04-26 04:46:56.235000', NULL),
 (125, '130_MNJtI_1122334455', 'Adam Firmansah', '130_MNJtI_null', 'AK-2', 1, '$2b$10$/YigJj1GTwHnikUSzLaVlOlxj2Q9dYhLyJyuR1VPdy9zsOsI9qw5m', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2022-04-04 20:24:14.000000', 1, 1, 130, '2022-04-04 17:29:34.000000', '2025-04-26 04:47:00.261000', NULL),
 (127, '1_2v6QT_1641720075', 'Aggara Saputra', '1_2v6QT_null', 'AK-2', 1, '$2b$10$I.VoZ.Y5k6DGQiCsleo/WO7SVg.G4hztkOiH4KlvoE.QeqBP8YhcC', 'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png', '2022-04-25 11:42:54.000000', 1, 1, 1, '2022-04-25 04:38:41.000000', '2022-04-25 15:45:41.000000', NULL),
 (128, '130_qybEP_1641720075', 'Aggara Saputra', '130_qybEP_apratamaputra756@gmail.com', 'AK-2', 1, '$2b$10$l6xFpqkCYEoVWm/3uxpn/edUrNCn1QWou.ncOmYGxXPUYIMuollKG', 'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png', '2022-04-26 00:22:35.000000', 1, 1, 130, '2022-04-25 16:04:50.000000', '2025-04-26 04:47:04.569000', NULL),
 (129, '14_agiW4_1234567890', 'Dosen 3 Tes', '14_agiW4_dosen3@test.com', '-', 2, '$2b$10$P.BEik3TZp3Meac47QcQVeSCnprTM4I6z5IpgdQWT2xDbrvUnm5Uy', 'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png', '2022-04-25 23:47:39.000000', 1, 1, 14, '2022-04-25 16:47:04.000000', '2022-04-25 16:48:02.000000', NULL),
-(130, '98345465', 'superadmin', 'superadmin@gmail.com', 'ADM', 3, '$2b$10$6D/mQG240gRrKgpiscwDLeSbtIVYs5xZz0olTnlDinp7/Pf/ralti', '/assets/uploads/img/profile-1747449401372-602533552.png', '2026-03-09 20:12:15.000000', 1, 0, 130, '2025-02-12 21:35:39.000000', '2026-03-09 20:12:15.049000', NULL),
+(130, '98345465', 'superadmin', 'superadmin@gmail.com', 'ADM', 3, '$2b$10$6D/mQG240gRrKgpiscwDLeSbtIVYs5xZz0olTnlDinp7/Pf/ralti', '/assets/uploads/img/profile-1747449401372-602533552.png', '2026-04-30 01:01:55.000000', 1, 0, 130, '2025-02-12 21:35:39.000000', '2026-04-30 01:01:55.149000', NULL),
 (137, '130_6xOmF_31232435435', 'paijo', '130_6xOmF_null', '12', 1, '$2b$10$pHYhlkNu1k33rxy5iPqzde7GS4Xl83vEy.TsSRI9pskzgZICbY7HG', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-02-23 18:35:06.000000', 1, 1, 130, '2025-02-23 18:34:46.575000', '2025-02-23 18:35:15.207000', NULL),
 (138, '130_7NUGs_73454354363', 'Raisa', '130_7NUGs_null', 'IT', 1, '$2b$10$uT9MAWr5hSvEnyQqpsVazOB0dTyZem8DEAlB.MoFRtwYUT9CdgGq2', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-02-23 18:49:56.000000', 1, 1, 130, '2025-02-23 18:39:08.573000', '2025-04-26 04:47:09.582000', NULL),
 (139, '130_uhiDH_12325345435', 'fsdfdsf', '130_uhiDH_null', '3', 1, '$2b$10$eqLN/XIsy5Iuk7kZ/uBSMO8Hc2lZmZd9lRRXwx7WUawrSYiYgk7Qa', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-04-20 15:34:10.000000', 1, 1, 130, '2025-02-23 18:50:15.527000', '2025-04-26 04:47:13.805000', NULL),
 (140, '130_YTxdb_456457477', 'Raisa', '130_YTxdb_null', 'IT 2A', 1, '$2b$10$1Q8F97LtwFqbr3U5ncBDieMKCKx6UtpO/KsB5H./DZfHY3RkE5wwW', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-02-23 18:59:03.000000', 1, 1, 130, '2025-02-23 18:56:39.444000', '2025-02-23 18:59:15.525000', NULL),
-(143, '847643543', 'Dimas Wahyu Wibowo, ST., MT', 'dimaswahyu@gmail.com', '-', 2, '$2b$10$ub4dSSQunhBjNi5F0NX30ecr6ohaOZ1p1Z8.9By0X2Uz5FJzXuf3O', '/assets/uploads/img/profile-1747558775462-869142558.png', '2025-11-09 14:43:28.000000', 1, 0, 143, '2025-02-23 19:14:15.767000', '2025-11-09 14:43:28.661000', NULL),
+(143, '847643543', 'Dimas Wahyu Wibowo, ST., MT', 'dimaswahyu@gmail.com', '-', 2, '$2b$10$ub4dSSQunhBjNi5F0NX30ecr6ohaOZ1p1Z8.9By0X2Uz5FJzXuf3O', '/assets/uploads/img/profile-1747558775462-869142558.png', '2026-07-13 20:02:24.000000', 1, 0, 143, '2025-02-23 19:14:15.767000', '2026-07-13 20:02:24.774000', NULL),
 (144, '130_4ZbdT_83454', 'epa', '130_4ZbdT_null', '12', 1, '$2b$10$ObvKuSeJ/fNz1aAVPVS/BePvcICJgL2.VAIMBAixB9P/54R8ThfjW', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', NULL, 1, 1, 130, '2025-03-14 23:04:04.968000', '2025-03-14 23:07:28.152000', NULL),
 (145, '130_6lj6T_5435345', 'paijodosen', '130_6lj6T_null', 'Dosen', 1, '$2b$10$IurEe7W6esZIhtwiNgRe4OJdvD.2V6mkuKi1N7skYzDc857zj9Cze', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-03-14 23:05:31.000000', 1, 1, 130, '2025-03-14 23:04:04.989000', '2025-03-14 23:07:38.393000', NULL),
 (146, '130_1lpzA_1221', 'yukapi', '130_1lpzA_null', '12', 1, '$2b$10$jzUqnp4XvVIla2Gph7.HousYDIa2VKB91drFnn/sJ2G4WONCnZm1G', '\'\\\'https://res.cloudinary.com/miewtech/image/upload/v1623974364/defuser_ivetsc.png\\\'\'', '2025-03-14 23:04:46.000000', 1, 1, 130, '2025-03-14 23:04:04.985000', '2025-03-14 23:07:33.806000', NULL),
@@ -2421,7 +2414,7 @@ INSERT INTO `users` (`id`, `nim`, `nama`, `email`, `kelas`, `role`, `password`, 
 (230, '11111111', 'ridlo', 'naufaly@gmail.com', '7', 1, '$2b$10$gDvBgXmXpZq7ZA33hpX7JeA8to8acfEpC/j5qfoPwmonAXMcWogfe', '/assets/uploads/img/profile-1748024135641-130083693.jpg', '2025-05-25 05:15:19.000000', 1, 0, 230, '2025-05-23 23:33:07.588000', '2025-05-25 05:15:19.106000', NULL),
 (231, '35710345678', 'Venna', 'venna@gmail.com', '10 RPL B', 1, '$2b$10$Dar3Mh1IXTrMFuC.DDdNkOek.rYMvf/dh8FxByI6D45kZc.GuZuHe', '/assets/uploads/img/profile-1748044157162-301625341.png', '2025-05-24 06:45:24.000000', 1, 0, 231, '2025-05-24 06:44:43.475000', '2025-05-24 06:49:17.165000', NULL),
 (232, '135703420', 'testing1', '', '10 RPL B', 1, '$2b$10$oChUYhURCnMZU9BamwxUI.iJ0lz9lOYA3APHrCQ0HEWZ3yLJTEVDi', '/assets/uploads/img/profile-1747449287171-167035495.png', NULL, 1, 0, NULL, '2025-05-27 08:44:17.921000', '2025-05-27 08:44:17.921000', NULL),
-(233, '1234567801234561', 'Naufal Yukafi Ridlo', 'yukafiwork@gmail.com', 'Individual-NIK', 1, '$2b$10$BFFMcoU4D3K.QtYrVuXqo.ioKkwY/2GnMEZH8hIRQOM2AyQz7y6Tm', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-11-09 17:01:24.000000', 1, 0, 143, '2025-05-30 08:48:08.000000', '2025-11-09 17:01:24.691000', NULL),
+(233, '1234567801234561', 'Naufal Yukafi Ridlo', 'yukafiwork@gmail.com', 'Individual-NIK', 1, '$2b$10$BFFMcoU4D3K.QtYrVuXqo.ioKkwY/2GnMEZH8hIRQOM2AyQz7y6Tm', '/assets/uploads/img/profile-1747449287171-167035495.png', '2026-03-11 23:19:59.000000', 1, 0, 143, '2025-05-30 08:48:08.000000', '2026-03-11 23:19:59.452000', NULL),
 (234, '1234567890123456', 'qwertyuiop', 'user1@gmail.com', 'Individual-NIK', 1, '$2b$10$.dwL7ygHolZNKXiJ7WycvuQKHitTVsavBFAacW7phac0WrOIAa4lm', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-05-31 22:44:33.000000', 1, 0, 130, '2025-05-31 22:41:56.000000', '2025-05-31 22:44:33.437000', NULL),
 (235, '1111111111111111', 'Birra', 'birra@gmail.com', 'Individual-NIK', 1, '$2b$10$vfTSyh2xYo8idqdZ/hVel.JaciQduAPsDLppb1MQB9jHLWIAtdvH.', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-06-01 13:02:19.000000', 1, 0, 130, '2025-06-01 12:54:41.000000', '2025-06-01 13:02:19.509000', NULL),
 (236, '0987654734534534', 'Yukafai', 'yukafai@gmail.com', 'Individual-NIK', 1, '$2b$10$qcv1VVYcsupYDOBYeL3ktuwaZQnj9gCUvWJ8NkpobK4F0AOcmjtH6', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-06-10 21:56:42.000000', 1, 0, 130, '2025-06-10 21:55:42.000000', '2025-06-10 21:56:42.227000', NULL),
@@ -2435,7 +2428,9 @@ INSERT INTO `users` (`id`, `nim`, `nama`, `email`, `kelas`, `role`, `password`, 
 (245, '0517345790980001', 'Felix', 'felix@gmail.com', 'Individual-NIK', 1, '$2b$10$xYNx3LyKIlTxaniYpGYxoexsmXA9o/AhlzRKXijPvPt5APqAVdtYy', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-09-23 18:45:11.000000', 1, 0, 130, '2025-07-27 19:34:55.000000', '2025-09-23 18:45:11.688000', NULL),
 (246, '3576026906010007', 'Farah', 'farah@gmail.com', 'Individual-NIK', 1, '$2b$10$9hmmy9h79CLsozoSn.pj2.feaTcbF0wHK9rxoVK.iWjl3UMwyXMbq', '/assets/uploads/img/profile-1747449287171-167035495.png', NULL, 1, 0, 143, '2025-07-28 11:19:08.000000', '2025-07-28 11:21:42.387000', NULL),
 (247, '1802023020000010', 'Revaldi', 'revaldi@gmail.com', 'Individual-NIK', 1, '$2b$10$KNew8uTVvnDY4EyZMiLx5.VcG2PJSUzROS6B05SRHBskjzrkpCfdi', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-07-29 08:06:23.000000', 1, 0, 247, '2025-07-28 22:00:13.000000', '2025-07-29 08:08:40.355000', NULL),
-(248, '0517345790980005', 'Felix Wahyudi', 'felixwahyudi@gmail.com', 'Individual-NIK', 1, '$2b$10$xxyaQf2M1x5i/F0LzZ8MFepKH/L1Dxgk4qQxW8bKPtGxJVqebO67q', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-08-21 12:42:52.000000', 1, 0, 143, '2025-08-21 12:39:40.000000', '2025-08-21 12:42:52.588000', NULL);
+(248, '0517345790980005', 'Felix Wahyudi', 'felixwahyudi@gmail.com', 'Individual-NIK', 1, '$2b$10$xxyaQf2M1x5i/F0LzZ8MFepKH/L1Dxgk4qQxW8bKPtGxJVqebO67q', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-08-21 12:42:52.000000', 1, 0, 143, '2025-08-21 12:39:40.000000', '2025-08-21 12:42:52.588000', NULL),
+(249, '1234567890123451', 'teto', 'fakerdino13@gmail.com', 'Individual-NIK', 1, '$2b$10$HUYvvJkLAwxNXNKlv0tkg.MAPLZH1wMwt/gwSfK.eDJvRWFlHiwn.', '/assets/uploads/img/profile-1747449287171-167035495.png', '2026-07-13 20:02:45.000000', 1, 0, 143, '2026-04-30 01:46:31.000000', '2026-07-13 20:02:45.316000', NULL),
+(251, '1234567890987654', 'piyuh', 'test@gmail.com', 'Company-PIC', 1, '$2b$10$QSwYbpL1b8LFfRt/t1A3U.czlkECKYfCQvIzvCN2rer4vdb2DcbcW', '/assets/uploads/img/profile-1747449287171-167035495.png', '2026-07-13 20:02:59.000000', 1, 0, 251, '2026-05-01 01:24:53.000000', '2026-07-13 20:02:59.737000', NULL);
 
 -- --------------------------------------------------------
 
@@ -2451,7 +2446,7 @@ CREATE TABLE `users_detail` (
   `no_tlfn` varchar(255) DEFAULT NULL,
   `created_date` datetime(6) DEFAULT NULL,
   `updated_date` datetime(6) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `users_detail`
@@ -2466,7 +2461,8 @@ INSERT INTO `users_detail` (`id_user_detail`, `id_user`, `ttl`, `alamat`, `no_tl
 (11, 143, 'Malang, 09 Oktober 1984', 'Jl. Sidoagung, Gang Bhayangkara No.41', '08179646264', NULL, NULL),
 (12, 230, 'testsdfsdf ridlo', 'Jl Selogending, Kandangan, Senduro', '085607287537', NULL, NULL),
 (13, 231, 'kediri, 02 mei 2002', 'Jl Pesantren 06', '08767898765', NULL, NULL),
-(14, 247, 'Malang, 01-01-2000', 'Jl Papah Biru No 74, Surabaya', '082244303053', NULL, NULL);
+(14, 247, 'Malang, 01-01-2000', 'Jl Papah Biru No 74, Surabaya', '082244303053', NULL, NULL),
+(15, 251, 'Malang, 1 Januari 2000', 'Jalan Malang', '089692034600', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2655,7 +2651,7 @@ CREATE TABLE `vt_area` (
   `updated_by` int(11) DEFAULT 0,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `vt_area`
@@ -2713,7 +2709,7 @@ CREATE TABLE `vt_items` (
   `updated_by` int(11) DEFAULT NULL,
   `created_date` datetime DEFAULT NULL,
   `updated_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
 -- Dumping data for table `vt_items`
@@ -3121,20 +3117,6 @@ ALTER TABLE `sentence`
   ADD KEY `fkitem_sentance` (`items_id`) USING BTREE;
 
 --
--- Indexes for table `sequelizemeta`
---
-ALTER TABLE `sequelizemeta`
-  ADD PRIMARY KEY (`name`),
-  ADD UNIQUE KEY `name` (`name`);
-
---
--- Indexes for table `SequelizeMeta`
---
-ALTER TABLE `SequelizeMeta`
-  ADD PRIMARY KEY (`name`),
-  ADD UNIQUE KEY `name` (`name`);
-
---
 -- Indexes for table `spot`
 --
 ALTER TABLE `spot`
@@ -3160,7 +3142,7 @@ ALTER TABLE `spt_grade`
 --
 ALTER TABLE `spt_tahunan`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_user_tax_year` (`user_id`,`tax_year`),
+  ADD UNIQUE KEY `unique_user_tax_year_type` (`user_id`,`tax_year`,`tax_type`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_reference_number` (`reference_number`),
   ADD KEY `idx_submission_date` (`submission_date`),
@@ -3247,7 +3229,7 @@ ALTER TABLE `blog`
 -- AUTO_INCREMENT for table `companies`
 --
 ALTER TABLE `companies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `course`
@@ -3403,7 +3385,7 @@ ALTER TABLE `spt_grade`
 -- AUTO_INCREMENT for table `spt_tahunan`
 --
 ALTER TABLE `spt_tahunan`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- AUTO_INCREMENT for table `student_questionnaire`
@@ -3421,19 +3403,19 @@ ALTER TABLE `student_results`
 -- AUTO_INCREMENT for table `taxpayer`
 --
 ALTER TABLE `taxpayer`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=249;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=252;
 
 --
 -- AUTO_INCREMENT for table `users_detail`
 --
 ALTER TABLE `users_detail`
-  MODIFY `id_user_detail` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id_user_detail` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `user_tours`
