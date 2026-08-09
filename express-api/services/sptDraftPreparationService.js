@@ -250,9 +250,8 @@ class SptDraftPreparationService {
    * Transaction Requirement: Not mandatory (single-write operation).
    *
    * @param {{ userId: number|string }} actorContext - Authenticated user
-   *   context. Accepted as business context for traceability only; no
-   *   authorization decision is made here (out of Service scope), and
-   *   no actor-persistence field is added by accepting it.
+   *   context. Accepted for signature consistency/traceability only; no
+   *   authorization decision is made here (out of Service scope).
    * @param {number|string} headerId - Draft reference.
    * @param {string} sectionKey - one of SECTION_REGISTRY keys.
    * @param {object} sectionData - Raw Input for the section.
@@ -294,9 +293,8 @@ class SptDraftPreparationService {
    * Transaction Requirement: Not mandatory (single-write operation).
    *
    * @param {{ userId: number|string }} actorContext - Authenticated user
-   *   context. Accepted as business context for traceability only; no
-   *   authorization decision is made here (out of Service scope), and
-   *   no actor-persistence field is added by accepting it.
+   *   context. Accepted for signature consistency/traceability only; no
+   *   authorization decision is made here (out of Service scope).
    * @param {number|string} headerId - Draft reference.
    * @param {string} sectionKey - one of SECTION_REGISTRY keys.
    * @param {number|string} sectionId - primary key of the section row.
@@ -417,10 +415,8 @@ class SptDraftPreparationService {
    * does not invent a formula or a derived field.
    *
    * @param {{ userId: number|string }} actorContext - Authenticated user
-   *   context. Accepted as business context for traceability only; it
-   *   is not yet used for formula input (no formula exists to consume
-   *   it), and accepting it does not introduce any derived-value
-   *   persistence or authorization decision.
+   *   context. Accepted for signature consistency/traceability only; no
+   *   authorization decision is made here (out of Service scope).
    * @param {number|string} headerId - Draft reference.
    * @param {object} [calculationContext] - reserved for future formula
    *   input; currently unused because no formula is defined.
@@ -449,8 +445,8 @@ class SptDraftPreparationService {
    * derived value is ever persisted.
    *
    * @param {{ userId: number|string }} actorContext - Authenticated user
-   *   context. Forwarded to calculate() unchanged so it is never lost
-   *   across this internal delegation.
+   *   context. Accepted for signature consistency/traceability only; no
+   *   authorization decision is made here (out of Service scope).
    * @param {number|string} headerId - Draft reference.
    * @param {object} [calculationContext] - reserved for future formula
    *   input; currently unused because no formula is defined.
@@ -472,7 +468,7 @@ class SptDraftPreparationService {
    * (single-write operation).
    *
    * @param {{ userId: number|string }} actorContext - Authenticated user
-   *   context. No longer optional. Accepted for traceability only; no
+   *   context. Accepted for signature consistency/traceability only; no
    *   authorization decision is made here (out of Service scope).
    * @param {number|string} headerId - Draft reference.
    * @returns {Promise<object|null>} Soft-deleted header record.
