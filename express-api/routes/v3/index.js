@@ -4,6 +4,7 @@ const v = require("../../middleware/verifikasi");
 
 //#region Import
 const scen = require("./scenario/skenario.controller");
+const sptDraftController = require("../../controllers/sptDraftController");
 
 
 
@@ -21,6 +22,17 @@ router.get("/skenario/list", v.verifikasi(["dosen", "admin"]), scen.getAllScenar
 // router.get("/skenario/subscriber/detail/:scenid", v.verifikasi(["dosen","admin"]), scen.getdetailsubscriber);
 // router.post("/skenario/subscriber/update", v.verifikasi(["dosen","admin"]), scen.updateUsersSubscriber);
 // router.post("/skenario/gsworksheet/updateimage", v.verifikasi(["dosen","admin"]), scen.updatedatagsicon);
+
+//#endregion
+
+
+//#region SPT Tahunan Badan - Draft Preparation
+router.post("/spt/drafts", v.verifall(), sptDraftController.createDraft);
+router.post("/spt/drafts/:headerId/sections/:sectionKey", v.verifall(), sptDraftController.saveSection);
+router.patch("/spt/drafts/:headerId/sections/:sectionKey/:sectionId", v.verifall(), sptDraftController.updateSection);
+router.post("/spt/drafts/:headerId/calculate", v.verifall(), sptDraftController.calculate);
+router.post("/spt/drafts/:headerId/recalculate", v.verifall(), sptDraftController.recalculate);
+router.delete("/spt/drafts/:headerId", v.verifall(), sptDraftController.deleteDraft);
 
 //#endregion
 
