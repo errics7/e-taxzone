@@ -249,12 +249,16 @@ class SptDraftPreparationService {
    *
    * Transaction Requirement: Not mandatory (single-write operation).
    *
+   * @param {{ userId: number|string }} actorContext - Authenticated user
+   *   context. Accepted as business context for traceability only; no
+   *   authorization decision is made here (out of Service scope), and
+   *   no actor-persistence field is added by accepting it.
    * @param {number|string} headerId - Draft reference.
    * @param {string} sectionKey - one of SECTION_REGISTRY keys.
    * @param {object} sectionData - Raw Input for the section.
    * @returns {Promise<object>} Persisted section result.
    */
-  async saveSection(headerId, sectionKey, sectionData) {
+  async saveSection(actorContext, headerId, sectionKey, sectionData) {
     const { repository, headerScoped } = this._resolveSection(sectionKey);
 
     await this._assertDraftIsEditable(headerId);
@@ -289,6 +293,10 @@ class SptDraftPreparationService {
    *
    * Transaction Requirement: Not mandatory (single-write operation).
    *
+   * @param {{ userId: number|string }} actorContext - Authenticated user
+   *   context. Accepted as business context for traceability only; no
+   *   authorization decision is made here (out of Service scope), and
+   *   no actor-persistence field is added by accepting it.
    * @param {number|string} headerId - Draft reference.
    * @param {string} sectionKey - one of SECTION_REGISTRY keys.
    * @param {number|string} sectionId - primary key of the section row.
@@ -296,7 +304,7 @@ class SptDraftPreparationService {
    * @returns {Promise<object|null>} Updated section result, or null if
    *   the section record does not exist.
    */
-  async updateSection(headerId, sectionKey, sectionId, sectionData) {
+  async updateSection(actorContext, headerId, sectionKey, sectionId, sectionData) {
     const { repository, headerScoped } = this._resolveSection(sectionKey);
 
     await this._assertDraftIsEditable(headerId);
@@ -408,12 +416,17 @@ class SptDraftPreparationService {
    * This method therefore performs Raw Input orchestration only; it
    * does not invent a formula or a derived field.
    *
+   * @param {{ userId: number|string }} actorContext - Authenticated user
+   *   context. Accepted as business context for traceability only; it
+   *   is not yet used for formula input (no formula exists to consume
+   *   it), and accepting it does not introduce any derived-value
+   *   persistence or authorization decision.
    * @param {number|string} headerId - Draft reference.
    * @param {object} [calculationContext] - reserved for future formula
    *   input; currently unused because no formula is defined.
    * @returns {Promise<{ header: object, rawInput: object, calculationResult: null, status: string }>}
    */
-  async calculate(headerId, calculationContext = {}) {
+  async calculate(actorContext, headerId, calculationContext = {}) {
     const header = await this._assertDraftIsEditable(headerId);
     const rawInput = await this._readRawInput(headerId);
 
@@ -435,13 +448,16 @@ class SptDraftPreparationService {
    * does; no cached/previous result exists to invalidate since no
    * derived value is ever persisted.
    *
+   * @param {{ userId: number|string }} actorContext - Authenticated user
+   *   context. Forwarded to calculate() unchanged so it is never lost
+   *   across this internal delegation.
    * @param {number|string} headerId - Draft reference.
    * @param {object} [calculationContext] - reserved for future formula
    *   input; currently unused because no formula is defined.
    * @returns {Promise<{ header: object, rawInput: object, calculationResult: null, status: string }>}
    */
-  async recalculate(headerId, calculationContext = {}) {
-    return this.calculate(headerId, calculationContext);
+  async recalculate(actorContext, headerId, calculationContext = {}) {
+    return this.calculate(actorContext, headerId, calculationContext);
   }
 
   // -----------------------------------------------------------------
@@ -455,12 +471,13 @@ class SptDraftPreparationService {
    * Transaction Requirement: No new mandatory cascade transaction rule
    * (single-write operation).
    *
+   * @param {{ userId: number|string }} actorContext - Authenticated user
+   *   context. No longer optional. Accepted for traceability only; no
+   *   authorization decision is made here (out of Service scope).
    * @param {number|string} headerId - Draft reference.
-   * @param {{ userId: number|string }} [actorContext] - traceability only;
-   *   no authorization decision is made here (out of Service scope).
    * @returns {Promise<object|null>} Soft-deleted header record.
    */
-  async deleteDraft(headerId, actorContext = {}) {
+  async deleteDraft(actorContext, headerId) {
     const header = await sptHeaderRepository.findById(headerId);
     if (!header) {
       throw new DraftNotFoundError();
