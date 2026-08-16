@@ -21,6 +21,7 @@ const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(/,/g, '')) 
 const buildInitialRows = (taxYears) =>
     (Array.isArray(taxYears) ? taxYears : []).map((year) => ({
         taxYear:      year,
+        dbId:         null, // V3 persistence — PK spt_l7.id. null = belum tersimpan (POST); terisi = PATCH.
         netFiscal:    '',
         compYMinus4:  '',
         compYMinus3:  '',
@@ -42,6 +43,7 @@ const mergeRowsWithDraft = (initialRows, draftRows) => {
         if (!d) return row;
         return {
             ...row,
+            dbId:         d.dbId         ?? row.dbId,
             netFiscal:    d.netFiscal    ?? row.netFiscal,
             compYMinus4:  d.compYMinus4  ?? row.compYMinus4,
             compYMinus3:  d.compYMinus3  ?? row.compYMinus3,

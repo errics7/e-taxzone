@@ -28,8 +28,11 @@ router.get("/skenario/list", v.verifikasi(["dosen", "admin"]), scen.getAllScenar
 
 //#region SPT Tahunan Badan - Draft Preparation
 router.post("/spt/drafts", v.verifall(), sptDraftController.createDraft);
+router.get("/spt/drafts/resolve", v.verifall(), sptDraftController.resolveDraft);
 router.post("/spt/drafts/:headerId/sections/:sectionKey", v.verifall(), sptDraftController.saveSection);
 router.patch("/spt/drafts/:headerId/sections/:sectionKey/:sectionId", v.verifall(), sptDraftController.updateSection);
+router.delete("/spt/drafts/:headerId/sections/:sectionKey/:sectionId", v.verifall(), sptDraftController.deleteSection);
+router.get("/spt/drafts/:headerId/sections/:sectionKey", v.verifall(), sptDraftController.getSection);
 router.post("/spt/drafts/:headerId/calculate", v.verifall(), sptDraftController.calculate);
 router.post("/spt/drafts/:headerId/recalculate", v.verifall(), sptDraftController.recalculate);
 router.delete("/spt/drafts/:headerId", v.verifall(), sptDraftController.deleteDraft);

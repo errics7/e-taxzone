@@ -125,8 +125,8 @@ const SECTION_B_LIAB_EKUITAS = [
     { internalId: 'b-2195',    code: '2195', name: 'Utang Dividen',                                               type: 'input' },
     { internalId: 'b-2201',    code: '2201', name: 'Beban Yang Masih Harus Dibayar',                              type: 'input' },
     { internalId: 'b-2202',    code: '2202', name: 'Utang Bank Jangka Pendek',                                    type: 'input' },
-    { internalId: 'b-2203a',   code: '2203', name: 'Utang Jangka Panjang yang Jatuh Tempo dalam Satu Tahun',      type: 'input' },
-    { internalId: 'b-2203b',   code: '2203', name: 'Pendapatan Diterima di Muka',                                 type: 'input' },
+    { internalId: 'b-2203a',   code: '2203A', name: 'Utang Jangka Panjang yang Jatuh Tempo dalam Satu Tahun',      type: 'input' },
+    { internalId: 'b-2203b',   code: '2203B', name: 'Pendapatan Diterima di Muka',                                 type: 'input' },
     { internalId: 'b-2228',    code: '2228', name: 'Liabilitas Jangka Pendek Lainnya',                            type: 'input' },
     { internalId: 'b-2229',    code: '2229', name: 'Jumlah Liabilitas Jangka Pendek',                             type: 'subtotal' },
 
@@ -134,8 +134,8 @@ const SECTION_B_LIAB_EKUITAS = [
     { internalId: 'b-2301',    code: '2301', name: 'Utang Bank Jangka Panjang',                                   type: 'input' },
     { internalId: 'b-2304',    code: '2304', name: 'Utang Jangka Panjang - Pihak Ketiga',                         type: 'input' },
     { internalId: 'b-2312',    code: '2312', name: 'Utang Jangka Panjang - Pihak yang Mempunyai Hubungan Istimewa', type: 'input' },
-    { internalId: 'b-2322a',   code: '2322', name: 'Liabilitas Sewa Jangka Panjang',                              type: 'input' },
-    { internalId: 'b-2322b',   code: '2322', name: 'Liabilitas Imbalan Kerja',                                    type: 'input' },
+    { internalId: 'b-2322a',   code: '2322A', name: 'Liabilitas Sewa Jangka Panjang',                              type: 'input' },
+    { internalId: 'b-2322b',   code: '2322B', name: 'Liabilitas Imbalan Kerja',                                    type: 'input' },
     { internalId: 'b-2321',    code: '2321', name: 'Liabilitas Pajak Tangguhan',                                  type: 'input' },
     { internalId: 'b-2998',    code: '2998', name: 'Liabilitas Jangka Panjang Lainnya',                           type: 'input' },
     { internalId: 'b-2999',    code: '2999', name: 'Jumlah Liabilitas',                                           type: 'subtotal' },
@@ -201,24 +201,34 @@ const buildInitialA = () =>
         posCorr:    '',
         negCorr:    '',
         corrCode:   '',
+        dbId:       null, // V3 persistence — PK spt_l1.id. null = belum tersimpan (POST); terisi = PATCH.
     }));
 
 const buildInitialBAset = () =>
-    SECTION_B_ASET.map((a, idx) => ({ ...withDerived(a, idx, 'baset'), amount: '' }));
+    SECTION_B_ASET.map((a, idx) => ({ ...withDerived(a, idx, 'baset'), amount: '', dbId: null }));
 
 const buildInitialBLiabEkuitas = () =>
-    SECTION_B_LIAB_EKUITAS.map((a, idx) => ({ ...withDerived(a, idx, 'bliab'), amount: '' }));
+    SECTION_B_LIAB_EKUITAS.map((a, idx) => ({ ...withDerived(a, idx, 'bliab'), amount: '', dbId: null }));
 
-// Merge field input mentah dari data draft ke initial rows berdasarkan internalId
-// (BUKAN code — Blueprint menemukan duplicate account code pada Bagian B Liabilitas).
-// Derived values (nonFinal, fiscalAmt, subtotal, a10) TIDAK disimpan — dihitung ulang.
+// Merge field input mentah dari data draft ke initial rows berdasarkan code.
+// CATATAN PERUBAHAN (READ dari V3/spt_l1): sebelumnya merge key adalah
+// internalId, karena roster Bagian B Liabilitas dulu punya duplicate
+// account_code. Duplicate itu SUDAH diperbaiki (2203→2203A/2203B,
+// 2322→2322A/2322B — lihat roster di atas), sehingga code kini unik per
+// section dan aman dipakai sebagai merge key. Perubahan ini diperlukan
+// karena baris dari database (spt_l1, hasil GET section) TIDAK memiliki
+// kolom internalId (murni konstruksi frontend) — hanya account_code.
+// internalId tetap dipertahankan apa adanya sebagai identity frontend
+// (tidak dihapus/diganti), hanya bukan lagi kunci pencarian merge.
+// dbId (PK spt_l1.id, V3 persistence) ikut di-merge agar Save berikutnya
+// PATCH, bukan POST ulang. Derived values TIDAK disimpan — dihitung ulang.
 const mergeRowsWithDraft = (initialRows, draftRows) => {
     if (!Array.isArray(draftRows) || draftRows.length === 0) return initialRows;
     const map = {};
-    draftRows.forEach(d => { if (d?.internalId) map[d.internalId] = d; });
+    draftRows.forEach(d => { if (d?.code) map[d.code] = d; });
     return initialRows.map(row => {
         if (!row.isInput) return row;
-        const d = map[row.internalId];
+        const d = map[row.code];
         if (!d) return row;
         return {
             ...row,
@@ -228,6 +238,7 @@ const mergeRowsWithDraft = (initialRows, draftRows) => {
             posCorr:    d.posCorr    ?? row.posCorr,
             negCorr:    d.negCorr    ?? row.negCorr,
             corrCode:   d.corrCode   ?? row.corrCode,
+            dbId:       d.dbId       ?? row.dbId,
         };
     });
 };
@@ -235,11 +246,11 @@ const mergeRowsWithDraft = (initialRows, draftRows) => {
 const mergeRowsBWithDraft = (initialRows, draftRows) => {
     if (!Array.isArray(draftRows) || draftRows.length === 0) return initialRows;
     const map = {};
-    draftRows.forEach(d => { if (d?.internalId) map[d.internalId] = d; });
+    draftRows.forEach(d => { if (d?.code) map[d.code] = d; });
     return initialRows.map(row => {
         if (!row.isInput) return row;
-        const d = map[row.internalId];
-        return d ? { ...row, amount: d.amount ?? row.amount } : row;
+        const d = map[row.code];
+        return d ? { ...row, amount: d.amount ?? row.amount, dbId: d.dbId ?? row.dbId } : row;
     });
 };
 

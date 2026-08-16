@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useImperativeHandle } from 'react';
 import { useDispatch } from 'react-redux';
 import { setSptType } from '../../../../../redux/sptSlice';
 import {
@@ -1938,9 +1938,10 @@ const SECTIONS_CONFIG = [
 // MAIN FORM COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassification, onTabTrigger, sectionDDisabled, onResetSectionD, onSptDataChange, a10Value, l1aRowsA, l1aRowsB, setL1aRowsFromDraft, l1cRowsA, l1cRowsBAset, l1cRowsBLiabEkuitas, setL1cRowsFromDraft, l1dRowsA, l1dRowsBAset, l1dRowsBLiabEkuitas, setL1dRowsFromDraft, l2RowsA, l2RowsB, setL2RowsFromDraft, l3RowsA, l3RowsB, l3PriorYearCreditRefund, setL3RowsFromDraft, l3CreditAmount, l4RowsA, l4RowsB, setL4RowsFromDraft, l5Rows, l5Places, setL5RowsFromDraft, setL5PlacesFromDraft,
+const SptTahunanBadanForm = React.forwardRef(({ onBusinessClassificationChange, businessClassification, onTabTrigger, sectionDDisabled, onResetSectionD, onSptDataChange, a10Value, l1aRowsA, l1aRowsB, setL1aRowsFromDraft, l1cRowsA, l1cRowsBAset, l1cRowsBLiabEkuitas, setL1cRowsFromDraft, l1dRowsA, l1dRowsBAset, l1dRowsBLiabEkuitas, setL1dRowsFromDraft, l2RowsA, l2RowsB, setL2RowsFromDraft, l3RowsA, l3RowsB, l3PriorYearCreditRefund, setL3RowsFromDraft, l3CreditAmount, l5TotalDifference, l4RowsA, l4RowsB, setL4RowsFromDraft, l5Rows, l5Places, setL5RowsFromDraft, setL5PlacesFromDraft,
     l7Rows, l7TotalCol8ForD8, l7TotalCol9ForL6, setL7RowsFromDraft, setL7TotalCol8FromDraft, setL7TotalCol9FromDraft,
     l6Installment,
+    l6IncomeBase, l6PreviousYearTaxCredit, setL6IncomeBaseFromDraft, setL6PreviousYearTaxCreditFromDraft,
     l8GrossTurnover, l8TotalIncomeTax, l8Eligible, setL8GrossTurnoverFromDraft, setL8CacheFromDraft,
     l9Data, setL9DataFromDraft,
     l10aRows, setL10aRowsFromDraft,
@@ -1957,7 +1958,7 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
     l11aData, setL11aDataFromDraft,
     l11bData, setL11bDataFromDraft,
     l11cData, setL11cDataFromDraft,
-    onCompanyDataChange }) => {
+    onCompanyDataChange, onRegionalBenefitLockChange }, ref) => {
     const dispatch = useDispatch();
 
     // ── L4 Derived Totals (CR2/CR3) ──────────────────────────────────────────
@@ -1982,6 +1983,16 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [sptId, setSptId] = useState(null);
+    // V3 headerId — reference terpisah dari sptId (V2). sptId TETAP dipakai untuk
+    // seluruh flow V2 yang sudah ada (Main Form, dst — tidak diubah). v3HeaderId
+    // HANYA dipakai untuk endpoint V3 (saveSection/updateSection L1). Resolve via
+    // POST /api/v3/spt/drafts (createDraft) — bukan derivasi dari sptId.
+    const [v3HeaderId, setV3HeaderId] = useState(null);
+    // Main Form V3 — spt_main_form.id (cardinality "one" per header, BUKAN
+    // banyak rows seperti L1). null = belum diketahui/belum ada row; terisi =
+    // sudah ada row (PATCH). Diisi dari GET (loadMainFormFromV3) atau dari
+    // response POST/PATCH pertama (saveMainFormToV3).
+    const [mainFormV3Id, setMainFormV3Id] = useState(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [expandedSections, setExpandedSections] = useState({ header: true });
     const [companyData, setCompanyData] = useState(null);
@@ -2220,6 +2231,19 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
             tax_calculation: { ...prev.tax_calculation, q13_overseas_credit_amount: val }
         }));
     }, [l3CreditAmount, sptData.tax_calculation?.q13_overseas_credit]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Sync L5 totalDifference (e.15) → Section H 21j (q21j_excess_final_tax) —
+    // readonly, pola identik sync l3CreditAmount → E.13 di atas. Section D FINAL
+    // DECISION: 21j SELALU berasal dari e.15/totalDifference (BUKAN g.15), TIDAK
+    // PERNAH diedit user, TIDAK PERNAH dikirim sebagai raw input ke V3 — hanya
+    // ditampilkan readonly, dihitung ulang setiap L5 berubah.
+    useEffect(() => {
+        const val = parseFloat(l5TotalDifference) || 0;
+        setSptData(prev => ({
+            ...prev,
+            transactions: { ...prev.transactions, q21j_excess_final_tax: val }
+        }));
+    }, [l5TotalDifference]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Sync Total Net Income Deduction Facility (L13A) → D.5 (p5_investment_facility_amount)
     // — readonly, pola identik sync l3CreditAmount → E.13 di atas.
@@ -2754,222 +2778,11 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                         console.warn('Gagal membaca L8 dari localStorage:', e);
                     }
                 }
-                // Restore data L9 dari localStorage (sementara — sebelum persist ke
-                // backend). Berbeda dari L1A/L2 (array of rows), l9Data adalah SATU
-                // objek nested (Pendekatan B) — tidak perlu dispatcher section,
-                // langsung dikirim utuh ke setL9DataFromDraft (pola identik
-                // setL8GrossTurnoverFromDraft — single setter, bukan sectioned).
-                // Struktur lengkap (tangible/building/intangible) dijamin oleh
-                // mergeWithInitial() di dalam handleSetL9DataFromDraft
-                // (SptTahunanBadan.js) — bukan tanggung jawab MainFormBadan.js.
-                if (typeof setL9DataFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL9 = localStorage.getItem(`spt_l9_data_${sptDetail.id}`);
-                        if (rawL9) {
-                            const parsed = JSON.parse(rawL9);
-                            if (parsed?.l9Data) {
-                                setL9DataFromDraft(parsed.l9Data);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L9 dari localStorage:', e);
-                    }
-                }
-                // Restore data L10A dari localStorage (sementara — sebelum persist ke
-                // backend). l10aRows adalah array of rows (pola identik L1A/L2/L3) —
-                // Draft Compatibility Contract: apabila draft lama tidak memiliki key
-                // ini sama sekali, setL10aRowsFromDraft (SptTahunanBadan.js) akan
-                // fallback ke [] secara otomatis, sehingga di sini cukup diteruskan
-                // apa adanya tanpa transformasi tambahan.
-                if (typeof setL10aRowsFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL10a = localStorage.getItem(`spt_l10a_rows_${sptDetail.id}`);
-                        if (rawL10a) {
-                            const parsed = JSON.parse(rawL10a);
-                            if (parsed?.rows) {
-                                setL10aRowsFromDraft(parsed.rows);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L10A dari localStorage:', e);
-                    }
-                }
-                // Restore data L10B dari localStorage (sementara — sebelum persist ke
-                // backend). l10bData adalah nested object per group (pola identik L9)
-                // — struktur lengkap (group1..group4) dijamin oleh mergeWithInitial()
-                // di dalam handleSetL10bDataFromDraft (SptTahunanBadan.js), bukan
-                // tanggung jawab MainFormBadan.js (Draft Compatibility Contract).
-                if (typeof setL10bDataFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL10b = localStorage.getItem(`spt_l10b_data_${sptDetail.id}`);
-                        if (rawL10b) {
-                            const parsed = JSON.parse(rawL10b);
-                            if (parsed?.l10bData) {
-                                setL10bDataFromDraft(parsed.l10bData);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L10B dari localStorage:', e);
-                    }
-                }
-                // Restore data L10C dari localStorage (sementara — sebelum persist ke
-                // backend). Pola identik L10A di atas — array of rows, fallback []
-                // ditangani di setL10cRowsFromDraft (Draft Compatibility Contract).
-                if (typeof setL10cRowsFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL10c = localStorage.getItem(`spt_l10c_rows_${sptDetail.id}`);
-                        if (rawL10c) {
-                            const parsed = JSON.parse(rawL10c);
-                            if (parsed?.rows) {
-                                setL10cRowsFromDraft(parsed.rows);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L10C dari localStorage:', e);
-                    }
-                }
-                // Restore data L10D dari localStorage (sementara — sebelum persist ke
-                // backend). Pola identik L10B di atas — nested object (checklist +
-                // date), struktur lengkap dijamin oleh mergeWithInitial() di dalam
-                // handleSetL10dDataFromDraft (Draft Compatibility Contract).
-                if (typeof setL10dDataFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL10d = localStorage.getItem(`spt_l10d_data_${sptDetail.id}`);
-                        if (rawL10d) {
-                            const parsed = JSON.parse(rawL10d);
-                            if (parsed?.l10dData) {
-                                setL10dDataFromDraft(parsed.l10dData);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L10D dari localStorage:', e);
-                    }
-                }
-                // Restore data L13A dari localStorage (sementara — sebelum persist ke
-                // backend). l13aRows adalah array of rows (pola identik L10A) — TIDAK
-                // ADA formula/computed value, fallback [] ditangani di
-                // setL13aRowsFromDraft (Draft Compatibility Contract).
-                if (typeof setL13aRowsFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL13a = localStorage.getItem(`spt_l13a_rows_${sptDetail.id}`);
-                        if (rawL13a) {
-                            const parsed = JSON.parse(rawL13a);
-                            if (parsed?.rows) {
-                                setL13aRowsFromDraft(parsed.rows);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L13A dari localStorage:', e);
-                    }
-                }
-                // Restore data L13B dari localStorage (sementara — sebelum persist ke
-                // backend). l13bData adalah nested object per section (pola identik
-                // L10B) — struktur lengkap (sectionA/sectionB/sectionC) DAN recalculate
-                // Section C additionalGrossIncomeDeduction dijamin oleh mergeWithInitial()
-                // di dalam handleSetL13bDataFromDraft (SptTahunanBadan.js), bukan
-                // tanggung jawab MainFormBadan.js (Draft Compatibility Contract).
-                if (typeof setL13bDataFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL13b = localStorage.getItem(`spt_l13b_data_${sptDetail.id}`);
-                        if (rawL13b) {
-                            const parsed = JSON.parse(rawL13b);
-                            if (parsed?.l13bData) {
-                                setL13bDataFromDraft(parsed.l13bData);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L13B dari localStorage:', e);
-                    }
-                }
-                // Restore data L13C dari localStorage (sementara — sebelum persist ke
-                // backend). Pola identik L13A di atas — array of rows, HANYA raw input
-                // (Taxable Income/Income Tax Payable/Tax Reduction Facility TIDAK
-                // PERNAH disimpan — selalu dihitung ulang di L13C.js).
-                if (typeof setL13cRowsFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL13c = localStorage.getItem(`spt_l13c_rows_${sptDetail.id}`);
-                        if (rawL13c) {
-                            const parsed = JSON.parse(rawL13c);
-                            if (parsed?.rows) {
-                                setL13cRowsFromDraft(parsed.rows);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L13C dari localStorage:', e);
-                    }
-                }
-                // Restore data L14 dari localStorage (sementara — sebelum persist ke
-                // backend). Pola identik L13A/L13C di atas — array of rows, HANYA raw
-                // input per year (bentukPenanaman/penyediaan/tahun1-4). Skeleton 5-row
-                // historical (taxYear-4..taxYear) DAN merge-by-year terhadap draft ini
-                // sepenuhnya dilakukan di dalam L14.js sendiri (mergeRowsWithDraft) —
-                // MainFormBadan.js hanya bertugas memindahkan raw array apa adanya.
-                if (typeof setL14RowsFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL14 = localStorage.getItem(`spt_l14_rows_${sptDetail.id}`);
-                        if (rawL14) {
-                            const parsed = JSON.parse(rawL14);
-                            if (parsed?.rows) {
-                                setL14RowsFromDraft(parsed.rows);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L14 dari localStorage:', e);
-                    }
-                }
-                // Restore data L11A dari localStorage (sementara — sebelum persist ke
-                // backend). l11aData adalah nested object (6 sub-bagian, pola identik
-                // L9/L10B/L10D). Struktur lengkap dijamin oleh mergeWithInitial() di
-                // dalam handleSetL11aDataFromDraft (Draft Compatibility Contract,
-                // Blueprint L11 §5 — draft lama tanpa key l11a tetap aman).
-                if (typeof setL11aDataFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL11a = localStorage.getItem(`spt_l11a_data_${sptDetail.id}`);
-                        if (rawL11a) {
-                            const parsed = JSON.parse(rawL11a);
-                            if (parsed?.l11aData) {
-                                setL11aDataFromDraft(parsed.l11aData);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L11A dari localStorage:', e);
-                    }
-                }
-                // Restore data L11B dari localStorage. l11bData HANYA berisi Bagian
-                // II/III raw input (Blueprint L11 §5) — Bagian I EBITDA TIDAK pernah
-                // di-restore di sini karena bukan raw milik L11B (derived real-time
-                // dari ebitdaComponentsByLampiran di SptTahunanBadan.js).
-                if (typeof setL11bDataFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL11b = localStorage.getItem(`spt_l11b_data_${sptDetail.id}`);
-                        if (rawL11b) {
-                            const parsed = JSON.parse(rawL11b);
-                            if (parsed?.l11bData) {
-                                setL11bDataFromDraft(parsed.l11bData);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L11B dari localStorage:', e);
-                    }
-                }
-                // Restore data L11C dari localStorage (sementara — sebelum persist ke
-                // backend). l11cData adalah object wrapper { foreignDebtRows: [...] }
-                // (Blueprint L11C §8/§9 Save/Load Draft) — struktur lengkap dijamin
-                // oleh mergeWithInitial() di dalam setL11cDataFromDraft (Draft
-                // Compatibility Contract, pola identik L11A/L11B di atas).
-                if (typeof setL11cDataFromDraft === 'function' && sptDetail.id) {
-                    try {
-                        const rawL11c = localStorage.getItem(`spt_l11c_data_${sptDetail.id}`);
-                        if (rawL11c) {
-                            const parsed = JSON.parse(rawL11c);
-                            if (parsed?.l11cData) {
-                                setL11cDataFromDraft(parsed.l11cData);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Gagal membaca L11C dari localStorage:', e);
-                    }
-                }
+                // L9–L14 localStorage load DIHAPUS — V3 database (spt_l9..spt_l14)
+                // adalah source of truth L9–L14 sekarang (lihat useEffect
+                // resolveV3HeaderId → loadL9L14FromV3, bersanding dengan loadL1FromV3..
+                // loadL8FromV3). localStorage L9–L14 tidak lagi dipakai sebagai sumber
+                // Load Draft (Kontrak §20).
                 setSuccess('Data SPT Badan berhasil dimuat');
             }
         } catch (error) {
@@ -3050,7 +2863,13 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                         }
                     }));
                 }
-                return true;
+                // Return sptId (bukan sekadar `true`) — saveDraft() butuh nilai id
+                // secara langsung karena setSptId() di atas belum ter-apply ke state
+                // `sptId` pada invocation yang sama (React state update is async).
+                // Tetap truthy sehingga caller lama (`if (!created) return false;`)
+                // tidak perlu berubah — result.data.id adalah PK auto-increment,
+                // tidak pernah 0/falsy.
+                return result.data.id;
             } else {
                 setError(result.message);
                 return false;
@@ -3063,10 +2882,2463 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
         }
     };
 
+    // ══════════════════════════════════════════════════════════════════════
+    // V3 PERSISTENCE — L1 (L1A / L1C / L1D) ONLY
+    // ══════════════════════════════════════════════════════════════════════
+    // Backend V3 sudah FINAL (tidak diubah). sptId (V2) TETAP dipakai untuk
+    // Main Form dan section lain — TIDAK diganti. v3HeaderId adalah reference
+    // terpisah, hanya untuk endpoint V3 (createDraft/saveSection/updateSection).
+
+    // Resolve (atau buat baru) V3 draft header untuk SPT (sptId) tertentu.
+    // Urutan (CASE 1/2/3 sesuai keputusan arsitektur READ/RESOLVE):
+    // 1) state v3HeaderId (in-memory, sesi berjalan) — path tercepat.
+    // 2) referensi per-sptId di localStorage (bertahan lintas remount/reload/
+    //    login-ulang — key `v3HeaderId:<sptId>`, BUKAN satu key global, supaya
+    //    headerId antar-SPT tidak tertukar) — cache lokal saja, BUKAN source
+    //    of truth (raw input L1 tetap di database V3).
+    // 3) GET /api/v3/spt/drafts/resolve?company_id&tax_year — otoritatif dari
+    //    backend. 200 → draft sudah ada, reuse headerId (CASE 2). 404
+    //    DRAFT_NOT_FOUND → draft belum ada (CASE 3), lanjut ke create.
+    // 4) POST /api/v3/spt/drafts — HANYA dipanggil kalau resolve membuktikan
+    //    belum ada draft (CASE 1). Tidak lagi mengandalkan catch(409).
+    const resolveV3HeaderId = async (activeSptId) => {
+        if (v3HeaderId) return v3HeaderId;
+
+        const storageKey = activeSptId ? `v3HeaderId:${activeSptId}` : null;
+        if (storageKey) {
+            try {
+                const stored = localStorage.getItem(storageKey);
+                if (stored) {
+                    setV3HeaderId(stored);
+                    return stored;
+                }
+            } catch (e) {
+                console.warn('Gagal membaca referensi v3HeaderId dari localStorage:', e);
+            }
+        }
+
+        if (!companyData || !companyData.company_id) {
+            throw new Error('company_id belum tersedia (companyData.company_id kosong). Tidak bisa resolve/membuat V3 draft header.');
+        }
+        if (!sptData?.header?.tax_year) {
+            throw new Error('tax_year belum tersedia (sptData.header.tax_year kosong). Tidak bisa resolve/membuat V3 draft header.');
+        }
+
+        const persistHeaderId = (headerId) => {
+            setV3HeaderId(headerId);
+            if (storageKey) {
+                try {
+                    localStorage.setItem(storageKey, String(headerId));
+                } catch (e) {
+                    console.warn('Gagal menyimpan referensi v3HeaderId ke localStorage:', e);
+                }
+            }
+        };
+
+        // CASE 2/3 — cek dulu ke database via READ/RESOLVE resmi (bukan CREATE).
+        const resolveParams = new URLSearchParams({
+            company_id: companyData.company_id,
+            tax_year: sptData.header.tax_year,
+        });
+        const resolveResponse = await fetch(`${API.HOST}/api/v3/spt/drafts/resolve?${resolveParams.toString()}`, {
+            method: 'GET',
+            headers: { ...getAuthHeaders() },
+        });
+
+        if (resolveResponse.ok) {
+            // CASE 2 — draft sudah ada di database, reuse headerId-nya.
+            const resolveResult = await resolveResponse.json();
+            const headerId = resolveResult?.data?.headerId;
+            if (!headerId) {
+                throw new Error('Response resolve V3 tidak berisi headerId.');
+            }
+            persistHeaderId(headerId);
+            return headerId;
+        }
+
+        const resolveResult = await resolveResponse.json().catch(() => null);
+        const resolveCode = resolveResult?.error?.code;
+        if (resolveResponse.status !== 404 || resolveCode !== 'DRAFT_NOT_FOUND') {
+            // Error lain di luar "belum ada draft" — jangan lanjut ke create,
+            // laporkan apa adanya.
+            const message = resolveResult?.error?.message || 'Gagal resolve V3 draft header.';
+            throw new Error(`[${resolveCode || resolveResponse.status}] ${message}`);
+        }
+
+        // CASE 3 — draft benar-benar belum ada. Lanjut CREATE (CASE 1).
+        const createResponse = await fetch(`${API.HOST}/api/v3/spt/drafts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({
+                header: {
+                    company_id: companyData.company_id,
+                    tax_year: sptData.header.tax_year,
+                },
+            }),
+        });
+        const createResult = await createResponse.json();
+        if (!createResponse.ok) {
+            const code = createResult?.error?.code;
+            const message = createResult?.error?.message || 'Gagal membuat V3 draft header.';
+            if (code === 'DUPLICATE_DRAFT') {
+                // Race condition: draft dibuat oleh tab/request lain di antara
+                // resolve (404) dan create ini. Tidak menebak headerId — laporkan
+                // eksplisit, BUKAN dianggap sukses. User cukup klik Save Draft
+                // lagi (resolve akan menemukannya pada percobaan berikutnya).
+                throw new Error(
+                    '[DUPLICATE_DRAFT] Draft V3 untuk SPT ini baru saja dibuat oleh proses lain ' +
+                    'di antara pengecekan dan pembuatan. Klik Save Draft sekali lagi.'
+                );
+            }
+            throw new Error(`[${code || createResponse.status}] ${message}`);
+        }
+        const headerId = createResult?.data?.headerId;
+        if (!headerId) {
+            throw new Error('Response createDraft V3 tidak berisi headerId.');
+        }
+        persistHeaderId(headerId);
+        return headerId;
+    };
+
+    // ── L1 V3 Persistence — Load/Read (GET) ──────────────────────────────────
+    // Baris DB (spt_l1) → row frontend. Field database → frontend (kebalikan
+    // dari payload builder di bawah). Row Bagian A dibedakan dari Bagian B
+    // lewat section_code ('A' vs 'B'/'B_ASET'/'B_LIAB_EKUITAS').
+    const buildL1DraftRowFromDb = (dbRow, isSectionA) => {
+        // BUG 1 FIX: Sequelize DECIMAL(20,2) mengembalikan string bergaya
+        // JS/US ("1000000.00" — titik = desimal). String(v) polos meneruskan
+        // ".00" itu apa adanya ke row.commercial/nonTaxable/dst. L1a/L1c/L1d
+        // (parse()) dibuat untuk string tampilan format Indonesia (titik =
+        // ribuan) dan men-strip SEMUA titik + koma, sehingga "1000000.00" →
+        // "100000000" (×100). parseFloat() di sini membaca titik sebagai
+        // desimal secara benar (standar JS), lalu String(number) hasil
+        // parseFloat tidak lagi memiliki titik/koma — aman dikonsumsi oleh
+        // parse()/fmt() di L1a/L1c/L1d apa adanya. Nilai di database TIDAK
+        // diubah; ini murni normalisasi di titik transformasi READ → frontend.
+        const toStr = (v) => {
+            if (v === null || v === undefined) return '';
+            const n = parseFloat(v);
+            return Number.isFinite(n) ? String(n) : '';
+        };
+        const base = { code: dbRow.account_code, dbId: dbRow.id };
+        if (isSectionA) {
+            return {
+                ...base,
+                commercial: toStr(dbRow.commercial_amount),
+                nonTaxable: toStr(dbRow.non_taxable_amount),
+                finalTax:   toStr(dbRow.final_tax_amount),
+                posCorr:    toStr(dbRow.positive_fiscal_correction),
+                negCorr:    toStr(dbRow.negative_fiscal_correction),
+                corrCode:   dbRow.correction_code || '',
+            };
+        }
+        // Bagian B: commercial_amount adalah satu-satunya raw input asli (lihat
+        // buildL1PayloadB) — 4 kolom fiscal correction lain murni persistence
+        // normalization (selalu 0), tidak relevan untuk load balik ke UI.
+        return { ...base, amount: toStr(dbRow.commercial_amount) };
+    };
+
+    // GET satu section (headerId + sectionKey tetap "l1" — L1A/L1C/L1D semua
+    // disimpan di tabel spt_l1 yang sama, dibedakan section_type). Filter by
+    // section_type dilakukan di sini karena GET section membaca SELURUH baris
+    // header tersebut sekaligus (l1A + l1C + l1D bercampur dalam 1 response).
+    const loadL1ToUiRows = async (headerId) => {
+        const response = await fetch(`${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l1`, {
+            method: 'GET',
+            headers: { ...getAuthHeaders() },
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            const code = result?.error?.code;
+            const message = result?.error?.message || 'Gagal memuat data L1 dari V3.';
+            throw new Error(`[${code || response.status}] ${message}`);
+        }
+        const rows = Array.isArray(result?.data?.rows) ? result.data.rows : [];
+
+        const bySectionType = (sectionType) => rows.filter(r => r.section_type === sectionType);
+        const byCode = (list, sectionCode, isSectionA) =>
+            list.filter(r => r.section_code === sectionCode).map(r => buildL1DraftRowFromDb(r, isSectionA));
+
+        return {
+            L1A: {
+                A: byCode(bySectionType('L1A'), 'A', true),
+                B: byCode(bySectionType('L1A'), 'B', false),
+            },
+            L1C: {
+                A: byCode(bySectionType('L1C'), 'A', true),
+                B_ASET: byCode(bySectionType('L1C'), 'B_ASET', false),
+                B_LIAB_EKUITAS: byCode(bySectionType('L1C'), 'B_LIAB_EKUITAS', false),
+            },
+            L1D: {
+                A: byCode(bySectionType('L1D'), 'A', true),
+                B_ASET: byCode(bySectionType('L1D'), 'B_ASET', false),
+                B_LIAB_EKUITAS: byCode(bySectionType('L1D'), 'B_LIAB_EKUITAS', false),
+            },
+        };
+    };
+
+    // Orchestrator load L1 — dipanggil setelah headerId diketahui (createSpt
+    // sukses ATAU SPT existing dibuka via URL param). Hydrate React state
+    // lewat setter yang SAMA dengan yang dipakai untuk hydrate dbId sesudah
+    // save (setL1aRowsFromDraft dkk) — komponen L1a/L1c/L1d men-treat ini
+    // sebagai draft restore biasa (mergeRowsWithDraft/mergeRowsBWithDraft).
+    const loadL1FromV3 = async (headerId) => {
+        if (!headerId) return;
+        try {
+            const grouped = await loadL1ToUiRows(headerId);
+            if (setL1aRowsFromDraft) {
+                setL1aRowsFromDraft('A', grouped.L1A.A);
+                setL1aRowsFromDraft('B', grouped.L1A.B);
+            }
+            if (setL1cRowsFromDraft) {
+                setL1cRowsFromDraft('A', grouped.L1C.A);
+                setL1cRowsFromDraft('B_ASET', grouped.L1C.B_ASET);
+                setL1cRowsFromDraft('B_LIAB_EKUITAS', grouped.L1C.B_LIAB_EKUITAS);
+            }
+            if (setL1dRowsFromDraft) {
+                setL1dRowsFromDraft('A', grouped.L1D.A);
+                setL1dRowsFromDraft('B_ASET', grouped.L1D.B_ASET);
+                setL1dRowsFromDraft('B_LIAB_EKUITAS', grouped.L1D.B_LIAB_EKUITAS);
+            }
+        } catch (err) {
+            console.error('Gagal memuat L1 dari V3:', err);
+            setError(prev => prev || `Gagal memuat data L1: ${err.message}`);
+        }
+    };
+
+    // Trigger resolve + load L1 begitu sptId (SPT sudah diketahui — baik dari
+    // URL param SPT existing, maupun setelah createSpt() sukses) DAN
+    // companyData (butuh company_id untuk resolve) sama-sama tersedia.
+    // Guard `if (v3HeaderId) return` mencegah resolve+load ganda kalau
+    // headerId sudah didapat lewat jalur lain (mis. Save Draft pertama yang
+    // sedang berjalan bersamaan). Ini yang menutup Test Scenario 4 (Reload):
+    // refresh browser → sptId dari URL → effect ini jalan → header existing
+    // ditemukan via resolveV3HeaderId → loadL1FromV3 hydrate L1A/L1C/L1D.
+    useEffect(() => {
+        if (!sptId || !companyData || !companyData.company_id) return;
+        if (!sptData?.header?.tax_year) return;
+        if (v3HeaderId) return;
+        (async () => {
+            try {
+                const headerId = await resolveV3HeaderId(sptId);
+                await loadL1FromV3(headerId);
+                await loadMainFormFromV3(headerId);
+                await loadL2FromV3(headerId);
+                await loadL3FromV3(headerId);
+                await loadL4FromV3(headerId);
+                await loadL5FromV3(headerId);
+                await loadL6FromV3(headerId);
+                await loadL7FromV3(headerId);
+                await loadL8FromV3(headerId);
+                await loadL9L14FromV3(headerId);
+                // Restore status confirmed IV.B Regional Benefit (§B6/B8) —
+                // HARUS setelah hydration V3 selesai, bukan sebelum. Lihat
+                // catatan lengkap di getRegionalBenefitConfirmedFlag di bawah
+                // soal kenapa ini localStorage, bukan field DB baru.
+                if (onRegionalBenefitLockChange) {
+                    onRegionalBenefitLockChange(getRegionalBenefitConfirmedFlag(sptId));
+                }
+            } catch (err) {
+                console.error('Gagal resolve/memuat L1 dari V3 saat SPT dibuka:', err);
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sptId, companyData]);
+
+    // ── L1 V3 Persistence — Payload builders ─────────────────────────────────
+
+    const buildL1PayloadA = (row, sectionType) => ({
+        section_type: sectionType,
+        section_code: 'A',
+        account_code: row.code,
+        account_name: row.name,
+        commercial_amount: Number(row.commercial) || 0,
+        non_taxable_amount: Number(row.nonTaxable) || 0,
+        final_tax_amount: Number(row.finalTax) || 0,
+        positive_fiscal_correction: Number(row.posCorr) || 0,
+        negative_fiscal_correction: Number(row.negCorr) || 0,
+        correction_code: row.corrCode || null,
+    });
+
+    // Bagian B: hanya `amount` (→ commercial_amount) yang merupakan raw input asli.
+    // 4 kolom fiscal correction diisi 0 murni sebagai persistence normalization
+    // (kolom NOT NULL di DB) — BUKAN input user atau hasil calculation.
+    const buildL1PayloadB = (row, sectionType, sectionCode) => ({
+        section_type: sectionType,
+        section_code: sectionCode,
+        account_code: row.code,
+        account_name: row.name,
+        commercial_amount: Number(row.amount) || 0,
+        non_taxable_amount: 0,
+        final_tax_amount: 0,
+        positive_fiscal_correction: 0,
+        negative_fiscal_correction: 0,
+        correction_code: null,
+    });
+
+    const isL1ARowTouched = (row) =>
+        !!(row.commercial || row.nonTaxable || row.finalTax || row.posCorr || row.negCorr || row.corrCode);
+    const isL1BRowTouched = (row) => !!row.amount;
+
+    // POST (row.dbId kosong) atau PATCH (row.dbId terisi) satu baris L1.
+    // Mengembalikan sectionId (PK spt_l1.id) dari response untuk disimpan sebagai dbId.
+    const saveOneL1Row = async (headerId, payload, dbId) => {
+        const url = dbId
+            ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l1/${dbId}`
+            : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l1`;
+        const response = await fetch(url, {
+            method: dbId ? 'PATCH' : 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            const code = result?.error?.code;
+            const message = result?.error?.message || 'Gagal menyimpan baris L1.';
+            throw new Error(`[${code || response.status}] ${message}`);
+        }
+        return result?.data?.sectionId ?? dbId ?? null;
+    };
+
+    // Simpan satu grup row (mis. l1aRowsA). Hanya row isInput=true DAN
+    // (sudah tersentuh ATAU sudah pernah tersimpan) yang dikirim — row default
+    // kosong yang belum pernah disave di-skip (tidak mengirim row kosong massal).
+    // Kegagalan per-row TIDAK menghentikan row lain, dan row yang gagal
+    // dikembalikan apa adanya (data user di state lokal tidak hilang).
+    const saveL1RowGroup = async (headerId, rows, sectionType, sectionCode, isSectionA) => {
+        if (!Array.isArray(rows) || rows.length === 0) return { rows: rows || [], errors: [] };
+        const errors = [];
+        const updatedRows = await Promise.all(rows.map(async (row) => {
+            if (!row.isInput) return row;
+            const touched = isSectionA ? isL1ARowTouched(row) : isL1BRowTouched(row);
+            if (!touched && !row.dbId) return row;
+            try {
+                const payload = isSectionA
+                    ? buildL1PayloadA(row, sectionType)
+                    : buildL1PayloadB(row, sectionType, sectionCode);
+                const sectionId = await saveOneL1Row(headerId, payload, row.dbId);
+                return { ...row, dbId: sectionId };
+            } catch (err) {
+                console.error(`Gagal menyimpan L1 row (${sectionType}/${sectionCode}/${row.code}):`, err);
+                errors.push(`${sectionType} ${sectionCode} ${row.code}: ${err.message}`);
+                return row;
+            }
+        }));
+        return { rows: updatedRows, errors };
+    };
+
+    // Orchestrator utama — dipanggil dari saveDraft(). Menggantikan localStorage
+    // L1A/L1C/L1D. Database V3 (spt_l1) menjadi persistence source of truth L1.
+    const saveL1ToV3 = async () => {
+        const headerId = await resolveV3HeaderId();
+        const allErrors = [];
+
+        const [a, b] = await Promise.all([
+            saveL1RowGroup(headerId, l1aRowsA, 'L1A', 'A', true),
+            saveL1RowGroup(headerId, l1aRowsB, 'L1A', 'B', false),
+        ]);
+        if (setL1aRowsFromDraft) {
+            setL1aRowsFromDraft('A', a.rows);
+            setL1aRowsFromDraft('B', b.rows);
+        }
+        allErrors.push(...a.errors, ...b.errors);
+
+        const [c1, c2, c3] = await Promise.all([
+            saveL1RowGroup(headerId, l1cRowsA, 'L1C', 'A', true),
+            saveL1RowGroup(headerId, l1cRowsBAset, 'L1C', 'B_ASET', false),
+            saveL1RowGroup(headerId, l1cRowsBLiabEkuitas, 'L1C', 'B_LIAB_EKUITAS', false),
+        ]);
+        if (setL1cRowsFromDraft) {
+            setL1cRowsFromDraft('A', c1.rows);
+            setL1cRowsFromDraft('B_ASET', c2.rows);
+            setL1cRowsFromDraft('B_LIAB_EKUITAS', c3.rows);
+        }
+        allErrors.push(...c1.errors, ...c2.errors, ...c3.errors);
+
+        const [d1, d2, d3] = await Promise.all([
+            saveL1RowGroup(headerId, l1dRowsA, 'L1D', 'A', true),
+            saveL1RowGroup(headerId, l1dRowsBAset, 'L1D', 'B_ASET', false),
+            saveL1RowGroup(headerId, l1dRowsBLiabEkuitas, 'L1D', 'B_LIAB_EKUITAS', false),
+        ]);
+        if (setL1dRowsFromDraft) {
+            setL1dRowsFromDraft('A', d1.rows);
+            setL1dRowsFromDraft('B_ASET', d2.rows);
+            setL1dRowsFromDraft('B_LIAB_EKUITAS', d3.rows);
+        }
+        allErrors.push(...d1.errors, ...d2.errors, ...d3.errors);
+
+        return allErrors;
+    };
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Main Form V3 Persistence (spt_main_form)
+    // ══════════════════════════════════════════════════════════════════════
+    // Main Form = SINGLE RECORD per header (cardinality "one"), BUKAN banyak
+    // rows seperti L1. HANYA field yang MEMILIKI kolom tujuan di
+    // spt_main_form.model.js yang dipetakan di sini (lihat audit + konfirmasi
+    // final). Field tanpa kolom tujuan (company_identity.company_type/
+    // establishment_date/pic_name/pic_nik/address/business_activity/
+    // basic_capital, seluruh `attachments`, seluruh `transactions`/Section H,
+    // tax_payable.q20_art25_obliged/q20_art25_amount, statement.declaration)
+    // SENGAJA TIDAK disentuh di sini — field-field itu tetap dipersist lewat
+    // `sectionsToSave` (V2) seperti sebelumnya, TIDAK dihapus dari sana.
+    // Semua field derived/subtotal (total_*, net_*, gross_profit,
+    // operating_profit, fiscal_profit, taxable_income, income_tax_payable,
+    // tax_underpayment/overpayment, dst) TIDAK PERNAH dikirim — konsisten
+    // dengan disiplin raw-input-only L1/L7/L8.
+
+    const yesNoToBool = (v) => (v === 'Yes' ? true : v === 'No' ? false : null);
+    const boolToYesNo = (v) => (v === true ? 'Yes' : v === false ? 'No' : '');
+    const numOrZero = (v) => (v === null || v === undefined ? 0 : (Number(v) || 0));
+
+    // ── Payload builder: sptData (frontend) → spt_main_form (flat, V3) ──────
+    const buildMainFormV3Payload = (data) => {
+        const ci = data.company_identity || {};
+        const gi = data.general_info || {};
+        const bs = data.balance_sheet || {};
+        const bsAssetsCur = (bs.assets && bs.assets.current_assets) || {};
+        const bsAssetsNonCur = (bs.assets && bs.assets.non_current_assets) || {};
+        const bsLiabCur = (bs.liabilities && bs.liabilities.current_liabilities) || {};
+        const bsLiabNonCur = (bs.liabilities && bs.liabilities.non_current_liabilities) || {};
+        const bsEquity = bs.equity || {};
+        const pl = data.profit_loss || {};
+        const plRev = pl.revenue || {};
+        const plCogs = pl.cost_of_goods_sold || {};
+        const plOpex = pl.operating_expenses || {};
+        const plOther = pl.other_income_expenses || {};
+        const tc = data.tax_calculation || {};
+        const tcFiscal = tc.fiscal_adjustments || {};
+        const tcr = data.tax_credit || {};
+        const st = data.statement || {};
+        const tr = data.transactions || {};
+
+        return {
+            business_name: ci.company_name || null,
+            taxpayer_npwp: ci.npwp || null,
+            company_email: ci.email || null,
+            company_phone: ci.phone || null,
+
+            business_status: gi.business_status || null,
+            business_classification: gi.business_classification || null,
+            bookkeeping_standard: gi.bookkeeping_standard || null,
+            reporting_currency: gi.reporting_currency || null,
+            financial_year_start: gi.financial_year_start || null,
+            financial_year_end: gi.financial_year_end || null,
+            is_audited: yesNoToBool(gi.is_audited),
+            audit_opinion: gi.audit_opinion || null,
+            kap_npwp: gi.kap_npwp || null,
+            kap_name: gi.kap_name || null,
+
+            has_gr23_income: yesNoToBool(bs.q1_gr23),
+            gr23_income_solely: yesNoToBool(bs.q1b_solely_gr23),
+            has_final_tax_income: yesNoToBool(bs.q2_final_tax),
+            has_excluded_income: yesNoToBool(bs.q3_excluded_tax),
+            cash_and_cash_equivalents: numOrZero(bsAssetsCur.cash_and_cash_equivalents),
+            trade_receivables: numOrZero(bsAssetsCur.trade_receivables),
+            inventory: numOrZero(bsAssetsCur.inventory),
+            prepaid_expenses: numOrZero(bsAssetsCur.prepaid_expenses),
+            other_current_assets: numOrZero(bsAssetsCur.other_current_assets),
+            fixed_assets: numOrZero(bsAssetsNonCur.fixed_assets),
+            accumulated_depreciation: numOrZero(bsAssetsNonCur.accumulated_depreciation),
+            intangible_assets: numOrZero(bsAssetsNonCur.intangible_assets),
+            investment: numOrZero(bsAssetsNonCur.investment),
+            other_non_current_assets: numOrZero(bsAssetsNonCur.other_non_current_assets),
+            trade_payables: numOrZero(bsLiabCur.trade_payables),
+            short_term_debt: numOrZero(bsLiabCur.short_term_debt),
+            tax_payable: numOrZero(bsLiabCur.tax_payable),
+            accrued_expenses: numOrZero(bsLiabCur.accrued_expenses),
+            other_current_liabilities: numOrZero(bsLiabCur.other_current_liabilities),
+            long_term_debt: numOrZero(bsLiabNonCur.long_term_debt),
+            deferred_tax_liability: numOrZero(bsLiabNonCur.deferred_tax_liability),
+            other_non_current_liabilities: numOrZero(bsLiabNonCur.other_non_current_liabilities),
+            paid_up_capital: numOrZero(bsEquity.paid_up_capital),
+            retained_earnings: numOrZero(bsEquity.retained_earnings),
+            current_year_profit: numOrZero(bsEquity.current_year_profit),
+            other_equity: numOrZero(bsEquity.other_equity),
+
+            gross_revenue: numOrZero(plRev.gross_revenue),
+            sales_returns: numOrZero(plRev.sales_returns),
+            sales_discount: numOrZero(plRev.sales_discount),
+            beginning_inventory: numOrZero(plCogs.beginning_inventory),
+            purchases: numOrZero(plCogs.purchases),
+            direct_labor: numOrZero(plCogs.direct_labor),
+            factory_overhead: numOrZero(plCogs.factory_overhead),
+            ending_inventory: numOrZero(plCogs.ending_inventory),
+            selling_expenses: numOrZero(plOpex.selling_expenses),
+            administrative_expenses: numOrZero(plOpex.administrative_expenses),
+            general_expenses: numOrZero(plOpex.general_expenses),
+            interest_income: numOrZero(plOther.interest_income),
+            dividend_income: numOrZero(plOther.dividend_income),
+            other_income: numOrZero(plOther.other_income),
+            interest_expense: numOrZero(plOther.interest_expense),
+            other_expenses: numOrZero(plOther.other_expenses),
+            tax_expense: numOrZero(pl.tax_expense),
+            investment_facility: yesNoToBool(pl.p5_investment_facility),
+            p5_investment_facility_amount: numOrZero(pl.p5_investment_facility_amount),
+            vocational_deduction_facility: yesNoToBool(pl.p6_vocational_deduction),
+            p6_vocational_deduction_amount: numOrZero(pl.p6_vocational_deduction_amount),
+            carried_forward_losses: yesNoToBool(pl.p8_carried_losses),
+            p8_carried_losses: numOrZero(pl.p8_carried_forward_losses),
+            rd_deduction_facility: yesNoToBool(pl.p10_rd_deduction),
+            p10_rd_deduction_amount: numOrZero(pl.p10_rd_deduction_amount),
+            // DISETUJUI: p11_tax_rate (string label kategori tarif) → tax_rate_type.
+            // Kolom p11_tax_rate (DECIMAL) SENGAJA tidak diisi dari mapping ini.
+            tax_rate_type: pl.p11_tax_rate || null,
+            p11a_custom_tax_rate: (pl.p11a_custom_tax_rate !== '' && pl.p11a_custom_tax_rate !== null && pl.p11a_custom_tax_rate !== undefined)
+                ? (Number(pl.p11a_custom_tax_rate) || 0)
+                : null,
+
+            commercial_profit: numOrZero(tc.commercial_profit),
+            positive_fiscal_corrections: numOrZero(tcFiscal.positive_corrections),
+            negative_fiscal_corrections: numOrZero(tcFiscal.negative_corrections),
+            overseas_tax_credit_requested: yesNoToBool(tc.q13_overseas_credit),
+            q13_overseas_credit: numOrZero(tc.q13_overseas_credit_amount),
+            p14_installment_art25: numOrZero(tc.p14_installment_art25),
+            p15_notice_art25: numOrZero(tc.p15_notice_art25),
+            payable_deduction_requested: yesNoToBool(tc.q16_payable_deduction),
+            q16_payable_deduction: numOrZero(tc.q16_payable_deduction_amount),
+
+            withholding_tax_article_23: numOrZero(tcr.withholding_tax_article_23),
+            withholding_tax_article_22: numOrZero(tcr.withholding_tax_article_22),
+            withholding_tax_article_26: numOrZero(tcr.withholding_tax_article_26),
+            installment_article_25: numOrZero(tcr.installment_article_25),
+            overpayment_previous_year: numOrZero(tcr.overpayment_previous_year),
+            foreign_tax_credit: numOrZero(tcr.foreign_tax_credit),
+            p17b_has_postponement: yesNoToBool(tcr.p17b_has_postponement),
+            p17b_postponement_amount: numOrZero(tcr.p17b_postponement_amount),
+            p18a_previous_underpayment: numOrZero(tcr.p18a_previous_underpayment),
+            p19a_refund_method: tcr.p19a_refund_method || null,
+            p19b_bank_account: tcr.p19b_bank_account || null,
+            p19b_account_no: tcr.p19b_account_no || null,
+            p19b_bank_name: tcr.p19b_bank_name || null,
+            p19b_account_holder: tcr.p19b_account_holder || null,
+
+            // DISETUJUI: company_name/pic_name/pic_nik dari grup `statement`
+            // (bukan `company_identity`) agar tidak dobel-mapping. `declaration`
+            // (checkbox boolean) SENGAJA TIDAK dikirim — kolom bertipe TEXT.
+            signature: st.signature || null,
+            company_name: st.company_name || null,
+            pic_name: st.pic_name || null,
+            pic_nik: st.pic_nik || null,
+            position: st.position || null,
+            date: st.date || null,
+            stamp: st.stamp || null,
+
+            // Section H (21a-21i) — raw input, Yes/No/'' -> boolean/null. 21j
+            // (q21j_excess_final_tax) SENGAJA TIDAK dikirim — derived dari L5
+            // e.15/totalDifference, tidak pernah raw input (Section D FINAL
+            // DECISION).
+            has_related_party_transactions: yesNoToBool(tr.q21a_related_party),
+            has_transfer_pricing_documentation: yesNoToBool(tr.q21b_tp_document),
+            has_affiliated_capital_investment: yesNoToBool(tr.q21c_capital_investment),
+            has_affiliated_debt_or_receivable: yesNoToBool(tr.q21d_debt_receivable),
+            has_fiscal_depreciation_amortization: yesNoToBool(tr.q21e_fiscal_depreciation),
+            has_entertainment_promotion_bad_debt_expense: yesNoToBool(tr.q21f_entertainment_expense),
+            has_investment_tax_facility: yesNoToBool(tr.q21g_investment_facility),
+            has_reinvestment: yesNoToBool(tr.q21h_reinvestment),
+            has_overseas_dividend_income: yesNoToBool(tr.q21i_dividend_overseas),
+        };
+    };
+
+    // ── Reverse mapping: spt_main_form (V3, flat) → sptData (frontend) ──────
+    // Kebalikan PERSIS dari buildMainFormV3Payload di atas. Field tanpa
+    // kolom V3 TIDAK disentuh di sini (tetap dari V2/state existing).
+    const applyMainFormV3Record = (record) => {
+        if (!record) return;
+        setSptData(prev => ({
+            ...prev,
+            company_identity: {
+                ...prev.company_identity,
+                company_name: record.business_name ?? prev.company_identity.company_name,
+                npwp: record.taxpayer_npwp ?? prev.company_identity.npwp,
+                email: record.company_email ?? prev.company_identity.email,
+                phone: record.company_phone ?? prev.company_identity.phone,
+            },
+            general_info: {
+                ...prev.general_info,
+                business_status: record.business_status ?? prev.general_info.business_status,
+                business_classification: record.business_classification ?? prev.general_info.business_classification,
+                bookkeeping_standard: record.bookkeeping_standard ?? prev.general_info.bookkeeping_standard,
+                reporting_currency: record.reporting_currency ?? prev.general_info.reporting_currency,
+                financial_year_start: record.financial_year_start ?? prev.general_info.financial_year_start,
+                financial_year_end: record.financial_year_end ?? prev.general_info.financial_year_end,
+                is_audited: (record.is_audited === null || record.is_audited === undefined)
+                    ? prev.general_info.is_audited : boolToYesNo(record.is_audited),
+                audit_opinion: record.audit_opinion ?? prev.general_info.audit_opinion,
+                kap_npwp: record.kap_npwp ?? prev.general_info.kap_npwp,
+                kap_name: record.kap_name ?? prev.general_info.kap_name,
+            },
+            balance_sheet: {
+                ...prev.balance_sheet,
+                q1_gr23: (record.has_gr23_income === null || record.has_gr23_income === undefined)
+                    ? prev.balance_sheet.q1_gr23 : boolToYesNo(record.has_gr23_income),
+                q1b_solely_gr23: (record.gr23_income_solely === null || record.gr23_income_solely === undefined)
+                    ? prev.balance_sheet.q1b_solely_gr23 : boolToYesNo(record.gr23_income_solely),
+                q2_final_tax: (record.has_final_tax_income === null || record.has_final_tax_income === undefined)
+                    ? prev.balance_sheet.q2_final_tax : boolToYesNo(record.has_final_tax_income),
+                q3_excluded_tax: (record.has_excluded_income === null || record.has_excluded_income === undefined)
+                    ? prev.balance_sheet.q3_excluded_tax : boolToYesNo(record.has_excluded_income),
+                assets: {
+                    ...prev.balance_sheet.assets,
+                    current_assets: {
+                        ...prev.balance_sheet.assets.current_assets,
+                        cash_and_cash_equivalents: numOrZero(record.cash_and_cash_equivalents),
+                        trade_receivables: numOrZero(record.trade_receivables),
+                        inventory: numOrZero(record.inventory),
+                        prepaid_expenses: numOrZero(record.prepaid_expenses),
+                        other_current_assets: numOrZero(record.other_current_assets),
+                    },
+                    non_current_assets: {
+                        ...prev.balance_sheet.assets.non_current_assets,
+                        fixed_assets: numOrZero(record.fixed_assets),
+                        accumulated_depreciation: numOrZero(record.accumulated_depreciation),
+                        intangible_assets: numOrZero(record.intangible_assets),
+                        investment: numOrZero(record.investment),
+                        other_non_current_assets: numOrZero(record.other_non_current_assets),
+                    },
+                },
+                liabilities: {
+                    ...prev.balance_sheet.liabilities,
+                    current_liabilities: {
+                        ...prev.balance_sheet.liabilities.current_liabilities,
+                        trade_payables: numOrZero(record.trade_payables),
+                        short_term_debt: numOrZero(record.short_term_debt),
+                        accrued_expenses: numOrZero(record.accrued_expenses),
+                        tax_payable: numOrZero(record.tax_payable),
+                        other_current_liabilities: numOrZero(record.other_current_liabilities),
+                    },
+                    non_current_liabilities: {
+                        ...prev.balance_sheet.liabilities.non_current_liabilities,
+                        long_term_debt: numOrZero(record.long_term_debt),
+                        deferred_tax_liability: numOrZero(record.deferred_tax_liability),
+                        other_non_current_liabilities: numOrZero(record.other_non_current_liabilities),
+                    },
+                },
+                equity: {
+                    ...prev.balance_sheet.equity,
+                    paid_up_capital: numOrZero(record.paid_up_capital),
+                    retained_earnings: numOrZero(record.retained_earnings),
+                    current_year_profit: numOrZero(record.current_year_profit),
+                    other_equity: numOrZero(record.other_equity),
+                },
+            },
+            profit_loss: {
+                ...prev.profit_loss,
+                revenue: {
+                    ...prev.profit_loss.revenue,
+                    gross_revenue: numOrZero(record.gross_revenue),
+                    sales_returns: numOrZero(record.sales_returns),
+                    sales_discount: numOrZero(record.sales_discount),
+                },
+                cost_of_goods_sold: {
+                    ...prev.profit_loss.cost_of_goods_sold,
+                    beginning_inventory: numOrZero(record.beginning_inventory),
+                    purchases: numOrZero(record.purchases),
+                    direct_labor: numOrZero(record.direct_labor),
+                    factory_overhead: numOrZero(record.factory_overhead),
+                    ending_inventory: numOrZero(record.ending_inventory),
+                },
+                operating_expenses: {
+                    ...prev.profit_loss.operating_expenses,
+                    selling_expenses: numOrZero(record.selling_expenses),
+                    administrative_expenses: numOrZero(record.administrative_expenses),
+                    general_expenses: numOrZero(record.general_expenses),
+                },
+                other_income_expenses: {
+                    ...prev.profit_loss.other_income_expenses,
+                    interest_income: numOrZero(record.interest_income),
+                    dividend_income: numOrZero(record.dividend_income),
+                    other_income: numOrZero(record.other_income),
+                    interest_expense: numOrZero(record.interest_expense),
+                    other_expenses: numOrZero(record.other_expenses),
+                },
+                tax_expense: numOrZero(record.tax_expense),
+                p5_investment_facility: (record.investment_facility === null || record.investment_facility === undefined)
+                    ? prev.profit_loss.p5_investment_facility : boolToYesNo(record.investment_facility),
+                p5_investment_facility_amount: numOrZero(record.p5_investment_facility_amount),
+                p6_vocational_deduction: (record.vocational_deduction_facility === null || record.vocational_deduction_facility === undefined)
+                    ? prev.profit_loss.p6_vocational_deduction : boolToYesNo(record.vocational_deduction_facility),
+                p6_vocational_deduction_amount: numOrZero(record.p6_vocational_deduction_amount),
+                p8_carried_losses: (record.carried_forward_losses === null || record.carried_forward_losses === undefined)
+                    ? prev.profit_loss.p8_carried_losses : boolToYesNo(record.carried_forward_losses),
+                p8_carried_forward_losses: numOrZero(record.p8_carried_losses),
+                p10_rd_deduction: (record.rd_deduction_facility === null || record.rd_deduction_facility === undefined)
+                    ? prev.profit_loss.p10_rd_deduction : boolToYesNo(record.rd_deduction_facility),
+                p10_rd_deduction_amount: numOrZero(record.p10_rd_deduction_amount),
+                p11_tax_rate: record.tax_rate_type ?? prev.profit_loss.p11_tax_rate,
+                p11a_custom_tax_rate: (record.p11a_custom_tax_rate === null || record.p11a_custom_tax_rate === undefined)
+                    ? prev.profit_loss.p11a_custom_tax_rate : String(record.p11a_custom_tax_rate),
+            },
+            tax_calculation: {
+                ...prev.tax_calculation,
+                commercial_profit: numOrZero(record.commercial_profit),
+                fiscal_adjustments: {
+                    ...prev.tax_calculation.fiscal_adjustments,
+                    positive_corrections: numOrZero(record.positive_fiscal_corrections),
+                    negative_corrections: numOrZero(record.negative_fiscal_corrections),
+                },
+                q13_overseas_credit: (record.overseas_tax_credit_requested === null || record.overseas_tax_credit_requested === undefined)
+                    ? prev.tax_calculation.q13_overseas_credit : boolToYesNo(record.overseas_tax_credit_requested),
+                q13_overseas_credit_amount: numOrZero(record.q13_overseas_credit),
+                p14_installment_art25: numOrZero(record.p14_installment_art25),
+                p15_notice_art25: numOrZero(record.p15_notice_art25),
+                q16_payable_deduction: (record.payable_deduction_requested === null || record.payable_deduction_requested === undefined)
+                    ? prev.tax_calculation.q16_payable_deduction : boolToYesNo(record.payable_deduction_requested),
+                q16_payable_deduction_amount: numOrZero(record.q16_payable_deduction),
+            },
+            tax_credit: {
+                ...prev.tax_credit,
+                withholding_tax_article_23: numOrZero(record.withholding_tax_article_23),
+                withholding_tax_article_22: numOrZero(record.withholding_tax_article_22),
+                withholding_tax_article_26: numOrZero(record.withholding_tax_article_26),
+                installment_article_25: numOrZero(record.installment_article_25),
+                overpayment_previous_year: numOrZero(record.overpayment_previous_year),
+                foreign_tax_credit: numOrZero(record.foreign_tax_credit),
+                p17b_has_postponement: (record.p17b_has_postponement === null || record.p17b_has_postponement === undefined)
+                    ? prev.tax_credit.p17b_has_postponement : boolToYesNo(record.p17b_has_postponement),
+                p17b_postponement_amount: numOrZero(record.p17b_postponement_amount),
+                p18a_previous_underpayment: numOrZero(record.p18a_previous_underpayment),
+                p19a_refund_method: record.p19a_refund_method ?? prev.tax_credit.p19a_refund_method,
+                p19b_bank_account: record.p19b_bank_account ?? prev.tax_credit.p19b_bank_account,
+                p19b_account_no: record.p19b_account_no ?? prev.tax_credit.p19b_account_no,
+                p19b_bank_name: record.p19b_bank_name ?? prev.tax_credit.p19b_bank_name,
+                p19b_account_holder: record.p19b_account_holder ?? prev.tax_credit.p19b_account_holder,
+            },
+            statement: {
+                ...prev.statement,
+                // declaration TIDAK direstore dari V3 (unmapped — lihat catatan
+                // di buildMainFormV3Payload).
+                signature: record.signature ?? prev.statement.signature,
+                company_name: record.company_name ?? prev.statement.company_name,
+                pic_name: record.pic_name ?? prev.statement.pic_name,
+                pic_nik: record.pic_nik ?? prev.statement.pic_nik,
+                position: record.position ?? prev.statement.position,
+                date: record.date ?? prev.statement.date,
+                stamp: record.stamp ?? prev.statement.stamp,
+            },
+            transactions: {
+                ...prev.transactions,
+                // 21j (q21j_excess_final_tax) SENGAJA TIDAK direstore dari sini
+                // — selalu dihitung ulang dari L5 (live) via sync effect
+                // l5TotalDifference, tidak pernah disimpan/dibaca sebagai raw
+                // field (Section D FINAL DECISION).
+                q21a_related_party: (record.has_related_party_transactions === null || record.has_related_party_transactions === undefined)
+                    ? prev.transactions.q21a_related_party : boolToYesNo(record.has_related_party_transactions),
+                q21b_tp_document: (record.has_transfer_pricing_documentation === null || record.has_transfer_pricing_documentation === undefined)
+                    ? prev.transactions.q21b_tp_document : boolToYesNo(record.has_transfer_pricing_documentation),
+                q21c_capital_investment: (record.has_affiliated_capital_investment === null || record.has_affiliated_capital_investment === undefined)
+                    ? prev.transactions.q21c_capital_investment : boolToYesNo(record.has_affiliated_capital_investment),
+                q21d_debt_receivable: (record.has_affiliated_debt_or_receivable === null || record.has_affiliated_debt_or_receivable === undefined)
+                    ? prev.transactions.q21d_debt_receivable : boolToYesNo(record.has_affiliated_debt_or_receivable),
+                q21e_fiscal_depreciation: (record.has_fiscal_depreciation_amortization === null || record.has_fiscal_depreciation_amortization === undefined)
+                    ? prev.transactions.q21e_fiscal_depreciation : boolToYesNo(record.has_fiscal_depreciation_amortization),
+                q21f_entertainment_expense: (record.has_entertainment_promotion_bad_debt_expense === null || record.has_entertainment_promotion_bad_debt_expense === undefined)
+                    ? prev.transactions.q21f_entertainment_expense : boolToYesNo(record.has_entertainment_promotion_bad_debt_expense),
+                q21g_investment_facility: (record.has_investment_tax_facility === null || record.has_investment_tax_facility === undefined)
+                    ? prev.transactions.q21g_investment_facility : boolToYesNo(record.has_investment_tax_facility),
+                q21h_reinvestment: (record.has_reinvestment === null || record.has_reinvestment === undefined)
+                    ? prev.transactions.q21h_reinvestment : boolToYesNo(record.has_reinvestment),
+                q21i_dividend_overseas: (record.has_overseas_dividend_income === null || record.has_overseas_dividend_income === undefined)
+                    ? prev.transactions.q21i_dividend_overseas : boolToYesNo(record.has_overseas_dividend_income),
+            },
+        }));
+    };
+
+    // GET record Main Form dari V3 (cardinality "one" — 0 atau 1 baris).
+    const getMainFormRecordFromV3 = async (headerId) => {
+        const response = await fetch(`${API.HOST}/api/v3/spt/drafts/${headerId}/sections/mainForm`, {
+            method: 'GET',
+            headers: { ...getAuthHeaders() },
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            const code = result?.error?.code;
+            const message = result?.error?.message || 'Gagal memuat Main Form dari V3.';
+            throw new Error(`[${code || response.status}] ${message}`);
+        }
+        const rows = Array.isArray(result?.data?.rows) ? result.data.rows : [];
+        return rows.length > 0 ? rows[0] : null;
+    };
+
+    // Orchestrator load Main Form — dipanggil sejalan dengan loadL1FromV3
+    // (headerId sudah diketahui, dari resolveV3HeaderId yang sama).
+    const loadMainFormFromV3 = async (headerId) => {
+        if (!headerId) return;
+        try {
+            const record = await getMainFormRecordFromV3(headerId);
+            if (record) {
+                setMainFormV3Id(record.id ?? null);
+                applyMainFormV3Record(record);
+            }
+        } catch (err) {
+            console.error('Gagal memuat Main Form dari V3:', err);
+            setError(prev => prev || `Gagal memuat Main Form: ${err.message}`);
+        }
+    };
+
+    // Orchestrator save Main Form — dipanggil dari saveDraft(), sejalan dengan
+    // saveL1ToV3(). Main Form = SATU record per header (cardinality "one").
+    // mainFormV3Id (state) dipakai sebagai penanda "sudah ada row" → PATCH;
+    // kalau belum diketahui, GET dulu untuk memastikan (createDraft() di
+    // Service V3 sudah membuat row mainForm kosong saat header dibuat, jadi
+    // POST di sini murni fallback defensif bila record ternyata belum ada).
+    const saveMainFormToV3 = async (headerId) => {
+        const payload = buildMainFormV3Payload(sptData);
+        let mainFormId = mainFormV3Id;
+        if (!mainFormId) {
+            try {
+                const existing = await getMainFormRecordFromV3(headerId);
+                if (existing) mainFormId = existing.id;
+            } catch (err) {
+                console.error('Gagal cek existing Main Form V3 sebelum save:', err);
+            }
+        }
+        const url = mainFormId
+            ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/mainForm/${mainFormId}`
+            : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/mainForm`;
+        const response = await fetch(url, {
+            method: mainFormId ? 'PATCH' : 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            const code = result?.error?.code;
+            const message = result?.error?.message || 'Gagal menyimpan Main Form ke V3.';
+            throw new Error(`[${code || response.status}] ${message}`);
+        }
+        const savedId = result?.data?.sectionId ?? mainFormId ?? null;
+        if (savedId) setMainFormV3Id(savedId);
+        return [];
+    };
+
+    // ══════════════════════════════════════════════════════════════════════
+    // L2–L8 V3 Persistence — shared helpers
+    // ══════════════════════════════════════════════════════════════════════
+    // toStrDec — identik dengan fix Bug 1 L1 (toStr): Sequelize DECIMAL
+    // kembali sebagai string gaya JS ("1000000.00"). parseFloat membaca titik
+    // sebagai desimal secara benar, lalu String(number) menghasilkan string
+    // digit-only yang aman dikonsumsi RpField/parse() di komponen L2-L8 (pola
+    // fmt/parse identik L1a.js).
+    const toStrDec = (v) => {
+        if (v === null || v === undefined) return '';
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? String(n) : '';
+    };
+    // numOrNull — untuk field opsional (persentase, tahun) di mana '' (belum
+    // diisi user) HARUS tetap NULL di database, BUKAN 0. Beda dari numOrZero
+    // yang dipakai untuk field Rupiah (kosong = 0 secara bisnis).
+    const numOrNull = (v) => (v === '' || v === null || v === undefined ? null : (Number(v) || 0));
+    const intOrNull = (v) => (v === '' || v === null || v === undefined ? null : (parseInt(v, 10) || null));
+
+    // ── L2 (spt_l2) — Part A (section_type PART_A) & Part B (PART_B) share table ──
+    const buildL2PayloadA = (row) => ({
+        section_type: 'PART_A',
+        npwp_tin: row.npwp || null,
+        name: row.name || null,
+        position: row.position || null,
+        country_code: row.countryCode || null,
+        paid_capital_amount: numOrZero(row.paidCapitalRp),
+        paid_capital_percentage: numOrNull(row.paidCapitalPercent),
+        dividend_amount: numOrZero(row.dividendRp),
+    });
+    const buildL2PayloadB = (row) => ({
+        section_type: 'PART_B',
+        npwp_tin: row.npwp || null,
+        name: row.name || null,
+        country_code: row.countryCode || null,
+        investment_amount: numOrZero(row.investmentRp),
+        investment_percentage: numOrNull(row.investmentPercent),
+        debt_amount: numOrZero(row.debtRp),
+        debt_year: intOrNull(row.debtYear),
+        debt_interest_percentage: numOrNull(row.debtInterestPercent),
+        receivable_amount: numOrZero(row.receivableRp),
+        receivable_year: intOrNull(row.receivableYear),
+        receivable_interest_percentage: numOrNull(row.receivableInterestPercent),
+    });
+    const buildL2RowFromDb = (dbRow, isSectionA) => {
+        const base = {
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `l2_${dbRow.id}`,
+            dbId: dbRow.id,
+            npwp: dbRow.npwp_tin || '',
+            name: dbRow.name || '',
+            countryCode: dbRow.country_code || '',
+        };
+        if (isSectionA) {
+            return {
+                ...base,
+                position: dbRow.position || '',
+                paidCapitalRp: toStrDec(dbRow.paid_capital_amount),
+                paidCapitalPercent: toStrDec(dbRow.paid_capital_percentage),
+                dividendRp: toStrDec(dbRow.dividend_amount),
+            };
+        }
+        return {
+            ...base,
+            investmentRp: toStrDec(dbRow.investment_amount),
+            investmentPercent: toStrDec(dbRow.investment_percentage),
+            debtRp: toStrDec(dbRow.debt_amount),
+            debtYear: dbRow.debt_year != null ? String(dbRow.debt_year) : '',
+            debtInterestPercent: toStrDec(dbRow.debt_interest_percentage),
+            receivableRp: toStrDec(dbRow.receivable_amount),
+            receivableYear: dbRow.receivable_year != null ? String(dbRow.receivable_year) : '',
+            receivableInterestPercent: toStrDec(dbRow.receivable_interest_percentage),
+        };
+    };
+
+    const saveManyRowsToV3 = async (headerId, sectionKey, rows, buildPayload) => {
+        const errors = [];
+        for (const row of rows) {
+            try {
+                const payload = buildPayload(row);
+                const url = row.dbId
+                    ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}/${row.dbId}`
+                    : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}`;
+                const response = await fetch(url, {
+                    method: row.dbId ? 'PATCH' : 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    const code = result?.error?.code;
+                    errors.push(`${sectionKey}${row.dbId ? `/${row.dbId}` : ''}: [${code || response.status}] ${result?.error?.message || 'gagal disimpan'}`);
+                    continue;
+                }
+                const newId = result?.data?.sectionId;
+                if (newId && !row.dbId) row.dbId = newId; // mutate in place so caller's setXRowsFromDraft gets it
+            } catch (err) {
+                errors.push(`${sectionKey}: ${err.message}`);
+            }
+        }
+        return errors;
+    };
+
+    // ── Parent-scoped rows (FIX — audit 2) ──────────────────────────────
+    // saveManyRowsToV3 sendiri TIDAK tahu apa-apa soal parent FK — ia hanya
+    // memanggil buildPayload(row) apa adanya. Untuk section yang child-nya
+    // butuh parent FK (l9Asset→l9_id, l11aRegionalFacility→regional_benefit_id,
+    // l11bDebtBalance/EquityBalance/BorrowingCost→l11b_id,
+    // l13bAgreement/SectionB/Rd→l13b_id), FK HARUS datang dari parentDbId
+    // hasil resolve/create parent — BUKAN dari row.id (row.id = frontend/UI
+    // identity, row.dbId = DB primary key milik row itu sendiri, keduanya
+    // bukan parent FK). Guard eksplisit: kalau parentDbId belum ada (parent
+    // gagal disimpan), child DIBATALKAN dengan error jelas — bukan dikirim
+    // tanpa FK (itulah sumber SECTION_NOT_FOUND sebelumnya).
+    const saveParentScopedRowsToV3 = async (headerId, sectionKey, parentDbId, parentKey, rows, buildPayload) => {
+        if (!parentDbId) {
+            return [`${sectionKey}: parent (${parentKey}) belum tersimpan — parentDbId kosong, child dibatalkan untuk mencegah SECTION_NOT_FOUND.`];
+        }
+        const wrappedBuild = (row) => ({ [parentKey]: parentDbId, ...buildPayload(row) });
+        return await saveManyRowsToV3(headerId, sectionKey, rows, wrappedBuild);
+    };
+
+    const getManyRowsFromV3 = async (headerId, sectionKey) => {
+        const response = await fetch(`${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}`, {
+            method: 'GET',
+            headers: { ...getAuthHeaders() },
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            const code = result?.error?.code;
+            throw new Error(`[${code || response.status}] ${result?.error?.message || `Gagal memuat ${sectionKey} dari V3.`}`);
+        }
+        return Array.isArray(result?.data?.rows) ? result.data.rows : [];
+    };
+
+    // ── Hard delete (Section G FINAL DECISION) ───────────────────────────
+    // Baris yang di-Delete user di UI tidak lagi ada di currentRows saat
+    // Save Draft dijalankan — GET dbRows terbaru, cari dbId yang ADA di DB
+    // tapi TIDAK ADA lagi di currentRows, lalu DELETE fisik baris tersebut.
+    // Bukan soft delete (deleted_at) — physical row removal sesuai keputusan
+    // final. excludeDbIds opsional untuk baris yang sengaja dikelola terpisah
+    // (mis. L3 PRIOR_YEAR_ADJUSTMENT, bukan bagian dari rows array biasa).
+    const deleteRemovedRowsFromV3 = async (headerId, sectionKey, currentRows, excludeDbIds = []) => {
+        const errors = [];
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, sectionKey);
+            const keepIds = new Set([
+                ...currentRows.map(r => r.dbId).filter(Boolean),
+                ...excludeDbIds.filter(Boolean),
+            ]);
+            const toDelete = dbRows.filter(r => !keepIds.has(r.id));
+            for (const dbRow of toDelete) {
+                try {
+                    const response = await fetch(`${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}/${dbRow.id}`, {
+                        method: 'DELETE',
+                        headers: { ...getAuthHeaders() },
+                    });
+                    if (!response.ok && response.status !== 204) {
+                        let msg = 'gagal dihapus';
+                        try { const result = await response.json(); msg = result?.error?.message || msg; } catch (_) { /* no JSON body */ }
+                        errors.push(`${sectionKey}/${dbRow.id}: ${msg}`);
+                    }
+                } catch (err) {
+                    errors.push(`${sectionKey}/${dbRow.id}: ${err.message}`);
+                }
+            }
+        } catch (err) {
+            errors.push(`${sectionKey} (cek baris terhapus): ${err.message}`);
+        }
+        return errors;
+    };
+
+    // ── L2 orchestrators ─────────────────────────────────────────────────
+    const saveL2ToV3 = async (headerId) => {
+        const errors = [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l2', [...l2RowsA, ...l2RowsB]));
+        errors.push(...await saveManyRowsToV3(headerId, 'l2', l2RowsA, buildL2PayloadA));
+        errors.push(...await saveManyRowsToV3(headerId, 'l2', l2RowsB, buildL2PayloadB));
+        if (setL2RowsFromDraft) {
+            setL2RowsFromDraft('A', [...l2RowsA]);
+            setL2RowsFromDraft('B', [...l2RowsB]);
+        }
+        return errors;
+    };
+    const loadL2FromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l2');
+            const rowsA = dbRows.filter(r => r.section_type === 'PART_A').map(r => buildL2RowFromDb(r, true));
+            const rowsB = dbRows.filter(r => r.section_type === 'PART_B').map(r => buildL2RowFromDb(r, false));
+            if (setL2RowsFromDraft) {
+                if (rowsA.length > 0) setL2RowsFromDraft('A', rowsA);
+                if (rowsB.length > 0) setL2RowsFromDraft('B', rowsB);
+            }
+        } catch (err) {
+            console.error('Gagal memuat L2 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L2: ${err.message}`);
+        }
+    };
+
+    // ── L3 (spt_l3) — PART_A, PART_B, PRIOR_YEAR_ADJUSTMENT share one table ──
+    const buildL3PayloadA = (row) => ({
+        section_type: 'PART_A',
+        name: row.name || null,
+        country_code: row.countryCode || null,
+        transaction_date: row.transactionDate || null,
+        income_code: row.incomeCode || null,
+        net_income_amount: numOrZero(row.netIncomeRp),
+        tax_payable_overseas_amount: numOrZero(row.taxPayableOverseasRp),
+        currency_code: row.currency || null,
+        foreign_currency_amount: numOrNull(row.foreignCurrencyAmount),
+        tax_credit_calculated_amount: numOrZero(row.taxCreditCalculatedRp),
+    });
+    const buildL3PayloadB = (row) => ({
+        section_type: 'PART_B',
+        name: row.name || null,
+        tin: row.tin || null,
+        tax_type: row.taxType || null,
+        tax_base_amount: numOrZero(row.taxBaseRp),
+        tax_withheld_amount: numOrZero(row.taxWithheldRp),
+        withholding_slip_number: row.slipNumber || null,
+        withholding_slip_date: row.slipDate || null,
+    });
+    const buildL3RowFromDb = (dbRow, part) => {
+        if (part === 'A') {
+            return {
+                id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `l3a_${dbRow.id}`,
+                dbId: dbRow.id,
+                name: dbRow.name || '',
+                countryCode: dbRow.country_code || '',
+                transactionDate: dbRow.transaction_date || '',
+                incomeCode: dbRow.income_code || '',
+                netIncomeRp: toStrDec(dbRow.net_income_amount),
+                taxPayableOverseasRp: toStrDec(dbRow.tax_payable_overseas_amount),
+                currency: dbRow.currency_code || '',
+                foreignCurrencyAmount: toStrDec(dbRow.foreign_currency_amount),
+                taxCreditCalculatedRp: toStrDec(dbRow.tax_credit_calculated_amount),
+            };
+        }
+        return {
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `l3b_${dbRow.id}`,
+            dbId: dbRow.id,
+            name: dbRow.name || '',
+            tin: dbRow.tin || '',
+            taxType: dbRow.tax_type || '',
+            taxBaseRp: toStrDec(dbRow.tax_base_amount),
+            taxWithheldRp: toStrDec(dbRow.tax_withheld_amount),
+            slipNumber: dbRow.withholding_slip_number || '',
+            slipDate: dbRow.withholding_slip_date || '',
+        };
+    };
+    // priorYearCreditRefund disimpan sebagai SATU row section_type =
+    // PRIOR_YEAR_ADJUSTMENT (bukan row Part A/B palsu), pakai kolom
+    // prior_year_credit_adjustment_amount saja — field lain di payload NULL.
+    const l3PriorDbIdRef = useRef(null); // dbId row PRIOR_YEAR_ADJUSTMENT — HARUS useRef (bukan object literal) agar bertahan lintas render, bug asli penyebab duplicate PRIOR_YEAR_ADJUSTMENT
+
+    const saveL3ToV3 = async (headerId) => {
+        const errors = [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l3', [...l3RowsA, ...l3RowsB], [l3PriorDbIdRef.current]));
+        errors.push(...await saveManyRowsToV3(headerId, 'l3', l3RowsA, buildL3PayloadA));
+        errors.push(...await saveManyRowsToV3(headerId, 'l3', l3RowsB, buildL3PayloadB));
+        // Prior year adjustment — single scalar row
+        try {
+            const priorPayload = {
+                section_type: 'PRIOR_YEAR_ADJUSTMENT',
+                prior_year_credit_adjustment_amount: numOrZero(l3PriorYearCreditRefund),
+            };
+            const priorDbId = l3PriorDbIdRef.current;
+            const url = priorDbId
+                ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l3/${priorDbId}`
+                : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l3`;
+            const response = await fetch(url, {
+                method: priorDbId ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify(priorPayload),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                errors.push(`l3 (prior year adjustment): [${result?.error?.code || response.status}] ${result?.error?.message || 'gagal disimpan'}`);
+            } else if (result?.data?.sectionId && !priorDbId) {
+                l3PriorDbIdRef.current = result.data.sectionId;
+            }
+        } catch (err) {
+            errors.push(`l3 (prior year adjustment): ${err.message}`);
+        }
+        if (setL3RowsFromDraft) {
+            setL3RowsFromDraft('A', [...l3RowsA]);
+            setL3RowsFromDraft('B', [...l3RowsB]);
+        }
+        return errors;
+    };
+    const loadL3FromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l3');
+            const rowsA = dbRows.filter(r => r.section_type === 'PART_A').map(r => buildL3RowFromDb(r, 'A'));
+            const rowsB = dbRows.filter(r => r.section_type === 'PART_B').map(r => buildL3RowFromDb(r, 'B'));
+            const priorRow = dbRows.find(r => r.section_type === 'PRIOR_YEAR_ADJUSTMENT');
+            if (priorRow) {
+                l3PriorDbIdRef.current = priorRow.id;
+                if (setL3RowsFromDraft) {
+                    setL3RowsFromDraft('PRIOR_YEAR_CREDIT_REFUND', toStrDec(priorRow.prior_year_credit_adjustment_amount));
+                }
+            }
+            if (setL3RowsFromDraft) {
+                if (rowsA.length > 0) setL3RowsFromDraft('A', rowsA);
+                if (rowsB.length > 0) setL3RowsFromDraft('B', rowsB);
+            }
+        } catch (err) {
+            console.error('Gagal memuat L3 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L3: ${err.message}`);
+        }
+    };
+
+    // ── L4 (spt_l4) — PART_A & PART_B share table; unused part's fields NULL ──
+    const buildL4PayloadA = (row) => ({
+        section_type: 'PART_A',
+        withholding_tin: row.tin || null,
+        withholding_name: row.withholdingName || null,
+        tax_object: row.taxObject || null,
+        tax_base_amount: numOrZero(row.taxBase),
+        tax_rate: numOrNull(row.rate),
+    });
+    const buildL4PayloadB = (row) => ({
+        section_type: 'PART_B',
+        income_type: row.typeOfIncome || null,
+        income_source: row.incomeSource || null,
+        gross_income_amount: numOrZero(row.grossIncome),
+    });
+    const buildL4RowFromDb = (dbRow, part) => {
+        if (part === 'A') {
+            return {
+                id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `l4a_${dbRow.id}`,
+                dbId: dbRow.id,
+                tin: dbRow.withholding_tin || '',
+                withholdingName: dbRow.withholding_name || '',
+                taxObject: dbRow.tax_object || '',
+                taxBase: toStrDec(dbRow.tax_base_amount),
+                rate: toStrDec(dbRow.tax_rate),
+            };
+        }
+        return {
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `l4b_${dbRow.id}`,
+            dbId: dbRow.id,
+            typeOfIncome: dbRow.income_type || '',
+            incomeSource: dbRow.income_source || '',
+            grossIncome: toStrDec(dbRow.gross_income_amount),
+        };
+    };
+    const saveL4ToV3 = async (headerId) => {
+        const errors = [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l4', [...l4RowsA, ...l4RowsB]));
+        errors.push(...await saveManyRowsToV3(headerId, 'l4', l4RowsA, buildL4PayloadA));
+        errors.push(...await saveManyRowsToV3(headerId, 'l4', l4RowsB, buildL4PayloadB));
+        if (setL4RowsFromDraft) {
+            setL4RowsFromDraft('A', [...l4RowsA]);
+            setL4RowsFromDraft('B', [...l4RowsB]);
+        }
+        return errors;
+    };
+    const loadL4FromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l4');
+            const rowsA = dbRows.filter(r => r.section_type === 'PART_A').map(r => buildL4RowFromDb(r, 'A'));
+            const rowsB = dbRows.filter(r => r.section_type === 'PART_B').map(r => buildL4RowFromDb(r, 'B'));
+            if (setL4RowsFromDraft) {
+                if (rowsA.length > 0) setL4RowsFromDraft('A', rowsA);
+                if (rowsB.length > 0) setL4RowsFromDraft('B', rowsB);
+            }
+        } catch (err) {
+            console.error('Gagal memuat L4 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L4: ${err.message}`);
+        }
+    };
+
+    // ── L6 (spt_l6) — 1:1 dengan header, single scalar record ───────────────
+    const l6DbIdRef = useRef(null); // HARUS useRef — object literal direset setiap render, menyebabkan duplicate POST di Save Draft kedua
+    const buildL6Payload = () => ({
+        income_base_amount: numOrZero(l6IncomeBase),
+        previous_year_tax_credit_amount: numOrZero(l6PreviousYearTaxCredit),
+    });
+    const saveL6ToV3 = async (headerId) => {
+        try {
+            let dbId = l6DbIdRef.current;
+            if (!dbId) {
+                const rows = await getManyRowsFromV3(headerId, 'l6').catch(() => []);
+                if (rows.length > 0) dbId = rows[0].id;
+            }
+            const url = dbId
+                ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l6/${dbId}`
+                : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l6`;
+            const response = await fetch(url, {
+                method: dbId ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify(buildL6Payload()),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                return [`l6: [${result?.error?.code || response.status}] ${result?.error?.message || 'gagal disimpan'}`];
+            }
+            if (result?.data?.sectionId && !dbId) l6DbIdRef.current = result.data.sectionId;
+            return [];
+        } catch (err) {
+            return [`l6: ${err.message}`];
+        }
+    };
+    const loadL6FromV3 = async (headerId) => {
+        try {
+            const rows = await getManyRowsFromV3(headerId, 'l6');
+            if (rows.length > 0) {
+                const dbRow = rows[0];
+                l6DbIdRef.current = dbRow.id;
+                if (setL6IncomeBaseFromDraft) setL6IncomeBaseFromDraft(toStrDec(dbRow.income_base_amount));
+                if (setL6PreviousYearTaxCreditFromDraft) setL6PreviousYearTaxCreditFromDraft(toStrDec(dbRow.previous_year_tax_credit_amount));
+            }
+        } catch (err) {
+            console.error('Gagal memuat L6 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L6: ${err.message}`);
+        }
+    };
+
+    // ── L7 (spt_l7) — business identity (header_id, tax_year); many rows ────
+    const buildL7Payload = (row) => ({
+        tax_year: intOrNull(row.taxYear),
+        fiscal_net_profit_income: numOrZero(row.netFiscal),
+        fiscal_loss_compensation_y_minus_4: numOrZero(row.compYMinus4),
+        fiscal_loss_compensation_y_minus_3: numOrZero(row.compYMinus3),
+        fiscal_loss_compensation_y_minus_2: numOrZero(row.compYMinus2),
+        fiscal_loss_compensation_y_minus_1: numOrZero(row.compYMinus1),
+        fiscal_loss_compensation_current_year: numOrZero(row.compThisYear),
+        fiscal_loss_compensation_next_year: numOrZero(row.compYPlus1),
+    });
+    const buildL7RowFromDb = (dbRow) => ({
+        taxYear: dbRow.tax_year,
+        dbId: dbRow.id,
+        netFiscal: toStrDec(dbRow.fiscal_net_profit_income),
+        compYMinus4: toStrDec(dbRow.fiscal_loss_compensation_y_minus_4),
+        compYMinus3: toStrDec(dbRow.fiscal_loss_compensation_y_minus_3),
+        compYMinus2: toStrDec(dbRow.fiscal_loss_compensation_y_minus_2),
+        compYMinus1: toStrDec(dbRow.fiscal_loss_compensation_y_minus_1),
+        compThisYear: toStrDec(dbRow.fiscal_loss_compensation_current_year),
+        compYPlus1: toStrDec(dbRow.fiscal_loss_compensation_next_year),
+    });
+    const saveL7ToV3 = async (headerId) => {
+        const errors = await saveManyRowsToV3(headerId, 'l7', l7Rows, buildL7Payload);
+        if (setL7RowsFromDraft) setL7RowsFromDraft([...l7Rows]);
+        return errors;
+    };
+    const loadL7FromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l7');
+            if (dbRows.length > 0 && setL7RowsFromDraft) {
+                // ROOT CAUSE (dikunci dari audit): sebelumnya di sini di-merge
+                // terhadap `l7Rows` (prop saat ini), yang MASIH KOSONG pada saat
+                // effect ini jalan (roster tahun di L7.js/SptTahunanBadan.js belum
+                // ter-build) — hasil .map() atas array kosong selalu kosong, jadi
+                // setL7RowsFromDraft tidak pernah menerima data.
+                //
+                // FIX: kirim dbRows (dipetakan via buildL7RowFromDb yang SUDAH ADA,
+                // tidak dibuat mapper baru) apa adanya ke setL7RowsFromDraft. L7.js
+                // SENDIRI yang memiliki roster tahun (l7TaxYears) dan sudah punya
+                // useEffect yang menjalankan
+                //   mergeRowsWithDraft(buildInitialRows(l7TaxYears), l7Rows)
+                // setiap kali prop l7Rows berubah — jadi begitu setL7RowsFromDraft
+                // dipanggil, L7.js otomatis me-merge dbRows ini ke roster miliknya
+                // sendiri. Tidak ada mekanisme merge baru dibuat di sini, tanggung
+                // jawab roster/merge TETAP di L7.js.
+                setL7RowsFromDraft(dbRows.map(buildL7RowFromDb));
+            }
+        } catch (err) {
+            console.error('Gagal memuat L7 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L7: ${err.message}`);
+        }
+    };
+
+    // ── L8 (spt_l8) — 1:1 dengan header, single scalar record ───────────────
+    const l8DbIdRef = useRef(null); // HARUS useRef — object literal direset setiap render, menyebabkan duplicate POST di Save Draft kedua
+    const buildL8Payload = () => ({
+        gross_turnover_amount: numOrZero(l8GrossTurnover),
+    });
+    const saveL8ToV3 = async (headerId) => {
+        try {
+            let dbId = l8DbIdRef.current;
+            if (!dbId) {
+                const rows = await getManyRowsFromV3(headerId, 'l8').catch(() => []);
+                if (rows.length > 0) dbId = rows[0].id;
+            }
+            const url = dbId
+                ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l8/${dbId}`
+                : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l8`;
+            const response = await fetch(url, {
+                method: dbId ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify(buildL8Payload()),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                return [`l8: [${result?.error?.code || response.status}] ${result?.error?.message || 'gagal disimpan'}`];
+            }
+            if (result?.data?.sectionId && !dbId) l8DbIdRef.current = result.data.sectionId;
+            return [];
+        } catch (err) {
+            return [`l8: ${err.message}`];
+        }
+    };
+    const loadL8FromV3 = async (headerId) => {
+        try {
+            const rows = await getManyRowsFromV3(headerId, 'l8');
+            if (rows.length > 0) {
+                const dbRow = rows[0];
+                l8DbIdRef.current = dbRow.id;
+                if (setL8GrossTurnoverFromDraft) setL8GrossTurnoverFromDraft(toStrDec(dbRow.gross_turnover_amount));
+            }
+        } catch (err) {
+            console.error('Gagal memuat L8 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L8: ${err.message}`);
+        }
+    };
+
+    // ── L5 Place (spt_l5_place) ──────────────────────────────────────────
+    const L5_MONTHS = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
+    const buildL5PlacePayload = (place) => ({
+        tku_number: place.tkuNumber || null,
+        tku_name: place.namaTku || null,
+        address: place.alamat || null,
+        village: place.kelurahan || null,
+        district: place.kecamatan || null,
+        city: place.kota || null,
+        province: place.provinsi || null,
+    });
+    const buildL5PlaceFromDb = (dbRow) => ({
+        id: dbRow.id != null ? String(dbRow.id) : ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `l5p_${Math.random()}`),
+        dbId: dbRow.id,
+        tkuNumber: dbRow.tku_number || '',
+        namaTku: dbRow.tku_name || '',
+        alamat: dbRow.address || '',
+        kelurahan: dbRow.village || '',
+        kecamatan: dbRow.district || '',
+        kota: dbRow.city || '',
+        provinsi: dbRow.province || '',
+        transactions: Array.isArray(dbRow.transactions) ? dbRow.transactions : [],
+    });
+
+    // saveL5PlacesToV3 — WAJIB tkuNumber diisi (kolom NOT NULL). Place tanpa
+    // tkuNumber DILEWATI (tidak dikirim) dan errornya dilaporkan secara
+    // eksplisit (Section M) — bukan diam-diam dianggap sukses maupun ditolak
+    // seluruh Save Draft-nya.
+    const saveL5PlacesToV3 = async (headerId) => {
+        const errors = [];
+        for (const place of (Array.isArray(l5Places) ? l5Places : [])) {
+            if (!place.tkuNumber || !place.tkuNumber.trim()) {
+                errors.push(`l5Place "${place.namaTku || place.id}": Nomor TKU belum diisi — tidak disimpan ke database.`);
+                continue;
+            }
+            try {
+                const payload = buildL5PlacePayload(place);
+                const url = place.dbId
+                    ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l5Place/${place.dbId}`
+                    : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l5Place`;
+                const response = await fetch(url, {
+                    method: place.dbId ? 'PATCH' : 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    errors.push(`l5Place "${place.namaTku || place.id}": [${result?.error?.code || response.status}] ${result?.error?.message || 'gagal disimpan'}`);
+                    continue;
+                }
+                if (result?.data?.sectionId && !place.dbId) place.dbId = result.data.sectionId; // mutate in place
+            } catch (err) {
+                errors.push(`l5Place "${place.namaTku || place.id}": ${err.message}`);
+            }
+        }
+        if (setL5PlacesFromDraft) setL5PlacesFromDraft([...l5Places]);
+        return errors;
+    };
+
+    // ── L5 Transaction (spt_l5_transaction) — 1 UI TKU -> maks 12 DB rows ──
+    // NULL vs 0 (Section H3): field kosong ('') untuk SATU bulan = belum
+    // diinput -> row TIDAK dibuat sama sekali (bukan dikirim sebagai 0).
+    // Bila user benar-benar mengisi 0, row tetap dibuat dengan nilai 0.
+    // dbId per (place, bulan) disimpan di transactions[] milik place (hasil
+    // GET l5Place yang sudah dibundel transactions oleh backend).
+    const saveL5TransactionsToV3 = async (headerId) => {
+        const errors = [];
+        for (const place of (Array.isArray(l5Places) ? l5Places : [])) {
+            if (!place.dbId) continue; // place belum tersimpan (mis. tkuNumber kosong) -> transaction ikut dilewati
+            const row = (Array.isArray(l5Rows) ? l5Rows : []).find(r => r.tkuId === place.id);
+            if (!row) continue;
+            const existingByMonth = {};
+            (Array.isArray(place.transactions) ? place.transactions : []).forEach(t => { existingByMonth[t.tax_month] = t; });
+
+            for (let m = 0; m < 12; m++) {
+                const prefix = L5_MONTHS[m];
+                const taxMonth = m + 1;
+                const gross = row[`${prefix}_bruto`];
+                const selfPaid = row[`${prefix}_disetor`];
+                const withheld = row[`${prefix}_dipotong`];
+                const allEmpty = (gross === '' || gross === null || gross === undefined)
+                    && (selfPaid === '' || selfPaid === null || selfPaid === undefined)
+                    && (withheld === '' || withheld === null || withheld === undefined);
+                const existing = existingByMonth[taxMonth];
+                if (allEmpty) {
+                    // Section H3: bulan belum diinput sama sekali -> jangan buat row.
+                    // Bila row SUDAH ADA di DB dan user mengosongkan semua input bulan
+                    // ini, seharusnya soft delete — TIDAK diimplementasikan di sini
+                    // karena V3 API saat ini tidak menyediakan endpoint DELETE per
+                    // section/row (hanya DELETE seluruh draft). Dilaporkan sebagai
+                    // gap, bukan ditambahkan endpoint baru secara sepihak.
+                    if (existing) {
+                        errors.push(`l5Transaction "${place.namaTku || place.id}" bulan ${taxMonth}: input dikosongkan tapi row database masih ada — soft delete BELUM didukung (tidak ada endpoint DELETE per-row di V3), row lama TIDAK diubah.`);
+                    }
+                    continue;
+                }
+                try {
+                    const payload = {
+                        place_id: place.dbId,
+                        tax_month: taxMonth,
+                        gross_turnover_amount: numOrZero(gross),
+                        self_paid_tax_amount: numOrZero(selfPaid),
+                        withheld_tax_amount: numOrZero(withheld),
+                    };
+                    const dbId = existing ? existing.id : null;
+                    const url = dbId
+                        ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l5Transaction/${dbId}`
+                        : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l5Transaction`;
+                    const response = await fetch(url, {
+                        method: dbId ? 'PATCH' : 'POST',
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                        body: JSON.stringify(payload),
+                    });
+                    const result = await response.json();
+                    if (!response.ok) {
+                        errors.push(`l5Transaction "${place.namaTku || place.id}" bulan ${taxMonth}: [${result?.error?.code || response.status}] ${result?.error?.message || 'gagal disimpan'}`);
+                    } else if (!dbId && result?.data?.sectionId) {
+                        // Rekam dbId baru ke place.transactions (in-memory) supaya
+                        // Save Draft berikutnya di sesi yang sama (tanpa reload)
+                        // melakukan PATCH, bukan duplicate POST, untuk bulan ini.
+                        if (!Array.isArray(place.transactions)) place.transactions = [];
+                        place.transactions.push({ id: result.data.sectionId, tax_month: taxMonth });
+                    }
+                } catch (err) {
+                    errors.push(`l5Transaction "${place.namaTku || place.id}" bulan ${taxMonth}: ${err.message}`);
+                }
+            }
+        }
+        return errors;
+    };
+
+    const saveL5ToV3 = async (headerId) => {
+        const placeErrors = await saveL5PlacesToV3(headerId);
+        const txErrors = await saveL5TransactionsToV3(headerId);
+        return [...placeErrors, ...txErrors];
+    };
+
+    // loadL5FromV3 — GET l5Place (backend sudah membundel transactions per
+    // place, lihat sptDraftPreparationService.js getSection l5Place). Hydrate
+    // l5Places (dbId, tkuNumber, dst DAN transactions[] mentah untuk dipakai
+    // saveL5TransactionsToV3 sebagai referensi existing rows) dan l5Rows
+    // (36 field UI, dikelompokkan per tkuId = place.id).
+    const loadL5FromV3 = async (headerId) => {
+        try {
+            const dbPlaces = await getManyRowsFromV3(headerId, 'l5Place');
+            if (dbPlaces.length === 0) return;
+            const newPlaces = dbPlaces.map(buildL5PlaceFromDb);
+            const newRows = newPlaces.map(place => {
+                const row = { tkuId: place.id };
+                (place.transactions || []).forEach(t => {
+                    const prefix = L5_MONTHS[(t.tax_month || 1) - 1];
+                    if (!prefix) return;
+                    row[`${prefix}_bruto`] = toStrDec(t.gross_turnover_amount);
+                    row[`${prefix}_disetor`] = toStrDec(t.self_paid_tax_amount);
+                    row[`${prefix}_dipotong`] = toStrDec(t.withheld_tax_amount);
+                });
+                return row;
+            });
+            if (setL5PlacesFromDraft) setL5PlacesFromDraft(newPlaces);
+            if (setL5RowsFromDraft) setL5RowsFromDraft(newRows);
+        } catch (err) {
+            console.error('Gagal memuat L5 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L5: ${err.message}`);
+        }
+    };
+
+
+    // ══════════════════════════════════════════════════════════════════════
+    // L9–L14 V3 Persistence — 25 section keys (l9, l9Asset, l10a, l10b, l10c,
+    // l10d, l11aPromotion, l11aEntertainment, l11aBadDebt, l11aFacility,
+    // l11aRegionalBenefit, l11aRegionalFacility, l11aNpl, l11b,
+    // l11bDebtBalance, l11bEquityBalance, l11bBorrowingCost, l11c, l13a,
+    // l13b, l13bAgreement, l13bSectionB, l13bRd, l13c, l14).
+    //
+    // Reuses saveManyRowsToV3 / getManyRowsFromV3 / deleteRemovedRowsFromV3 /
+    // resolveV3HeaderId (L2–L8 shared helpers, di atas) — TIDAK membangun
+    // persistence architecture kedua. Ditambahkan di sini (bukan sebelum L2)
+    // agar berdekatan dengan orchestrator L9–L14 sendiri.
+    // ══════════════════════════════════════════════════════════════════════
+
+    // ── Generic camelCase <-> snake_case field mapper ──────────────────────
+    // Dipakai untuk section tanpa mapping field-by-field eksplisit di
+    // kontrak (L10A, L10C, L11A sub-bagian generik, L11C, L13A, L13B
+    // sectionA, L13C) — "camelCase frontend fields → corresponding
+    // snake_case DB columns" (Kontrak §11). id/dbId TIDAK ikut dikonversi
+    // (id = React key lokal, dbId = penanda PK V3, ditangani terpisah oleh
+    // saveManyRowsToV3/buildXRowFromDb).
+    const camelToSnakeKey = (key) => key.replace(/([A-Z])/g, '_$1').toLowerCase();
+    const snakeToCamelKey = (key) => key.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+
+    const buildGenericPayload = (row, extraFields = {}) => {
+        const payload = { ...extraFields };
+        Object.keys(row || {}).forEach((key) => {
+            if (key === 'id' || key === 'dbId') return;
+            const val = row[key];
+            payload[camelToSnakeKey(key)] = (val === '' || val === undefined) ? null : val;
+        });
+        return payload;
+    };
+
+    const buildGenericRowFromDb = (dbRow, extraCamel = {}) => {
+        const row = {
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `row_${dbRow.id}`,
+            dbId: dbRow.id,
+            ...extraCamel,
+        };
+        Object.keys(dbRow || {}).forEach((key) => {
+            if (key === 'id') return;
+            row[snakeToCamelKey(key)] = dbRow[key] ?? '';
+        });
+        return row;
+    };
+
+    // ── Generic singleton (cardinality "one") GET/SAVE ──────────────────────
+    // Pola identik getMainFormRecordFromV3/saveMainFormToV3 di atas, dibuat
+    // generic agar dipakai ulang oleh l9 (parent), l10b, l10d,
+    // l11aRegionalBenefit, l11b (parent), l13b (parent/sectionD) — bukan
+    // mengulang boilerplate GET/POST/PATCH lima-enam kali.
+    const getSingletonRecordFromV3 = async (headerId, sectionKey) => {
+        const response = await fetch(`${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}`, {
+            method: 'GET',
+            headers: { ...getAuthHeaders() },
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            const code = result?.error?.code;
+            throw new Error(`[${code || response.status}] ${result?.error?.message || `Gagal memuat ${sectionKey} dari V3.`}`);
+        }
+        const rows = Array.isArray(result?.data?.rows) ? result.data.rows : [];
+        return rows.length > 0 ? rows[0] : null;
+    };
+
+    const saveSingletonToV3 = async (headerId, sectionKey, payload, existingIdRef) => {
+        let recId = existingIdRef.current;
+        if (!recId) {
+            try {
+                const existing = await getSingletonRecordFromV3(headerId, sectionKey);
+                if (existing) recId = existing.id;
+            } catch (err) {
+                console.error(`Gagal cek existing ${sectionKey} V3 sebelum save:`, err);
+            }
+        }
+        const url = recId
+            ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}/${recId}`
+            : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}`;
+        const response = await fetch(url, {
+            method: recId ? 'PATCH' : 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            const code = result?.error?.code;
+            throw new Error(`[${code || response.status}] ${result?.error?.message || `Gagal menyimpan ${sectionKey} ke V3.`}`);
+        }
+        const savedId = result?.data?.sectionId ?? recId ?? null;
+        if (savedId) existingIdRef.current = savedId;
+        return savedId;
+    };
+
+    // ── Generic "replace all" untuk repeatable rows yang TIDAK bisa
+    // mengandalkan round-trip dbId (row.dbId dibuang oleh merge internal
+    // komponennya sendiri — L14.js: mergeRowsWithDraft() selalu membangun
+    // ulang row dari initialRows/buildInitialRows(), TIDAK spread `d` mentah;
+    // L13B.js: mergeWithInitial() sectionC merekonstruksi field satu-satu
+    // tanpa dbId). Karena file-file ini FROZEN (di luar scope perubahan),
+    // strategi aman: DELETE seluruh baris DB existing untuk sectionKey lalu
+    // POST ulang seluruh baris current — bukan soft delete, physical replace,
+    // konsisten dengan Hard Delete Contract (§7).
+    const replaceAllRowsInV3 = async (headerId, sectionKey, currentRows, buildPayload) => {
+        const errors = [];
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, sectionKey);
+            for (const dbRow of dbRows) {
+                try {
+                    const response = await fetch(`${API.HOST}/api/v3/spt/drafts/${headerId}/sections/${sectionKey}/${dbRow.id}`, {
+                        method: 'DELETE',
+                        headers: { ...getAuthHeaders() },
+                    });
+                    if (!response.ok && response.status !== 204) {
+                        let msg = 'gagal dihapus';
+                        try { const result = await response.json(); msg = result?.error?.message || msg; } catch (_) { /* no JSON body */ }
+                        errors.push(`${sectionKey}/${dbRow.id}: ${msg}`);
+                    }
+                } catch (err) {
+                    errors.push(`${sectionKey}/${dbRow.id}: ${err.message}`);
+                }
+            }
+        } catch (err) {
+            errors.push(`${sectionKey} (replace-all cleanup): ${err.message}`);
+        }
+        for (const row of (currentRows || [])) {
+            row.dbId = null; // paksa POST baru — dbId lama (jika ada) tidak valid lagi setelah delete-all
+        }
+        errors.push(...await saveManyRowsToV3(headerId, sectionKey, currentRows || [], buildPayload));
+        return errors;
+    };
+
+    // ── Bool <-> Yes/No (khusus L10B — Kontrak §11: "Yes"→true,"No"→false,""→null) ─
+    const yesNoToBoolOrNull = (v) => (v === 'Yes' ? true : (v === 'No' ? false : null));
+    const boolOrNullToYesNo = (v) => (v === true ? 'Yes' : (v === false ? 'No' : ''));
+
+    // ── Months (khusus L11B II.A/II.B — month_01..month_12 ↔ months[0..11]) ──
+    const emptyMonths12 = () => Array(12).fill('');
+    const monthsToPayload = (months) => {
+        const out = {};
+        const arr = Array.isArray(months) ? months : emptyMonths12();
+        for (let i = 0; i < 12; i++) out[`month_${String(i + 1).padStart(2, '0')}`] = numOrZero(arr[i]);
+        return out;
+    };
+    const monthsFromDb = (dbRow) => {
+        const arr = [];
+        for (let i = 1; i <= 12; i++) arr.push(toStrDec(dbRow[`month_${String(i).padStart(2, '0')}`]));
+        return arr;
+    };
+
+    // Refs id singleton (pola identik l3PriorDbIdRef/l6DbIdRef/l8DbIdRef —
+    // HARUS useRef, bukan object literal, agar bertahan lintas render/Save
+    // Draft berulang tanpa duplicate POST).
+    const l9V3IdRef = useRef(null);
+    const l10bV3IdRef = useRef(null);
+    const l10dV3IdRef = useRef(null);
+    const l11aRegionalBenefitV3IdRef = useRef(null);
+    const l11bV3IdRef = useRef(null);
+    const l13bV3IdRef = useRef(null);
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L9 — spt_l9 (singleton, cardinality "one") + spt_l9_asset (many, anak).
+    // Kontrak §10 — l9Data dinested per category/subgroup (frontend struktur
+    // asli), category+subgroup dipersist APA ADANYA (bukan display label).
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL9SingletonPayload = () => ({
+        total_commercial_depreciation: numOrZero(l9Data?.totalCommercialDepreciation),
+        total_commercial_amortization: numOrZero(l9Data?.totalCommercialAmortization),
+    });
+
+    const buildL9AssetPayload = (row) => ({
+        category: row.category || null,
+        subgroup: row.subgroup || null,
+        asset_type: row.assetType || null,
+        month_year: row.monthYear || null,
+        cost_of_acquisition: numOrZero(row.costOfAcquisition),
+        fiscal_book_begin_year: numOrNull(row.fiscalBookBeginYear),
+        method_commercial: row.methodCommercial || null,
+        method_fiscal: row.methodFiscal || null,
+        fiscal_depr_this_year: numOrZero(row.fiscalDeprThisYear),
+        notes: row.notes || null,
+    });
+
+    // FIX (audit — row identity bug): L9.js memakai `_uid` sebagai UI identity
+    // (React key, target Edit/Delete — lihat `row._uid`, `onDelete(row._uid)`,
+    // `filter(r => r._uid !== uid)` di L9.js). Row hasil hydration dari DB
+    // sebelumnya diberi field `id`, BUKAN `_uid` — L9.js tidak pernah membaca
+    // `id` sama sekali, sehingga `row._uid` tetap `undefined` untuk SEMUA baris
+    // hasil GET. Saat delete satu baris, `onDelete(undefined)` dikirim, lalu
+    // `filter(r => r._uid !== undefined)` menghapus SEMUA baris (karena semua
+    // baris DB punya `_uid === undefined` juga) — bug persis seperti dilaporkan.
+    // Fix: keluarkan `_uid` (bukan `id`) — unik per baris, stabil selama baris
+    // ada di frontend state, TIDAK dipakai sebagai DB identity (itu tugas dbId).
+    const generateUiUid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    const buildL9AssetRowFromDb = (dbRow) => ({
+        _uid: generateUiUid('l9a'),
+        dbId: dbRow.id,
+        assetType: dbRow.asset_type || '',
+        monthYear: dbRow.month_year || '',
+        costOfAcquisition: toStrDec(dbRow.cost_of_acquisition),
+        fiscalBookBeginYear: dbRow.fiscal_book_begin_year != null ? String(dbRow.fiscal_book_begin_year) : '',
+        methodCommercial: dbRow.method_commercial || '',
+        methodFiscal: dbRow.method_fiscal || '',
+        fiscalDeprThisYear: toStrDec(dbRow.fiscal_depr_this_year),
+        notes: dbRow.notes || '',
+    });
+
+    // Flatten l9Data (tangible/building/intangible × subgroup) → satu array
+    // baris, TIAP baris MEMPERTAHANKAN referensi objek row asli (bukan copy)
+    // — supaya dbId hasil POST (dimutasi in-place oleh saveManyRowsToV3)
+    // langsung tercermin di l9Data nested tanpa transform balik manual.
+    const flattenL9Assets = (data) => {
+        const flat = [];
+        if (!data) return flat;
+        Object.keys(data).forEach((category) => {
+            const cat = data[category];
+            if (!cat || typeof cat !== 'object' || Array.isArray(cat)) return; // skip totalCommercial*
+            Object.keys(cat).forEach((subgroup) => {
+                const rows = cat[subgroup];
+                if (!Array.isArray(rows)) return;
+                rows.forEach((row) => {
+                    row.category = category;
+                    row.subgroup = subgroup;
+                    flat.push(row);
+                });
+            });
+        });
+        return flat;
+    };
+
+    const saveL9ToV3 = async (headerId) => {
+        const errors = [];
+        let l9ParentDbId = null;
+        try {
+            // parentDbId diambil dari RETURN VALUE saveSingletonToV3, bukan
+            // hanya dari side-effect l9V3IdRef (Kontrak audit §14) — supaya
+            // child selalu pakai FK yang benar-benar baru saja resolve/create,
+            // bukan ref lama yang mungkin belum terisi.
+            l9ParentDbId = await saveSingletonToV3(headerId, 'l9', buildL9SingletonPayload(), l9V3IdRef);
+        } catch (err) {
+            errors.push(`l9: ${err.message}`);
+        }
+        const flatRows = flattenL9Assets(l9Data);
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l9Asset', flatRows));
+        errors.push(...await saveParentScopedRowsToV3(headerId, 'l9Asset', l9ParentDbId, 'l9_id', flatRows, buildL9AssetPayload));
+        if (setL9DataFromDraft) setL9DataFromDraft({ ...l9Data });
+        return errors;
+    };
+
+    const loadL9FromV3 = async (headerId) => {
+        try {
+            const singleton = await getSingletonRecordFromV3(headerId, 'l9');
+            const dbAssetRows = await getManyRowsFromV3(headerId, 'l9Asset');
+            const rebuilt = {};
+            dbAssetRows.forEach((dbRow) => {
+                const cat = dbRow.category;
+                const sub = dbRow.subgroup;
+                if (!cat || !sub) return;
+                if (!rebuilt[cat]) rebuilt[cat] = {};
+                if (!rebuilt[cat][sub]) rebuilt[cat][sub] = [];
+                rebuilt[cat][sub].push(buildL9AssetRowFromDb(dbRow));
+            });
+            if (singleton) {
+                l9V3IdRef.current = singleton.id;
+                rebuilt.totalCommercialDepreciation = toStrDec(singleton.total_commercial_depreciation);
+                rebuilt.totalCommercialAmortization = toStrDec(singleton.total_commercial_amortization);
+            }
+            if (setL9DataFromDraft && (singleton || dbAssetRows.length > 0)) setL9DataFromDraft(rebuilt);
+        } catch (err) {
+            console.error('Gagal memuat L9 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L9: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L10A — spt_l10a (header-scoped many). Generic camelCase→snake_case.
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL10aPayload = (row) => buildGenericPayload(row);
+    const buildL10aRowFromDb = (dbRow) => buildGenericRowFromDb(dbRow);
+
+    const saveL10aToV3 = async (headerId) => {
+        const errors = [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l10a', l10aRows));
+        errors.push(...await saveManyRowsToV3(headerId, 'l10a', l10aRows, buildL10aPayload));
+        if (setL10aRowsFromDraft) setL10aRowsFromDraft([...l10aRows]);
+        return errors;
+    };
+    const loadL10aFromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l10a');
+            if (dbRows.length > 0 && setL10aRowsFromDraft) setL10aRowsFromDraft(dbRows.map(buildL10aRowFromDb));
+        } catch (err) {
+            console.error('Gagal memuat L10A dari V3:', err);
+            setError(prev => prev || `Gagal memuat L10A: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L10B — spt_l10b (singleton). group1..group4.qN — Yes→true/No→false/''→null.
+    // Field flatten: group{N}_q{M} (mengikuti struktur frontend, Kontrak §10).
+    // ─────────────────────────────────────────────────────────────────────
+    const L10B_GROUP_QUESTION_COUNTS = { group1: 4, group2: 3, group3: 5, group4: 3 };
+
+    const buildL10bPayload = () => {
+        const payload = {};
+        Object.keys(L10B_GROUP_QUESTION_COUNTS).forEach((groupKey) => {
+            const count = L10B_GROUP_QUESTION_COUNTS[groupKey];
+            for (let i = 1; i <= count; i++) {
+                const qKey = `q${i}`;
+                payload[`${groupKey}_${qKey}`] = yesNoToBoolOrNull(l10bData?.[groupKey]?.[qKey]);
+            }
+        });
+        return payload;
+    };
+
+    const buildL10bDataFromDb = (dbRow) => {
+        const data = {};
+        Object.keys(L10B_GROUP_QUESTION_COUNTS).forEach((groupKey) => {
+            const count = L10B_GROUP_QUESTION_COUNTS[groupKey];
+            data[groupKey] = {};
+            for (let i = 1; i <= count; i++) {
+                const qKey = `q${i}`;
+                data[groupKey][qKey] = boolOrNullToYesNo(dbRow[`${groupKey}_${qKey}`]);
+            }
+        });
+        return data;
+    };
+
+    const saveL10bToV3 = async (headerId) => {
+        const errors = [];
+        try {
+            await saveSingletonToV3(headerId, 'l10b', buildL10bPayload(), l10bV3IdRef);
+        } catch (err) {
+            errors.push(`l10b: ${err.message}`);
+        }
+        return errors;
+    };
+    const loadL10bFromV3 = async (headerId) => {
+        try {
+            const singleton = await getSingletonRecordFromV3(headerId, 'l10b');
+            if (singleton) {
+                l10bV3IdRef.current = singleton.id;
+                if (setL10bDataFromDraft) setL10bDataFromDraft(buildL10bDataFromDb(singleton));
+            }
+        } catch (err) {
+            console.error('Gagal memuat L10B dari V3:', err);
+            setError(prev => prev || `Gagal memuat L10B: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L10C — spt_l10c (header-scoped many). Generic camelCase→snake_case.
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL10cPayload = (row) => buildGenericPayload(row);
+    const buildL10cRowFromDb = (dbRow) => buildGenericRowFromDb(dbRow);
+
+    const saveL10cToV3 = async (headerId) => {
+        const errors = [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l10c', l10cRows));
+        errors.push(...await saveManyRowsToV3(headerId, 'l10c', l10cRows, buildL10cPayload));
+        if (setL10cRowsFromDraft) setL10cRowsFromDraft([...l10cRows]);
+        return errors;
+    };
+    const loadL10cFromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l10c');
+            if (dbRows.length > 0 && setL10cRowsFromDraft) setL10cRowsFromDraft(dbRows.map(buildL10cRowFromDb));
+        } catch (err) {
+            console.error('Gagal memuat L10C dari V3:', err);
+            setError(prev => prev || `Gagal memuat L10C: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L10D — spt_l10d (singleton). Kontrak §11 — checklist booleans + 2 tanggal.
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL10dPayload = () => {
+        const payload = {};
+        ['c1', 'c2', 'c3', 'c4', 'c5'].forEach((c) => {
+            payload[`master_summary_${c}`] = !!l10dData?.masterSummary?.[c];
+            payload[`local_summary_${c}`] = !!l10dData?.localSummary?.[c];
+        });
+        payload.master_doc_date = l10dData?.masterDocDate || null;
+        payload.local_doc_date = l10dData?.localDocDate || null;
+        return payload;
+    };
+    const buildL10dDataFromDb = (dbRow) => {
+        const masterSummary = {};
+        const localSummary = {};
+        ['c1', 'c2', 'c3', 'c4', 'c5'].forEach((c) => {
+            masterSummary[c] = !!dbRow[`master_summary_${c}`];
+            localSummary[c] = !!dbRow[`local_summary_${c}`];
+        });
+        return {
+            masterSummary,
+            localSummary,
+            masterDocDate: dbRow.master_doc_date || '',
+            localDocDate: dbRow.local_doc_date || '',
+        };
+    };
+
+    const saveL10dToV3 = async (headerId) => {
+        const errors = [];
+        try {
+            await saveSingletonToV3(headerId, 'l10d', buildL10dPayload(), l10dV3IdRef);
+        } catch (err) {
+            errors.push(`l10d: ${err.message}`);
+        }
+        return errors;
+    };
+    const loadL10dFromV3 = async (headerId) => {
+        try {
+            const singleton = await getSingletonRecordFromV3(headerId, 'l10d');
+            if (singleton) {
+                l10dV3IdRef.current = singleton.id;
+                if (setL10dDataFromDraft) setL10dDataFromDraft(buildL10dDataFromDb(singleton));
+            }
+        } catch (err) {
+            console.error('Gagal memuat L10D dari V3:', err);
+            setError(prev => prev || `Gagal memuat L10D: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L11A — 7 backend section keys dari SATU l11aData (Kontrak §12).
+    // promotionRows/entertainmentRows/badDebtRows/facilitiesRows(top-level)/
+    // nonPerformingLoanRows → generic many. regionalBenefitData → singleton
+    // (l11aRegionalBenefit) + child many (l11aRegionalFacility, PERSIST
+    // SETELAH regionalBenefit — parent chain §9).
+    // ─────────────────────────────────────────────────────────────────────
+    // FIX (audit): kolom DB adalah FLAT (housing, healthcare, education,
+    // worship, transport, sports) — BUKAN diprefix cost_. Payload sebelumnya
+    // memakai cost_housing dkk sehingga backend menyimpan NULL (kolom tidak
+    // dikenali). costs object di-flatten APA ADANYA ke kolom flat, bukan
+    // disimpan sebagai JSON field.
+    const buildL11aRegionalBenefitPayload = () => {
+        const rb = l11aData?.regionalBenefitData || {};
+        return {
+            location_address: rb.locationAddress || null,
+            decree_number: rb.decreeNumber || null,
+            decree_date: rb.decreeDate || null,
+            ext_decree_number: rb.extDecreeNumber || null,
+            ext_decree_date: rb.extDecreeDate || null,
+            housing: numOrZero(rb.costs?.housing),
+            healthcare: numOrZero(rb.costs?.healthcare),
+            education: numOrZero(rb.costs?.education),
+            worship: numOrZero(rb.costs?.worship),
+            transport: numOrZero(rb.costs?.transport),
+            sports: numOrZero(rb.costs?.sports),
+        };
+    };
+    const buildL11aRegionalBenefitFromDb = (dbRow) => ({
+        locationAddress: dbRow.location_address || '',
+        decreeNumber: dbRow.decree_number || '',
+        decreeDate: dbRow.decree_date || '',
+        extDecreeNumber: dbRow.ext_decree_number || '',
+        extDecreeDate: dbRow.ext_decree_date || '',
+        costs: {
+            housing: toStrDec(dbRow.housing),
+            healthcare: toStrDec(dbRow.healthcare),
+            education: toStrDec(dbRow.education),
+            worship: toStrDec(dbRow.worship),
+            transport: toStrDec(dbRow.transport),
+            sports: toStrDec(dbRow.sports),
+        },
+    });
+
+    // ── IV.B Regional Benefit — Save→Lock→Edit confirmation flag ───────────
+    // ARCHITECTURE GAP (Kontrak §B7 — dilaporkan, bukan disilently-invent):
+    // tidak ada kolom/field backend yang merepresentasikan "section ini sudah
+    // dikonfirmasi user" untuk spt_l11a_regional_benefit — kolom yang ada
+    // hanya data bisnis (location_address..sports). Menyimpan status
+    // confirmed sebagai flag terpisah butuh kolom baru (mis. is_confirmed)
+    // yang TIDAK ada di contract manapun yang diberikan, dan instruksi task
+    // ini eksplisit melarang menambah kolom/tabel baru secara diam-diam.
+    //
+    // Solusi interim yang dipakai: localStorage, di-namespace TERPISAH dari
+    // key data L9-L14 lama (yang sudah dihapus) — key ini BUKAN sumber data
+    // bisnis (tidak dipakai untuk save/load housing/healthcare/dst, semua
+    // itu tetap 100% V3), ia HANYA menyimpan satu boolean UI "apakah user
+    // sudah klik SIMPAN section ini". Konsekuensi jujur: flag ini scoped per
+    // browser/device, BUKAN per akun di server — logout/login DI BROWSER
+    // YANG SAMA akan mempertahankan locked state (memenuhi Test Case 3 versi
+    // "same browser"), tapi login dari device/browser lain tidak akan
+    // melihat locked state ini. Perbaikan permanen butuh kolom backend baru
+    // (mis. spt_l11a_regional_benefit.is_confirmed) — di luar scope frontend
+    // task ini, TIDAK ditambahkan di sini.
+    const getRegionalBenefitConfirmedFlag = (activeSptId) => {
+        if (!activeSptId) return false;
+        try {
+            return localStorage.getItem(`spt_l11a_rb_confirmed_${activeSptId}`) === 'true';
+        } catch (e) {
+            return false;
+        }
+    };
+    const setRegionalBenefitConfirmedFlag = (activeSptId, val) => {
+        if (!activeSptId) return;
+        try {
+            localStorage.setItem(`spt_l11a_rb_confirmed_${activeSptId}`, val ? 'true' : 'false');
+        } catch (e) {
+            console.warn('Gagal menyimpan status confirmed IV.B Regional Benefit:', e);
+        }
+    };
+
+    // FIX (scope correction — Part 3/5/6): fungsi khusus untuk tombol IV.B
+    // [SIMPAN] — HANYA menyimpan spt_l11a_regional_benefit (5 field tetap +
+    // 6 biaya). TIDAK menyentuh l11aRegionalFacility (Specific Areas table —
+    // tetap CRUD via mekanisme existing/global Save Draft), dan TIDAK
+    // menyentuh l11aPromotion/Entertainment/BadDebt/Facility(IV.A)/Npl sama
+    // sekali. Ini SENGAJA terpisah dari saveL11aToV3 (dipakai global Save
+    // Draft, tetap menyimpan SEMUA 7 sub-bagian L11A seperti sebelumnya,
+    // tidak diubah).
+    const saveL11aRegionalBenefitOnlyToV3 = async (headerId) => {
+        const errors = [];
+        let regionalBenefitDbId = null;
+        try {
+            regionalBenefitDbId = await saveSingletonToV3(headerId, 'l11aRegionalBenefit', buildL11aRegionalBenefitPayload(), l11aRegionalBenefitV3IdRef);
+        } catch (err) {
+            errors.push(`l11aRegionalBenefit: ${err.message}`);
+        }
+        return { errors, regionalBenefitDbId };
+    };
+
+    const saveL11aToV3 = async (headerId) => {
+        const errors = [];
+        const simpleSections = [
+            ['l11aPromotion', l11aData?.promotionRows || []],
+            ['l11aEntertainment', l11aData?.entertainmentRows || []],
+            ['l11aBadDebt', l11aData?.badDebtRows || []],
+            ['l11aFacility', l11aData?.facilitiesRows || []],
+            ['l11aNpl', l11aData?.nonPerformingLoanRows || []],
+        ];
+        for (const [sectionKey, rows] of simpleSections) {
+            errors.push(...await deleteRemovedRowsFromV3(headerId, sectionKey, rows));
+            errors.push(...await saveManyRowsToV3(headerId, sectionKey, rows, buildGenericPayload));
+        }
+        // Parent chain (§9): regionalBenefit SEBELUM regionalFacility.
+        // parentDbId diambil dari return value, dipakai langsung untuk child
+        // (FIX — audit §14, bukan mengandalkan ref semata).
+        let regionalBenefitDbId = null;
+        try {
+            regionalBenefitDbId = await saveSingletonToV3(headerId, 'l11aRegionalBenefit', buildL11aRegionalBenefitPayload(), l11aRegionalBenefitV3IdRef);
+        } catch (err) {
+            errors.push(`l11aRegionalBenefit: ${err.message}`);
+        }
+        const regionalFacilityRows = l11aData?.regionalBenefitData?.facilitiesRows || [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l11aRegionalFacility', regionalFacilityRows));
+        errors.push(...await saveParentScopedRowsToV3(headerId, 'l11aRegionalFacility', regionalBenefitDbId, 'regional_benefit_id', regionalFacilityRows, buildGenericPayload));
+        if (setL11aDataFromDraft) setL11aDataFromDraft({ ...l11aData });
+        return errors;
+    };
+
+    const loadL11aFromV3 = async (headerId) => {
+        try {
+            const [promotionRows, entertainmentRows, badDebtRows, facilitiesRows, nonPerformingLoanRows, regionalFacilityRows] = await Promise.all([
+                getManyRowsFromV3(headerId, 'l11aPromotion'),
+                getManyRowsFromV3(headerId, 'l11aEntertainment'),
+                getManyRowsFromV3(headerId, 'l11aBadDebt'),
+                getManyRowsFromV3(headerId, 'l11aFacility'),
+                getManyRowsFromV3(headerId, 'l11aNpl'),
+                getManyRowsFromV3(headerId, 'l11aRegionalFacility'),
+            ]);
+            const regionalBenefitDb = await getSingletonRecordFromV3(headerId, 'l11aRegionalBenefit');
+            const rebuilt = {
+                promotionRows: promotionRows.map(buildGenericRowFromDb),
+                entertainmentRows: entertainmentRows.map(buildGenericRowFromDb),
+                badDebtRows: badDebtRows.map(buildGenericRowFromDb),
+                facilitiesRows: facilitiesRows.map(buildGenericRowFromDb),
+                nonPerformingLoanRows: nonPerformingLoanRows.map(buildGenericRowFromDb),
+                regionalBenefitData: {
+                    ...(regionalBenefitDb ? buildL11aRegionalBenefitFromDb(regionalBenefitDb) : {}),
+                    facilitiesRows: regionalFacilityRows.map(buildGenericRowFromDb),
+                },
+            };
+            if (regionalBenefitDb) l11aRegionalBenefitV3IdRef.current = regionalBenefitDb.id;
+            if (setL11aDataFromDraft) setL11aDataFromDraft(rebuilt);
+        } catch (err) {
+            console.error('Gagal memuat L11A dari V3:', err);
+            setError(prev => prev || `Gagal memuat L11A: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L11B — l11b (singleton parent) → l11bDebtBalance/l11bEquityBalance
+    // (months) → l11bBorrowingCost. income_tax_expense SENGAJA TIDAK ditulis
+    // (Kontrak §13 — tidak ada sumber otoritatif di frontend saat ini).
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL11bParentPayload = () => ({
+        has_foreign_debt: l11bData?.hasForeignDebt || null,
+        // income_tax_expense: SENGAJA TIDAK ditulis — biarkan NULL di DB
+        // (Kontrak §13). Jangan tambahkan key ini di payload manapun.
+    });
+    const buildL11bParentFromDb = (dbRow) => ({
+        hasForeignDebt: dbRow.has_foreign_debt || '',
+    });
+
+    const buildL11bDebtBalancePayload = (row) => ({
+        creditor_identity: row.creditorIdentity || null,
+        creditor_name: row.creditorName || null,
+        relationship: row.relationship || null,
+        ...monthsToPayload(row.months),
+    });
+    const buildL11bDebtBalanceFromDb = (dbRow) => ({
+        id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `derU_${dbRow.id}`,
+        dbId: dbRow.id,
+        creditorIdentity: dbRow.creditor_identity || '',
+        creditorName: dbRow.creditor_name || '',
+        relationship: dbRow.relationship || '',
+        months: monthsFromDb(dbRow),
+    });
+
+    const buildL11bEquityBalancePayload = (row) => ({
+        equity_description: row.equityDescription || null,
+        ...monthsToPayload(row.months),
+    });
+    const buildL11bEquityBalanceFromDb = (dbRow) => ({
+        id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `derM_${dbRow.id}`,
+        dbId: dbRow.id,
+        equityDescription: dbRow.equity_description || '',
+        months: monthsFromDb(dbRow),
+    });
+
+    const buildL11bBorrowingCostPayload = (row) => buildGenericPayload(row);
+    const buildL11bBorrowingCostFromDb = (dbRow) => buildGenericRowFromDb(dbRow);
+
+    const saveL11bToV3 = async (headerId) => {
+        const errors = [];
+        let l11bParentDbId = null;
+        try {
+            l11bParentDbId = await saveSingletonToV3(headerId, 'l11b', buildL11bParentPayload(), l11bV3IdRef);
+        } catch (err) {
+            errors.push(`l11b: ${err.message}`);
+        }
+        const debtRows = l11bData?.derRowsUtang || [];
+        const equityRows = l11bData?.derRowsModal || [];
+        const borrowingRows = l11bData?.borrowingCostRows || [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l11bDebtBalance', debtRows));
+        errors.push(...await saveParentScopedRowsToV3(headerId, 'l11bDebtBalance', l11bParentDbId, 'l11b_id', debtRows, buildL11bDebtBalancePayload));
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l11bEquityBalance', equityRows));
+        errors.push(...await saveParentScopedRowsToV3(headerId, 'l11bEquityBalance', l11bParentDbId, 'l11b_id', equityRows, buildL11bEquityBalancePayload));
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l11bBorrowingCost', borrowingRows));
+        errors.push(...await saveParentScopedRowsToV3(headerId, 'l11bBorrowingCost', l11bParentDbId, 'l11b_id', borrowingRows, buildL11bBorrowingCostPayload));
+        if (setL11bDataFromDraft) setL11bDataFromDraft({ ...l11bData });
+        return errors;
+    };
+
+    const loadL11bFromV3 = async (headerId) => {
+        try {
+            const parentDb = await getSingletonRecordFromV3(headerId, 'l11b');
+            const [debtRows, equityRows, borrowingRows] = await Promise.all([
+                getManyRowsFromV3(headerId, 'l11bDebtBalance'),
+                getManyRowsFromV3(headerId, 'l11bEquityBalance'),
+                getManyRowsFromV3(headerId, 'l11bBorrowingCost'),
+            ]);
+            const rebuilt = {
+                ...(parentDb ? buildL11bParentFromDb(parentDb) : {}),
+                derRowsUtang: debtRows.map(buildL11bDebtBalanceFromDb),
+                derRowsModal: equityRows.map(buildL11bEquityBalanceFromDb),
+                borrowingCostRows: borrowingRows.map(buildL11bBorrowingCostFromDb),
+            };
+            if (parentDb) l11bV3IdRef.current = parentDb.id;
+            if (setL11bDataFromDraft) setL11bDataFromDraft(rebuilt);
+        } catch (err) {
+            console.error('Gagal memuat L11B dari V3:', err);
+            setError(prev => prev || `Gagal memuat L11B: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L11C — spt_l11c (header-scoped many). l11cData = { foreignDebtRows }.
+    // Tidak menyimpan pokokUtangAkhirTahun derived (Kontrak §14).
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL11cPayload = (row) => buildGenericPayload(row);
+    const buildL11cRowFromDb = (dbRow) => buildGenericRowFromDb(dbRow);
+
+    const saveL11cToV3 = async (headerId) => {
+        const errors = [];
+        const rows = l11cData?.foreignDebtRows || [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l11c', rows));
+        errors.push(...await saveManyRowsToV3(headerId, 'l11c', rows, buildL11cPayload));
+        if (setL11cDataFromDraft) setL11cDataFromDraft({ ...l11cData });
+        return errors;
+    };
+    const loadL11cFromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l11c');
+            if (dbRows.length > 0 && setL11cDataFromDraft) {
+                setL11cDataFromDraft({ foreignDebtRows: dbRows.map(buildL11cRowFromDb) });
+            }
+        } catch (err) {
+            console.error('Gagal memuat L11C dari V3:', err);
+            setError(prev => prev || `Gagal memuat L11C: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L13A — spt_l13a (header-scoped many). Generic mapping. Field
+    // approved_investment_currency_code TIDAK ditulis — tidak ada raw source
+    // di frontend (Kontrak §15), otomatis tidak muncul di payload karena
+    // buildGenericPayload hanya mengiterasi key yang benar-benar ada di row.
+    // Total Approved Investment (derived) TIDAK tersimpan di row state L13A
+    // sendiri (buildEmptyL13AForm tidak memilikinya) — otomatis aman.
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL13aPayload = (row) => buildGenericPayload(row);
+    const buildL13aRowFromDb = (dbRow) => buildGenericRowFromDb(dbRow);
+
+    const saveL13aToV3 = async (headerId) => {
+        const errors = [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l13a', l13aRows));
+        errors.push(...await saveManyRowsToV3(headerId, 'l13a', l13aRows, buildL13aPayload));
+        if (setL13aRowsFromDraft) setL13aRowsFromDraft([...l13aRows]);
+        return errors;
+    };
+    const loadL13aFromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l13a');
+            if (dbRows.length > 0 && setL13aRowsFromDraft) setL13aRowsFromDraft(dbRows.map(buildL13aRowFromDb));
+        } catch (err) {
+            console.error('Gagal memuat L13A dari V3:', err);
+            setError(prev => prev || `Gagal memuat L13A: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L13B — l13bAgreement (sectionA, many, generic — dbId round-trip aman
+    // karena L13B.js mergeWithInitial mempertahankan sectionA apa adanya) →
+    // l13bSectionB (fixed roster sb-1..sb-5, key alami = category_code, TIDAK
+    // butuh dbId round-trip) → l13bRd (sectionC, dbId DIBUANG oleh
+    // mergeWithInitial L13B.js sendiri — pakai replaceAllRowsInV3, lihat
+    // catatan di atas) → l13b parent (sectionD raw: row2/row4/row5).
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL13bAgreementPayload = (row) => buildGenericPayload(row);
+    const buildL13bAgreementFromDb = (dbRow) => buildGenericRowFromDb(dbRow);
+
+    // FIX (audit): kolom DB adalah row2/row4/row5 TANPA underscore — payload
+    // sebelumnya mengirim row_2/row_4/row_5 (hasil camelToSnakeKey standar)
+    // sehingga backend tidak mengenali kolom dan nilai user hilang.
+    const buildL13bSectionDPayload = () => ({
+        row2: numOrZero(l13bData?.sectionD?.row2),
+        row4: numOrZero(l13bData?.sectionD?.row4),
+        row5: numOrZero(l13bData?.sectionD?.row5),
+    });
+    const buildL13bSectionDFromDb = (dbRow) => ({
+        row2: Number(dbRow.row2) || 0,
+        row4: Number(dbRow.row4) || 0,
+        row5: Number(dbRow.row5) || 0,
+    });
+
+    const buildL13bSectionBPayload = (row) => ({
+        category_code: row.id,
+        category_description: row.description || null,
+        amount: numOrZero(row.amount),
+    });
+    const buildL13bRdPayload = (row) => buildGenericPayload(row);
+
+    const saveL13bToV3 = async (headerId) => {
+        const errors = [];
+        // FIX (audit): PARENT harus disimpan LEBIH DULU (urutan sesuai Kontrak
+        // §9 "l13b → l13bAgreement → l13bSectionB → l13bRd" — sebelumnya
+        // implementasi menyimpan children DULU baru parent di akhir, sehingga
+        // l13b_id belum ada sama sekali saat children dikirim → SECTION_NOT_FOUND
+        // di ketiganya). parentDbId dipakai langsung dari return value.
+        let l13bParentDbId = null;
+        try {
+            l13bParentDbId = await saveSingletonToV3(headerId, 'l13b', buildL13bSectionDPayload(), l13bV3IdRef);
+        } catch (err) {
+            errors.push(`l13b: ${err.message}`);
+        }
+
+        const agreementRows = l13bData?.sectionA || [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l13bAgreement', agreementRows));
+        errors.push(...await saveParentScopedRowsToV3(headerId, 'l13bAgreement', l13bParentDbId, 'l13b_id', agreementRows, buildL13bAgreementPayload));
+
+        // Section B — fixed roster (5 kategori tetap): key alami category_code
+        // (id sb-1..sb-5), bukan dbId — GET existing lalu map by category_code,
+        // PATCH bila sudah ada, POST bila belum (tidak pernah bertambah/berkurang
+        // dari 5 kategori — Kontrak §16 "Do NOT create a category master table").
+        // FIX (audit): payload sekarang menyertakan l13b_id dari parentDbId.
+        if (!l13bParentDbId) {
+            errors.push('l13bSectionB: parent (l13b_id) belum tersimpan — parentDbId kosong, section B dibatalkan untuk mencegah SECTION_NOT_FOUND.');
+        } else {
+            try {
+                const dbSectionB = await getManyRowsFromV3(headerId, 'l13bSectionB');
+                const dbByCode = new Map(dbSectionB.map((r) => [r.category_code, r]));
+                for (const row of (l13bData?.sectionB || [])) {
+                    const existing = dbByCode.get(row.id);
+                    const payload = { l13b_id: l13bParentDbId, ...buildL13bSectionBPayload(row) };
+                    const url = existing
+                        ? `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l13bSectionB/${existing.id}`
+                        : `${API.HOST}/api/v3/spt/drafts/${headerId}/sections/l13bSectionB`;
+                    const response = await fetch(url, {
+                        method: existing ? 'PATCH' : 'POST',
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                        body: JSON.stringify(payload),
+                    });
+                    const result = await response.json();
+                    if (!response.ok) {
+                        errors.push(`l13bSectionB/${row.id}: [${result?.error?.code || response.status}] ${result?.error?.message || 'gagal disimpan'}`);
+                    }
+                }
+            } catch (err) {
+                errors.push(`l13bSectionB: ${err.message}`);
+            }
+        }
+
+        // Section C (l13bRd) — replace-all (dbId tidak survive lintas Load Draft,
+        // lihat catatan replaceAllRowsInV3 di atas). FIX (audit): l13b_id
+        // sekarang di-inject via wrapper sebelum diteruskan ke replaceAllRowsInV3.
+        if (!l13bParentDbId) {
+            errors.push('l13bRd: parent (l13b_id) belum tersimpan — parentDbId kosong, section C dibatalkan untuk mencegah SECTION_NOT_FOUND.');
+        } else {
+            const buildL13bRdPayloadWithFk = (row) => ({ l13b_id: l13bParentDbId, ...buildL13bRdPayload(row) });
+            errors.push(...await replaceAllRowsInV3(headerId, 'l13bRd', l13bData?.sectionC || [], buildL13bRdPayloadWithFk));
+        }
+        if (setL13bDataFromDraft) setL13bDataFromDraft({ ...l13bData });
+        return errors;
+    };
+
+    const loadL13bFromV3 = async (headerId) => {
+        try {
+            const [agreementRows, sectionBRows, rdRows, parentDb] = await Promise.all([
+                getManyRowsFromV3(headerId, 'l13bAgreement'),
+                getManyRowsFromV3(headerId, 'l13bSectionB'),
+                getManyRowsFromV3(headerId, 'l13bRd'),
+                getSingletonRecordFromV3(headerId, 'l13b'),
+            ]);
+            const rebuilt = {
+                sectionA: agreementRows.map(buildL13bAgreementFromDb),
+                sectionB: sectionBRows.map((r) => ({ id: r.category_code, description: r.category_description || '', amount: Number(r.amount) || 0 })),
+                sectionC: rdRows.map(buildGenericRowFromDb),
+                sectionD: parentDb ? buildL13bSectionDFromDb(parentDb) : { row2: 0, row4: 0, row5: 0 },
+            };
+            if (parentDb) l13bV3IdRef.current = parentDb.id;
+            if (setL13bDataFromDraft) setL13bDataFromDraft(rebuilt);
+        } catch (err) {
+            console.error('Gagal memuat L13B dari V3:', err);
+            setError(prev => prev || `Gagal memuat L13B: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L13C — spt_l13c (header-scoped many). Generic mapping. taxableIncome/
+    // incomeTaxPayable/taxReductionFacility TIDAK pernah ada di row state
+    // (computed di render L13C.js — lihat buildEmptyL13CForm), otomatis
+    // tidak ikut payload. corporate_income_tax_rate TIDAK ditulis (Kontrak §17).
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL13cPayload = (row) => buildGenericPayload(row);
+    const buildL13cRowFromDb = (dbRow) => buildGenericRowFromDb(dbRow);
+
+    const saveL13cToV3 = async (headerId) => {
+        const errors = [];
+        errors.push(...await deleteRemovedRowsFromV3(headerId, 'l13c', l13cRows));
+        errors.push(...await saveManyRowsToV3(headerId, 'l13c', l13cRows, buildL13cPayload));
+        if (setL13cRowsFromDraft) setL13cRowsFromDraft([...l13cRows]);
+        return errors;
+    };
+    const loadL13cFromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l13c');
+            if (dbRows.length > 0 && setL13cRowsFromDraft) setL13cRowsFromDraft(dbRows.map(buildL13cRowFromDb));
+        } catch (err) {
+            console.error('Gagal memuat L13C dari V3:', err);
+            setError(prev => prev || `Gagal memuat L13C: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // L14 — spt_l14 (header-scoped many, 5 baris historis tetap per year).
+    // dbId TIDAK survive lintas Load Draft (L14.js mergeRowsWithDraft selalu
+    // membangun ulang row dari buildInitialRows(taxYear), tidak spread draft
+    // mentah) — pakai replaceAllRowsInV3 (pola identik l13bRd). Field
+    // eksplisit sesuai Kontrak §18 — jumlahPenggunaan/sisaBelum/sisaMelewati
+    // TIDAK dipersist (derived, tidak ada di row state L14 — buildInitialRows
+    // hanya berisi year/bentukPenanaman/penyediaan/tahun1-4).
+    // ─────────────────────────────────────────────────────────────────────
+    const buildL14Payload = (row) => ({
+        tax_year: intOrNull(row.year),
+        bentuk_penanaman: row.bentukPenanaman || null,
+        penyediaan: numOrZero(row.penyediaan),
+        tahun1: numOrZero(row.tahun1),
+        tahun2: numOrZero(row.tahun2),
+        tahun3: numOrZero(row.tahun3),
+        tahun4: numOrZero(row.tahun4),
+    });
+    const buildL14RowFromDb = (dbRow) => ({
+        id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `l14_${dbRow.id}`,
+        dbId: dbRow.id,
+        year: dbRow.tax_year,
+        bentukPenanaman: dbRow.bentuk_penanaman || '',
+        penyediaan: toStrDec(dbRow.penyediaan),
+        tahun1: toStrDec(dbRow.tahun1),
+        tahun2: toStrDec(dbRow.tahun2),
+        tahun3: toStrDec(dbRow.tahun3),
+        tahun4: toStrDec(dbRow.tahun4),
+    });
+
+    const saveL14ToV3 = async (headerId) => {
+        const errors = await replaceAllRowsInV3(headerId, 'l14', l14Rows || [], buildL14Payload);
+        if (setL14RowsFromDraft) setL14RowsFromDraft([...(l14Rows || [])]);
+        return errors;
+    };
+    const loadL14FromV3 = async (headerId) => {
+        try {
+            const dbRows = await getManyRowsFromV3(headerId, 'l14');
+            if (dbRows.length > 0 && setL14RowsFromDraft) setL14RowsFromDraft(dbRows.map(buildL14RowFromDb));
+        } catch (err) {
+            console.error('Gagal memuat L14 dari V3:', err);
+            setError(prev => prev || `Gagal memuat L14: ${err.message}`);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Master orchestrators — dipanggil dari saveDraft() dan dari load
+    // useEffect (bersanding dengan loadL1FromV3...loadL8FromV3, resolveV3HeaderId
+    // yang sama). Urutan mengikuti parent chain (§9): l9 sebelum l9Asset (di
+    // dalam saveL9ToV3 sendiri), l11aRegionalBenefit sebelum l11aRegionalFacility
+    // (di dalam saveL11aToV3), l11b sebelum children (di dalam saveL11bToV3),
+    // l13bAgreement/SectionB/Rd sebelum l13b parent (di dalam saveL13bToV3).
+    // ─────────────────────────────────────────────────────────────────────
+    const loadL9L14FromV3 = async (headerId) => {
+        await loadL9FromV3(headerId);
+        await loadL10aFromV3(headerId);
+        await loadL10bFromV3(headerId);
+        await loadL10cFromV3(headerId);
+        await loadL10dFromV3(headerId);
+        await loadL11aFromV3(headerId);
+        await loadL11bFromV3(headerId);
+        await loadL11cFromV3(headerId);
+        await loadL13aFromV3(headerId);
+        await loadL13bFromV3(headerId);
+        await loadL13cFromV3(headerId);
+        await loadL14FromV3(headerId);
+    };
+
+
     const saveDraft = async () => {
+        // Ambil id secara lokal dari return value createSpt() — sptId (state)
+        // belum ter-update pada invocation yang sama (React state update async).
+        // Save berikutnya (sptId sudah ada di state) tetap pakai sptId seperti biasa.
+        let activeSptId = sptId;
         if (!sptId) {
-            const created = await createSpt();
-            if (!created) return false;
+            const createdSptId = await createSpt();
+            if (!createdSptId) return false;
+            activeSptId = createdSptId;
         }
         setLoading(true);
         try {
@@ -3123,33 +5395,78 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                     errors.push(`${section}: ${error.message}`);
                 }
             }
-            // Simpan data L1A ke localStorage (sementara — sebelum persist ke backend).
-            // Key berbasis sptId agar tidak tercampur antar SPT.
+            // L1A/L1C/L1D — persist ke backend V3 (spt_l1). Database V3 adalah
+            // source of truth L1 sekarang; localStorage TIDAK lagi dipakai untuk L1.
+            // Guard pakai activeSptId (bukan sptId) — pada Save Draft PERTAMA, sptId
+            // (state) belum ter-update meski createSpt() sudah sukses di atas.
+            if (activeSptId) {
+                try {
+                    const l1Errors = await saveL1ToV3();
+                    if (l1Errors.length > 0) {
+                        console.error('Sebagian baris L1 gagal disimpan ke V3:', l1Errors);
+                        errors.push(...l1Errors.map(e => `L1: ${e}`));
+                    }
+                } catch (err) {
+                    console.error('Gagal menyimpan L1 ke V3:', err);
+                    errors.push(`L1: ${err.message}`);
+                }
+            }
+            // Main Form — persist ke backend V3 (spt_main_form), untuk field
+            // yang memiliki kolom tujuan (lihat buildMainFormV3Payload). Field
+            // V2 sectionsToSave di atas TETAP dijalankan apa adanya (TIDAK
+            // dihapus) — masih menjadi persistence untuk field yang belum
+            // memiliki kolom V3 (attachments, company_identity.address, dst).
+            if (activeSptId) {
+                try {
+                    const mfHeaderId = await resolveV3HeaderId(activeSptId);
+                    const mfErrors = await saveMainFormToV3(mfHeaderId);
+                    if (mfErrors.length > 0) {
+                        console.error('Sebagian field Main Form gagal disimpan ke V3:', mfErrors);
+                        errors.push(...mfErrors.map(e => `MainForm: ${e}`));
+                    }
+                } catch (err) {
+                    console.error('Gagal menyimpan Main Form ke V3:', err);
+                    errors.push(`MainForm: ${err.message}`);
+                }
+            }
+            // L2–L8 — persist ke backend V3. Legacy localStorage save block di
+            // bawah ini SENGAJA TIDAK dihapus (Section O: "jangan menghapus
+            // sembarangan" jika ada kebutuhan UI non-persistence lain yang
+            // masih memakainya) — tapi V3 di sinilah yang sekarang jadi
+            // source of truth untuk Save maupun Load (lihat load useEffect).
+            if (activeSptId) {
+                const l2l8HeaderId = await resolveV3HeaderId(activeSptId).catch(err => {
+                    console.error('Gagal resolve headerId untuk L2-L8 V3:', err);
+                    errors.push(`L2-L8: gagal resolve headerId (${err.message})`);
+                    return null;
+                });
+                if (l2l8HeaderId) {
+                    const sectionSavers = [
+                        ['L2', saveL2ToV3], ['L3', saveL3ToV3], ['L4', saveL4ToV3],
+                        ['L5', saveL5ToV3], ['L6', saveL6ToV3], ['L7', saveL7ToV3], ['L8', saveL8ToV3],
+                        // L9–L14 V3 persistence — sama headerId (resolveV3HeaderId), sama
+                        // pola error-collection dengan L2–L8 di atas.
+                        ['L9', saveL9ToV3], ['L10A', saveL10aToV3], ['L10B', saveL10bToV3],
+                        ['L10C', saveL10cToV3], ['L10D', saveL10dToV3],
+                        ['L11A', saveL11aToV3], ['L11B', saveL11bToV3], ['L11C', saveL11cToV3],
+                        ['L13A', saveL13aToV3], ['L13B', saveL13bToV3], ['L13C', saveL13cToV3],
+                        ['L14', saveL14ToV3],
+                    ];
+                    for (const [label, saver] of sectionSavers) {
+                        try {
+                            const sErrors = await saver(l2l8HeaderId);
+                            if (sErrors && sErrors.length > 0) {
+                                console.error(`Sebagian ${label} gagal disimpan ke V3:`, sErrors);
+                                errors.push(...sErrors.map(e => `${label}: ${e}`));
+                            }
+                        } catch (err) {
+                            console.error(`Gagal menyimpan ${label} ke V3:`, err);
+                            errors.push(`${label}: ${err.message}`);
+                        }
+                    }
+                }
+            }
             if (sptId) {
-                try {
-                    localStorage.setItem(`spt_l1a_rows_a_${sptId}`, JSON.stringify({ rows: l1aRowsA || [] }));
-                    localStorage.setItem(`spt_l1a_rows_b_${sptId}`, JSON.stringify({ rows: l1aRowsB || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L1A ke localStorage:', e);
-                }
-                // Simpan data L1C ke localStorage (sementara — sebelum persist ke backend).
-                // Pola identik dengan L1A di atas.
-                try {
-                    localStorage.setItem(`spt_l1c_rows_a_${sptId}`, JSON.stringify({ rows: l1cRowsA || [] }));
-                    localStorage.setItem(`spt_l1c_rows_b_aset_${sptId}`, JSON.stringify({ rows: l1cRowsBAset || [] }));
-                    localStorage.setItem(`spt_l1c_rows_b_liab_${sptId}`, JSON.stringify({ rows: l1cRowsBLiabEkuitas || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L1C ke localStorage:', e);
-                }
-                // Simpan data L1D ke localStorage (sementara — sebelum persist ke backend).
-                // Pola identik dengan L1C di atas.
-                try {
-                    localStorage.setItem(`spt_l1d_rows_a_${sptId}`, JSON.stringify({ rows: l1dRowsA || [] }));
-                    localStorage.setItem(`spt_l1d_rows_b_aset_${sptId}`, JSON.stringify({ rows: l1dRowsBAset || [] }));
-                    localStorage.setItem(`spt_l1d_rows_b_liab_${sptId}`, JSON.stringify({ rows: l1dRowsBLiabEkuitas || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L1D ke localStorage:', e);
-                }
                 // Simpan data L2 ke localStorage (sementara — sebelum persist ke backend).
                 // Dua section saja (A, B), disimpan apa adanya tanpa transformasi
                 // (Blueprint L2 Final §9 — Save Draft hanya raw input, full row).
@@ -3232,126 +5549,9 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                 } catch (e) {
                     console.warn('Gagal menyimpan L8 ke localStorage:', e);
                 }
-                // Simpan data L9 ke localStorage (sementara — sebelum persist ke
-                // backend). l9Data SELALU berstruktur lengkap (tangible/building/
-                // intangible × seluruh subgroup) karena Source of Truth di
-                // SptTahunanBadan.js diinisialisasi via buildInitialL9Data() dan
-                // setiap update L9.js bersifat immutable (spread, bukan mutasi) —
-                // sehingga payload di sini TIDAK memerlukan fallback `|| {}` untuk
-                // memastikan struktur lengkap. Hanya raw input per baris yang
-                // tersimpan di dalam l9Data (tidak ada computed/subtotal/rekap).
-                try {
-                    localStorage.setItem(`spt_l9_data_${sptId}`, JSON.stringify({
-                        l9Data: l9Data,
-                    }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L9 ke localStorage:', e);
-                }
-                // Simpan data L10A ke localStorage (sementara — sebelum persist ke
-                // backend). HANYA raw input: array of rows apa adanya. transactionValue
-                // di dalam setiap row SELALU number murni (bukan string "Rp ..."),
-                // sesuai Internal Data Representation Contract — formatter Rupiah
-                // hanya diterapkan di layer render L10A.js, tidak pernah di sini.
-                try {
-                    localStorage.setItem(`spt_l10a_rows_${sptId}`, JSON.stringify({ rows: l10aRows || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L10A ke localStorage:', e);
-                }
-                // Simpan data L10B ke localStorage (sementara — sebelum persist ke
-                // backend). l10bData SELALU berstruktur lengkap (group1..group4) karena
-                // Source of Truth di SptTahunanBadan.js diinisialisasi via
-                // buildInitialL10BData() — pola identik l9Data, tidak ada computed value.
-                try {
-                    localStorage.setItem(`spt_l10b_data_${sptId}`, JSON.stringify({ l10bData: l10bData }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L10B ke localStorage:', e);
-                }
-                // Simpan data L10C ke localStorage (sementara — sebelum persist ke
-                // backend). HANYA raw input: array of rows, pola identik L10A.
-                try {
-                    localStorage.setItem(`spt_l10c_rows_${sptId}`, JSON.stringify({ rows: l10cRows || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L10C ke localStorage:', e);
-                }
-                // Simpan data L10D ke localStorage (sementara — sebelum persist ke
-                // backend). l10dData SELALU berstruktur lengkap (masterSummary/
-                // localSummary/masterDocDate/localDocDate) via buildInitialL10DData().
-                // Format tanggal internal (ISO string, pola native <input type="date">
-                // yang sudah dipakai Section J) — bukan dd-mm-yyyy — sesuai Internal
-                // Data Representation Contract.
-                try {
-                    localStorage.setItem(`spt_l10d_data_${sptId}`, JSON.stringify({ l10dData: l10dData }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L10D ke localStorage:', e);
-                }
-                // Simpan data L13A ke localStorage (sementara — sebelum persist ke
-                // backend). HANYA raw input: array of rows apa adanya, pola identik L10A.
-                try {
-                    localStorage.setItem(`spt_l13a_rows_${sptId}`, JSON.stringify({ rows: l13aRows || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L13A ke localStorage:', e);
-                }
-                // Simpan data L13B ke localStorage (sementara — sebelum persist ke
-                // backend). l13bData SELALU berstruktur lengkap (sectionA/sectionB/
-                // sectionC) karena Source of Truth di SptTahunanBadan.js diinisialisasi
-                // via buildInitialL13BData() — pola identik l10bData. Section C
-                // additionalGrossIncomeDeduction (derived) TIDAK ikut tersimpan sebagai
-                // sumber kebenaran — akan dihitung ulang saat Load Draft (Recalculate
-                // Contract); disimpan apa adanya di sini karena sudah computed ulang
-                // setiap kali sectionC berubah, bukan dipersist secara independen.
-                try {
-                    localStorage.setItem(`spt_l13b_data_${sptId}`, JSON.stringify({ l13bData: l13bData }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L13B ke localStorage:', e);
-                }
-                // Simpan data L13C ke localStorage (sementara — sebelum persist ke
-                // backend). HANYA raw input: array of rows, pola identik L13A/L10A.
-                // Field readonly (Taxable Income/Income Tax Payable/Tax Reduction
-                // Facility) TIDAK PERNAH ikut tersimpan di dalam row.
-                try {
-                    localStorage.setItem(`spt_l13c_rows_${sptId}`, JSON.stringify({ rows: l13cRows || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L13C ke localStorage:', e);
-                }
-                // Simpan data L14 ke localStorage (sementara — sebelum persist ke
-                // backend). HANYA raw input: array of rows per year (bentukPenanaman/
-                // penyediaan/tahun1-4), pola identik L13A/L13C. Field hasil perhitungan
-                // (Jumlah Penggunaan/Sisa Belum Ditanamkan/Sisa Melewati Jangka Waktu)
-                // TIDAK PERNAH ikut tersimpan — selalu dihitung ulang di L14.js.
-                try {
-                    localStorage.setItem(`spt_l14_rows_${sptId}`, JSON.stringify({ rows: l14Rows || [] }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L14 ke localStorage:', e);
-                }
-                // Simpan data L11A ke localStorage (sementara — sebelum persist ke
-                // backend). l11aData SELALU berstruktur lengkap (6 sub-bagian) karena
-                // Source of Truth di SptTahunanBadan.js diinisialisasi via
-                // buildInitialL11AData() — pola identik l9Data/l10bData/l10dData.
-                // HANYA raw input yang tersimpan (Blueprint L11 §5) — tidak ada
-                // subtotal/jumlah/computed value di dalam l11aData.
-                try {
-                    localStorage.setItem(`spt_l11a_data_${sptId}`, JSON.stringify({ l11aData: l11aData }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L11A ke localStorage:', e);
-                }
-                // Simpan data L11B ke localStorage. l11bData HANYA berisi Bagian II/III
-                // raw input (derRowsUtang/derRowsModal/borrowingCostRows/hasForeignDebt).
-                // Bagian I EBITDA SENGAJA TIDAK disimpan di sini — bukan raw milik L11B,
-                // 100% derived real-time dari Lampiran 1 (Blueprint L11 §5).
-                try {
-                    localStorage.setItem(`spt_l11b_data_${sptId}`, JSON.stringify({ l11bData: l11bData }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L11B ke localStorage:', e);
-                }
-                // Simpan data L11C ke localStorage (sementara — sebelum persist ke
-                // backend). l11cData adalah object wrapper { foreignDebtRows: [...] }
-                // (Blueprint L11C §8 Save Draft Blueprint) — HANYA raw input per baris,
-                // tidak ada computed value (pokokUtangAkhirTahun derived, tidak disimpan).
-                try {
-                    localStorage.setItem(`spt_l11c_data_${sptId}`, JSON.stringify({ l11cData: l11cData }));
-                } catch (e) {
-                    console.warn('Gagal menyimpan L11C ke localStorage:', e);
-                }
+                // L9–L14 localStorage save DIHAPUS — V3 database adalah source
+                // of truth (saveL9ToV3..saveL14ToV3 dipanggil di sectionSavers loop
+                // L2-L8 V3 di atas). Kontrak §20.
             }
             if (errors.length > 0) {
                 setError(`Beberapa section gagal disimpan: ${errors.join(', ')}`);
@@ -3565,73 +5765,11 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
             } catch (e) {
                 console.warn('Gagal menyimpan L8 ke localStorage saat submit:', e);
             }
-            // Simpan data L9 ke localStorage saat submit — pola identik saveDraft.
-            // l9Data selalu berstruktur lengkap (lihat catatan di saveDraft()).
-            try {
-                localStorage.setItem(`spt_l9_data_${currentSptId}`, JSON.stringify({
-                    l9Data: l9Data,
-                }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L9 ke localStorage saat submit:', e);
-            }
-            // Simpan data L10A-D ke localStorage saat submit — pola identik saveDraft.
-            try {
-                localStorage.setItem(`spt_l10a_rows_${currentSptId}`, JSON.stringify({ rows: l10aRows || [] }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L10A ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l10b_data_${currentSptId}`, JSON.stringify({ l10bData: l10bData }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L10B ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l10c_rows_${currentSptId}`, JSON.stringify({ rows: l10cRows || [] }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L10C ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l10d_data_${currentSptId}`, JSON.stringify({ l10dData: l10dData }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L10D ke localStorage saat submit:', e);
-            }
-            // Simpan data L13A-C ke localStorage saat submit — pola identik saveDraft.
-            try {
-                localStorage.setItem(`spt_l13a_rows_${currentSptId}`, JSON.stringify({ rows: l13aRows || [] }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L13A ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l13b_data_${currentSptId}`, JSON.stringify({ l13bData: l13bData }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L13B ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l13c_rows_${currentSptId}`, JSON.stringify({ rows: l13cRows || [] }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L13C ke localStorage saat submit:', e);
-            }
-            // Simpan data L14 ke localStorage saat submit — pola identik saveDraft.
-            try {
-                localStorage.setItem(`spt_l14_rows_${currentSptId}`, JSON.stringify({ rows: l14Rows || [] }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L14 ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l11a_data_${currentSptId}`, JSON.stringify({ l11aData: l11aData }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L11A ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l11b_data_${currentSptId}`, JSON.stringify({ l11bData: l11bData }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L11B ke localStorage saat submit:', e);
-            }
-            try {
-                localStorage.setItem(`spt_l11c_data_${currentSptId}`, JSON.stringify({ l11cData: l11cData }));
-            } catch (e) {
-                console.warn('Gagal menyimpan L11C ke localStorage saat submit:', e);
-            }
+            // L9–L14 localStorage save saat submit DIHAPUS — V3 database sudah
+            // menjadi source of truth (dipersist via Save Draft sebelumnya), pola
+            // identik L1–L8 yang juga tidak di-localStorage-save ulang di sini
+            // (submitSpt() tidak memanggil V3 savers sama sekali, L1-L8 maupun
+            // L9-L14 — konsisten, bukan penyimpangan baru). Kontrak §20.
             const submitResponse = await fetch(`${API.HOST}/api/v2/spt-tahunan-badan/${currentSptId}/submit`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }
@@ -3879,6 +6017,63 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
                 return <div className="p-6 text-gray-500 text-center">Section content will be implemented here</div>;
         }
     };
+
+    // ── Imperative handle — SptTahunanBadan.js merender <L11A> sebagai SIBLING
+    // (bukan child) dari komponen ini; MainFormBadan.js TIDAK merender L11A
+    // sama sekali (murni persistence/orchestration untuk semua section,
+    // termasuk L9-L14). Untuk tombol "SIMPAN" section-level IV.B Regional
+    // Benefit di L11A.js, SptTahunanBadan.js butuh cara memicu persistence V3
+    // yang SAMA PERSIS dengan yang sudah dipakai Save Draft (resolveV3HeaderId)
+    // tanpa membangun jalur persistence kedua — diekspos via ref, bukan
+    // duplikasi logic. State locked/confirmed ITU SENDIRI sengaja TIDAK
+    // disimpan di sini — dikelola oleh SptTahunanBadan.js (pemilik render
+    // <L11A>), method ini hanya menjalankan network save dan melempar error
+    // bila gagal (kontrak: "gagal save → jangan lock").
+    //
+    // FIX (React Hooks rule): sebelumnya hook ini diletakkan SETELAH
+    // `if (isSubmitted && !waitingPayment) { return (...); }` — melanggar
+    // Rules of Hooks (hook jadi conditional, tidak selalu dipanggil di
+    // render yang sama). Dipindah ke SINI, sebelum return apapun, supaya
+    // selalu dipanggil unconditional di setiap render.
+    //
+    // Catatan: fungsi ini TIDAK memakai dependency array (bentuk 2-argumen
+    // useImperativeHandle(ref, createHandle)) — sengaja, supaya handle yang
+    // dibuat SELALU menutup l11aData/sptId/regionalBenefit terbaru dari
+    // render yang sedang berjalan, bukan closure basi dari render lama.
+    // Karena tidak ada dependency array, TIDAK ADA aturan
+    // react-hooks/exhaustive-deps yang relevan di sini — comment
+    // eslint-disable sebelumnya tidak diperlukan dan sudah dihapus.
+    useImperativeHandle(ref, () => ({
+        // FIX (scope correction — Part 3/5/6/7): SEBELUMNYA memanggil
+        // saveL11aToV3 (menyimpan SEMUA 7 sub-bagian L11A — Promotion,
+        // Entertainment, BadDebt, Facility IV.A, Npl, RegionalBenefit,
+        // RegionalFacility sekaligus). Diganti ke
+        // saveL11aRegionalBenefitOnlyToV3 — HANYA spt_l11a_regional_benefit.
+        // Specific Areas (l11aRegionalFacility) dan 5 sub-bagian L11A
+        // lainnya TIDAK disentuh oleh tombol IV.B [SIMPAN] — tetap murni
+        // tanggung jawab global Save Draft seperti sebelumnya.
+        confirmL11aRegionalBenefit: async () => {
+            const headerId = await resolveV3HeaderId(sptId);
+            if (!headerId) {
+                throw new Error('SPT belum tersimpan (headerId V3 belum tersedia) — lakukan Save Draft terlebih dahulu.');
+            }
+            const { errors: sectionErrors } = await saveL11aRegionalBenefitOnlyToV3(headerId);
+            if (sectionErrors && sectionErrors.length > 0) {
+                // Gagal → JANGAN set flag confirmed, JANGAN panggil callback lock
+                // (Kontrak §B3/§B13/Part 10 — "gagal save → jangan lock").
+                throw new Error(sectionErrors.join('; '));
+            }
+            setRegionalBenefitConfirmedFlag(sptId, true);
+            if (onRegionalBenefitLockChange) onRegionalBenefitLockChange(true);
+            return true;
+        },
+        // Unlock murni UI/local — tidak ada network call (klik EDIT tidak
+        // mengubah data apapun, hanya membuka field untuk diedit lagi).
+        unlockL11aRegionalBenefit: () => {
+            setRegionalBenefitConfirmedFlag(sptId, false);
+            if (onRegionalBenefitLockChange) onRegionalBenefitLockChange(false);
+        },
+    }));
 
     if (isSubmitted && !waitingPayment) {
         return (
@@ -4183,6 +6378,6 @@ const SptTahunanBadanForm = ({ onBusinessClassificationChange, businessClassific
             )}
         </div>
     );
-};
+});
 
 export default SptTahunanBadanForm;

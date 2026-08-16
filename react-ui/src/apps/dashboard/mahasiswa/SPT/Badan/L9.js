@@ -263,6 +263,21 @@ const RpField = ({ label, value, onChange, placeholder = '0', error }) => {
         return n !== 0 ? fmt(n) : '';
     });
 
+    // FIX (hydration bug) — pola identik RpField L11A/L11B/L11C: displayValue
+    // adalah local state yang HANYA diinisialisasi sekali saat mount. Saat
+    // MainForm hydrate data dari DB (Load Draft), prop `value` berubah TAPI
+    // displayValue tidak otomatis sinkron — textbox tampak kosong sampai
+    // user klik/focus (handleFocus baru men-sync). Sync di sini terjadi
+    // setiap `value` berubah DARI LUAR, KECUALI field sedang aktif diedit
+    // (isFocused.current) — supaya tidak menimpa ketikan user yang sedang
+    // berlangsung.
+    useEffect(() => {
+        if (!isFocused.current) {
+            const n = parse(value);
+            setDisplayValue(n !== 0 ? fmt(n) : '');
+        }
+    }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const handleFocus = () => {
         isFocused.current = true;
         const n = parse(value);

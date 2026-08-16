@@ -262,7 +262,7 @@ const ModalEditTurnover = ({ row, onClose, onSave }) => {
 //
 //   taxYear, tin      — Header display (readonly), pola identik L2/L3/L4.
 
-const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
+const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, onPlacesChange, onTotalDifferenceChange, taxYear, tin }) => {
     const [editingTkuId, setEditingTkuId] = useState(null); // null = modal tutup
 
     // skipRestore guard — mencegah loop child→parent→child.
@@ -404,6 +404,14 @@ const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
     // Baris yang sedang diedit
     const editingRow = editingTkuId ? rows.find(r => r.tkuId === editingTkuId) : null;
 
+    // Kirim total selisih (e.15) ke parent — pola identik onCreditAmountChange
+    // milik L3. Ini SATU-SATUNYA sumber untuk Main Form 21j (Section D FINAL
+    // DECISION: e.15/totalDifference, BUKAN g.15/amendmentDifference). L5.js
+    // tidak menduplikasi tampilan 21j — Main Form yang menampilkannya readonly.
+    useEffect(() => {
+        if (onTotalDifferenceChange) onTotalDifferenceChange(computed.totalDifference);
+    }, [computed.totalDifference]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ── Summary row definitions — 5 baris readonly sesuai Blueprint Excel L5 ─
     const summaryRows = [
         {
@@ -484,7 +492,7 @@ const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
                     <table className="w-full text-sm border-collapse" style={{ minWidth: '900px' }}>
                         <thead>
                             <tr>
-                                <th className={thCls} style={{ minWidth: 100 }}>(1) Nomor Identitas TKU</th>
+                                <th className={thCls} style={{ minWidth: 140 }}>(1) Nomor Identitas TKU</th>
                                 <th className={thCls} style={{ minWidth: 200 }}>(2) Nama TKU</th>
                                 <th className={thCls} style={{ minWidth: 200 }}>(3) Alamat</th>
                                 <th className={thCls} style={{ minWidth: 140 }}>(4) Kelurahan/Desa</th>
@@ -503,7 +511,19 @@ const L5 = ({ l5Places = [], l5Rows = [], onRowsChange, taxYear, tin }) => {
                             ) : (
                                 l5Places.map((place) => (
                                     <tr key={place.id} className="hover:bg-gray-50">
-                                        <td className={tdCls}>{place.id || '—'}</td>
+                                        <td className={tdCls}>
+                                            <input
+                                                type="text"
+                                                value={place.tkuNumber || ''}
+                                                onChange={(e) => {
+                                                    if (!onPlacesChange) return;
+                                                    const val = e.target.value;
+                                                    onPlacesChange(l5Places.map(p => (p.id === place.id ? { ...p, tkuNumber: val } : p)));
+                                                }}
+                                                placeholder="Nomor TKU (DJP)"
+                                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            />
+                                        </td>
                                         <td className={tdCls}>{place.namaTku || '—'}</td>
                                         <td className={tdCls}>{place.alamat || '—'}</td>
                                         <td className={tdCls}>{place.kelurahan || '—'}</td>

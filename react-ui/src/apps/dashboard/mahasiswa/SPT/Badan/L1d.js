@@ -197,23 +197,32 @@ const buildInitialA = () =>
         posCorr:    '',
         negCorr:    '',
         corrCode:   '',
+        dbId:       null, // V3 persistence — PK spt_l1.id. null = belum tersimpan (POST); terisi = PATCH.
     }));
 
 const buildInitialBAset = () =>
-    SECTION_B_ASET.map((a, idx) => ({ ...withDerived(a, idx, 'baset'), amount: '' }));
+    SECTION_B_ASET.map((a, idx) => ({ ...withDerived(a, idx, 'baset'), amount: '', dbId: null }));
 
 const buildInitialBLiabEkuitas = () =>
-    SECTION_B_LIAB_EKUITAS.map((a, idx) => ({ ...withDerived(a, idx, 'bliab'), amount: '' }));
+    SECTION_B_LIAB_EKUITAS.map((a, idx) => ({ ...withDerived(a, idx, 'bliab'), amount: '', dbId: null }));
 
-// Merge field input mentah dari data draft ke initial rows berdasarkan internalId.
+// Merge field input mentah dari data draft ke initial rows berdasarkan code.
+// CATATAN PERUBAHAN (READ dari V3/spt_l1): sebelumnya merge key adalah
+// internalId. Diubah ke code karena baris dari database (spt_l1, hasil
+// GET section) TIDAK memiliki kolom internalId (murni konstruksi
+// frontend) — hanya account_code. L1D tidak punya duplicate account_code
+// (sudah diverifikasi di audit sebelumnya), jadi aman dipakai sebagai
+// merge key. internalId tetap dipertahankan apa adanya sebagai identity
+// frontend (tidak dihapus/diganti), hanya bukan lagi kunci pencarian merge.
+// dbId (PK spt_l1.id, V3 persistence) ikut di-merge agar Save berikutnya PATCH.
 // Derived values (nonFinal, fiscalAmt, subtotal, a10) TIDAK disimpan — dihitung ulang.
 const mergeRowsWithDraft = (initialRows, draftRows) => {
     if (!Array.isArray(draftRows) || draftRows.length === 0) return initialRows;
     const map = {};
-    draftRows.forEach(d => { if (d?.internalId) map[d.internalId] = d; });
+    draftRows.forEach(d => { if (d?.code) map[d.code] = d; });
     return initialRows.map(row => {
         if (!row.isInput) return row;
-        const d = map[row.internalId];
+        const d = map[row.code];
         if (!d) return row;
         return {
             ...row,
@@ -223,6 +232,7 @@ const mergeRowsWithDraft = (initialRows, draftRows) => {
             posCorr:    d.posCorr    ?? row.posCorr,
             negCorr:    d.negCorr    ?? row.negCorr,
             corrCode:   d.corrCode   ?? row.corrCode,
+            dbId:       d.dbId       ?? row.dbId,
         };
     });
 };
@@ -230,11 +240,11 @@ const mergeRowsWithDraft = (initialRows, draftRows) => {
 const mergeRowsBWithDraft = (initialRows, draftRows) => {
     if (!Array.isArray(draftRows) || draftRows.length === 0) return initialRows;
     const map = {};
-    draftRows.forEach(d => { if (d?.internalId) map[d.internalId] = d; });
+    draftRows.forEach(d => { if (d?.code) map[d.code] = d; });
     return initialRows.map(row => {
         if (!row.isInput) return row;
-        const d = map[row.internalId];
-        return d ? { ...row, amount: d.amount ?? row.amount } : row;
+        const d = map[row.code];
+        return d ? { ...row, amount: d.amount ?? row.amount, dbId: d.dbId ?? row.dbId } : row;
     });
 };
 

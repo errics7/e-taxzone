@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import MainFormBadan from './Badan/MainFormBadan';
 import L1A  from './Badan/L1a.js';
 import L1C  from './Badan/L1c.js';
@@ -204,10 +204,23 @@ const SptTahunanBadan = () => {
     // L5.js, Save Draft, Load Draft, dan business rule tidak perlu diubah.
     const [l5Places, setL5Places] = useState([]);
     const [l5Rows,   setL5Rows]   = useState([]);
+    // l5TotalDifference — mirror READONLY dari computed.totalDifference (e.15)
+    // milik L5.js. Section D FINAL DECISION: satu-satunya sumber untuk Main
+    // Form 21j (q21j_excess_final_tax). BUKAN raw input, BUKAN source of truth
+    // di sini — sepenuhnya dihitung L5.js, diteruskan ke MainFormBadan.js.
+    const [l5TotalDifference, setL5TotalDifference] = useState(0);
+    const handleL5TotalDifferenceChange = useCallback((val) => setL5TotalDifference(val), []);
 
     // ── L5 callbacks ────────────────────────────────────────────────────────
     const handleRowsChangeL5       = useCallback((rows) => setL5Rows(rows), []);
     const handleSetL5RowsFromDraft = useCallback((rows) => setL5Rows(rows), []);
+
+    // handlePlacesEdit — live edit dari L5.js (saat ini hanya field tkuNumber,
+    // Nomor TKU/DJP, yang wajib diisi user untuk persistence V3 spt_l5_place).
+    // Terpisah dari handleSetL5PlacesFromDraft (Load Draft) agar semantik
+    // "live edit dari user" vs "restore dari database" tetap jelas, meski
+    // keduanya sama-sama men-set l5Places secara langsung.
+    const handlePlacesEdit = useCallback((places) => setL5Places(places || []), []);
 
     // handleSetL5PlacesFromDraft — restore l5Places dari Load Draft.
     // Dipanggil oleh MainFormBadan sebelum handleSetL5RowsFromDraft.
@@ -235,6 +248,8 @@ const SptTahunanBadan = () => {
         if (!ktp) return;
         const newPlaces = [{
             id:        ktp.id ?? ktp.address_id ?? '1',
+            dbId:      null, // V3 persistence — PK spt_l5_place.id. null = belum tersimpan (POST); terisi = PATCH.
+            tkuNumber: ktp.tku_number ?? '', // Nomor TKU (DJP) — business identity persistence V3, BUKAN id/address id. Wajib diisi user sebelum tersimpan ke database (kolom NOT NULL).
             namaTku:   ktp.place_name ?? ktp.name ?? companyName ?? '',
             alamat:    ktp.address   ?? '',
             kelurahan: ktp.village   ?? '',
@@ -581,6 +596,36 @@ const SptTahunanBadan = () => {
     const handleSetL11aDataFromDraft = useCallback(
         (data) => setL11aData(mergeL11AWithInitial(data)), []);
 
+    // ── IV.B Regional Benefit — Save→Lock→Edit UX ───────────────────────────
+    // mainFormRef — MainFormBadan.js adalah SIBLING (bukan parent) dari <L11A>
+    // di render tree ini; ref dipakai untuk memicu persistence V3 yang SAMA
+    // PERSIS dengan Save Draft (saveL11aToV3, resolveV3HeaderId di dalam
+    // MainFormBadan.js), TANPA membangun jalur persistence kedua. State
+    // locked ITU SENDIRI dipegang di sini (SptTahunanBadan.js — pemilik
+    // render <L11A>), bukan di MainFormBadan, supaya reaktif ke prop
+    // `regionalBenefitLocked` yang diteruskan ke <L11A> di bawah.
+    const mainFormRef = useRef(null);
+    const [l11aRegionalBenefitLocked, setL11aRegionalBenefitLocked] = useState(false);
+
+    // Dipanggil oleh L11A.js saat tombol SIMPAN diklik. Promise reject →
+    // L11A.js menampilkan error dan TIDAK lock (kontrak §B3/§B13).
+    const handleConfirmRegionalBenefit = useCallback(() => {
+        if (!mainFormRef.current || !mainFormRef.current.confirmL11aRegionalBenefit) {
+            return Promise.reject(new Error('Form belum siap — coba lagi sesaat lagi.'));
+        }
+        return mainFormRef.current.confirmL11aRegionalBenefit();
+    }, []);
+
+    // Dipanggil oleh L11A.js saat tombol EDIT diklik — murni UI/local, tidak
+    // ada network call (lihat unlockL11aRegionalBenefit di MainFormBadan.js).
+    const handleEditRegionalBenefit = useCallback(() => {
+        if (mainFormRef.current && mainFormRef.current.unlockL11aRegionalBenefit) {
+            mainFormRef.current.unlockL11aRegionalBenefit();
+        } else {
+            setL11aRegionalBenefitLocked(false);
+        }
+    }, []);
+
     // ── L11B — Perhitungan Debt to Equity Ratio (Blueprint L11 §2/§4/§5) ───────
     // Source of Truth: l11bData (nested object — Bagian II/III raw input saja;
     // Bagian I EBITDA TIDAK ada di sini, murni derived dari ebitdaComponents).
@@ -775,6 +820,8 @@ const SptTahunanBadan = () => {
             <div>
                 <div style={{ display: activeTab === 'main' ? 'block' : 'none' }}>
                     <MainFormBadan
+                        ref={mainFormRef}
+                        onRegionalBenefitLockChange={setL11aRegionalBenefitLocked}
                         onBusinessClassificationChange={() => {}} // handled via onSptDataChange
                         businessClassification={businessClassification}
                         onTabTrigger={() => {}}                   // no longer needed — derived state
@@ -801,6 +848,7 @@ const SptTahunanBadan = () => {
                         l3PriorYearCreditRefund={l3PriorYearCreditRefund}
                         setL3RowsFromDraft={handleSetL3RowsFromDraft}
                         l3CreditAmount={l3CreditAmount}
+                        l5TotalDifference={l5TotalDifference}
                         l4RowsA={l4RowsA}
                         l4RowsB={l4RowsB}
                         setL4RowsFromDraft={handleSetL4RowsFromDraft}
@@ -928,6 +976,8 @@ const SptTahunanBadan = () => {
                             l5Places={l5Places}
                             l5Rows={l5Rows}
                             onRowsChange={handleRowsChangeL5}
+                            onPlacesChange={handlePlacesEdit}
+                            onTotalDifferenceChange={handleL5TotalDifferenceChange}
                             taxYear={sptData.header?.tax_year}
                             tin={sptData.company_identity?.npwp}
                         />
@@ -1013,6 +1063,9 @@ const SptTahunanBadan = () => {
                         tin={sptData.company_identity?.npwp}
                         l11aData={l11aData}
                         onL11ADataChange={handleL11ADataChange}
+                        regionalBenefitLocked={l11aRegionalBenefitLocked}
+                        onConfirmRegionalBenefit={handleConfirmRegionalBenefit}
+                        onEditRegionalBenefit={handleEditRegionalBenefit}
                     />
                 </div>}
                 <div style={{ display: activeTab === 'L11B' ? 'block' : 'none' }}>

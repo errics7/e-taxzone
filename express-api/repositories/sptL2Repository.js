@@ -73,6 +73,22 @@ class SptL2Repository {
       transaction,
     });
   }
+
+  /**
+   * Hard-delete a record by primary key (physical DELETE row).
+   * Section G FINAL DECISION: L2/L3/L4/L7 child rows removed by the user
+   * via the Draft UI are HARD deleted, not soft-deleted. Ownership
+   * validation (row belongs to the requested header) is the Service's
+   * responsibility, not the Repository's — mirrors updateById/findById.
+   * @returns {Promise<number>} number of rows destroyed (0 or 1)
+   */
+  async hardDeleteById(id, options = {}) {
+    const { transaction } = options;
+    return spt_l2.destroy({
+      where: { id },
+      transaction,
+    });
+  }
 }
 
 module.exports = new SptL2Repository();

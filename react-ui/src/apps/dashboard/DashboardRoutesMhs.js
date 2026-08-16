@@ -19,7 +19,6 @@ import DashboardSidebar from "./layout/DashboardSidebar";
 import { useSelector } from "react-redux";
 import useSWR from 'swr';
 import Navbar from "./layout/Navbar";
-import { Box } from "@mui/material";
 
 const MyAccount = lazy(() => import("./component/MyAccount"));
 const FRouter = lazy(() => import("./mahasiswa/FRouter"));
@@ -112,7 +111,6 @@ export default function DashboardRoutesMhs() {
       <Navbar />
       <MainStyle>
         <Suspense fallback={<div className="text-center">Memuat...</div>}>
-          <Box sx={{ paddingTop: 10 }} />
           <Switch>
             <Route exact path="/home" component={HomeMhs} />
             <Route exact path="/home/kode-otorisasi" component={KodeOtorisasi} />

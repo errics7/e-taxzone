@@ -143,7 +143,11 @@ const FIELDS_NPL = [
 
 // ─── Generic field components ──────────────────────────────────────────────
 
-const RpField = ({ label, value, onChange }) => {
+// disabled — FIX (L11A audit): default false, TIDAK mengubah pemanggilan
+// existing manapun yang belum meneruskan prop ini (semua usage lain di file
+// ini tetap bersih). Hanya dipakai oleh field IV.B Regional Benefit saat
+// section dikunci (locked) — lihat CollapsibleSection IV.B di bawah.
+const RpField = ({ label, value, onChange, disabled = false }) => {
     const inputRef  = useRef(null);
     const isFocused = useRef(false);
     const [displayValue, setDisplayValue] = useState(() => {
@@ -177,24 +181,26 @@ const RpField = ({ label, value, onChange }) => {
     return (
         <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-            <div className="flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden">
+            <div className={`flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden ${disabled ? 'bg-gray-100' : ''}`}>
                 <span className="px-2 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-r border-gray-200 select-none">Rp</span>
                 <input
                     ref={inputRef} type="text" inputMode="numeric" value={displayValue}
                     onFocus={handleFocus} onChange={handleChange} onBlur={handleBlur}
-                    className="flex-1 px-3 py-2 text-sm text-left bg-white focus:outline-none min-w-0"
+                    disabled={disabled}
+                    className={`flex-1 px-3 py-2 text-sm text-left focus:outline-none min-w-0 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
                 />
             </div>
         </div>
     );
 };
 
-const TextField = ({ label, value, onChange, type = 'text' }) => (
+const TextField = ({ label, value, onChange, type = 'text', disabled = false }) => (
     <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
         <input
             type={type} value={value || ''} onChange={(e) => onChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={disabled}
+            className={`w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
         />
     </div>
 );
@@ -218,7 +224,7 @@ const SelectField = ({ label, value, onChange, options }) => (
 // (bawaan, bukan widget custom), silang = tombol yang sama persis dengan
 // L10D (hanya rounded/padding mengikuti konvensi field lain di L11A agar
 // konsisten dengan project — mekanisme & perilakunya identik L10D).
-const DateField = ({ label, value, onChange }) => (
+const DateField = ({ label, value, onChange, disabled = false }) => (
     <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
         <div className="flex items-center gap-2">
@@ -226,13 +232,15 @@ const DateField = ({ label, value, onChange }) => (
                 type="date"
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={disabled}
+                className={`flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
             />
             <button
                 type="button"
                 onClick={() => onChange('')}
                 title="Clear date"
-                className="w-8 h-8 flex items-center justify-center rounded bg-red-600 hover:bg-red-700 text-white text-sm shrink-0"
+                disabled={disabled}
+                className={`w-8 h-8 flex items-center justify-center rounded text-white text-sm shrink-0 ${disabled ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
             >
                 &times;
             </button>
@@ -495,7 +503,12 @@ const GenericSection = ({ title, fields, rows, onRowsChange, idPrefix, computedC
 //   onL11ADataChange     — emit gabungan raw input ke parent (1 callback,
 //                         Blueprint L11 §3 Penyederhanaan Callback)
 
-const L11A = ({ taxYear, tin, l11aData, onL11ADataChange }) => {
+// regionalBenefitLocked, onConfirmRegionalBenefit, onEditRegionalBenefit —
+// TAMBAHAN untuk UX Save→Lock→Edit IV.B (lihat SptTahunanBadan.js, pemilik
+// state locked/confirmed sesungguhnya — komponen ini murni UI + memicu
+// callback). Semua default aman (locked=false, callback opsional) supaya
+// TIDAK mematahkan pemanggilan lain yang belum meneruskan prop ini.
+const L11A = ({ taxYear, tin, l11aData, onL11ADataChange, regionalBenefitLocked = false, onConfirmRegionalBenefit, onEditRegionalBenefit }) => {
     const initial = useMemo(() => mergeWithInitial(l11aData), []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const [promotionRows, setPromotionRows]         = useState(initial.promotionRows);
@@ -532,6 +545,36 @@ const L11A = ({ taxYear, tin, l11aData, onL11ADataChange }) => {
             onL11ADataChange(combinedData);
         }
     }, [combinedData, onL11ADataChange]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── IV.B — Save→Lock→Edit UX (tombol SIMPAN/EDIT). State locked itu
+    // sendiri dikelola PARENT (SptTahunanBadan.js) via prop
+    // `regionalBenefitLocked` — komponen ini hanya menyimpan status
+    // in-flight/error tombol secara lokal. Global Save Draft TIDAK memanggil
+    // handler ini sama sekali (lihat MainFormBadan.js) — SATU-SATUNYA jalur
+    // yang mengubah `regionalBenefitLocked` adalah klik tombol di sini.
+    const [confirmSaving, setConfirmSaving] = useState(false);
+    const [confirmError, setConfirmError] = useState('');
+
+    const handleSimpanRegionalBenefit = async () => {
+        if (!onConfirmRegionalBenefit) return;
+        setConfirmSaving(true);
+        setConfirmError('');
+        try {
+            await onConfirmRegionalBenefit();
+            // Sukses → parent (SptTahunanBadan.js) yang mengubah
+            // regionalBenefitLocked jadi true; komponen ini tidak menebak
+            // sendiri (kontrak §B3: hanya lock SETELAH persistence sukses).
+        } catch (err) {
+            setConfirmError(err?.message || 'Gagal menyimpan IV.B Regional Benefit.');
+        } finally {
+            setConfirmSaving(false);
+        }
+    };
+
+    const handleEditRegionalBenefit = () => {
+        setConfirmError('');
+        if (onEditRegionalBenefit) onEditRegionalBenefit();
+    };
 
     // ── IV.B — regional benefit: field tetap + tabel nested fasilitas ─────────
     const setRegionalField = (key) => (val) => setRegionalBenefitData(prev => ({ ...prev, [key]: val }));
@@ -622,19 +665,42 @@ const L11A = ({ taxYear, tin, l11aData, onL11ADataChange }) => {
                     >
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
-                                <TextField label="Location Address" value={regionalBenefitData.locationAddress} onChange={setRegionalField('locationAddress')} />
-                                <TextField label="Number Of Decree Of Specific Areas Determination" value={regionalBenefitData.decreeNumber} onChange={setRegionalField('decreeNumber')} />
-                                <DateField label="Date Of Decree Of Specific Areas Determination" value={regionalBenefitData.decreeDate} onChange={setRegionalField('decreeDate')} />
-                                <TextField label="Number Of Decree Of Extensification" value={regionalBenefitData.extDecreeNumber} onChange={setRegionalField('extDecreeNumber')} />
-                                <DateField label="Date Of Decree Of Extensification" value={regionalBenefitData.extDecreeDate} onChange={setRegionalField('extDecreeDate')} />
+                                <TextField label="Location Address" value={regionalBenefitData.locationAddress} onChange={setRegionalField('locationAddress')} disabled={regionalBenefitLocked} />
+                                <TextField label="Number Of Decree Of Specific Areas Determination" value={regionalBenefitData.decreeNumber} onChange={setRegionalField('decreeNumber')} disabled={regionalBenefitLocked} />
+                                <DateField label="Date Of Decree Of Specific Areas Determination" value={regionalBenefitData.decreeDate} onChange={setRegionalField('decreeDate')} disabled={regionalBenefitLocked} />
+                                <TextField label="Number Of Decree Of Extensification" value={regionalBenefitData.extDecreeNumber} onChange={setRegionalField('extDecreeNumber')} disabled={regionalBenefitLocked} />
+                                <DateField label="Date Of Decree Of Extensification" value={regionalBenefitData.extDecreeDate} onChange={setRegionalField('extDecreeDate')} disabled={regionalBenefitLocked} />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
-                                <RpField label="a. Housing" value={regionalBenefitData.costs.housing} onChange={setRegionalCost('housing')} />
-                                <RpField label="b. Healthcare" value={regionalBenefitData.costs.healthcare} onChange={setRegionalCost('healthcare')} />
-                                <RpField label="c. Education" value={regionalBenefitData.costs.education} onChange={setRegionalCost('education')} />
-                                <RpField label="d. Worship" value={regionalBenefitData.costs.worship} onChange={setRegionalCost('worship')} />
-                                <RpField label="e. Transportation" value={regionalBenefitData.costs.transport} onChange={setRegionalCost('transport')} />
-                                <RpField label="f. Sports" value={regionalBenefitData.costs.sports} onChange={setRegionalCost('sports')} />
+                                <RpField label="a. Housing" value={regionalBenefitData.costs.housing} onChange={setRegionalCost('housing')} disabled={regionalBenefitLocked} />
+                                <RpField label="b. Healthcare" value={regionalBenefitData.costs.healthcare} onChange={setRegionalCost('healthcare')} disabled={regionalBenefitLocked} />
+                                <RpField label="c. Education" value={regionalBenefitData.costs.education} onChange={setRegionalCost('education')} disabled={regionalBenefitLocked} />
+                                <RpField label="d. Worship" value={regionalBenefitData.costs.worship} onChange={setRegionalCost('worship')} disabled={regionalBenefitLocked} />
+                                <RpField label="e. Transportation" value={regionalBenefitData.costs.transport} onChange={setRegionalCost('transport')} disabled={regionalBenefitLocked} />
+                                <RpField label="f. Sports" value={regionalBenefitData.costs.sports} onChange={setRegionalCost('sports')} disabled={regionalBenefitLocked} />
+                            </div>
+                            {/* Tombol SIMPAN/EDIT — persis di antara "f. Sports" dan "Total Cost
+                                (automatic)" sesuai kontrak posisi UI (§B10). */}
+                            <div className="flex flex-col items-center gap-1">
+                                {regionalBenefitLocked ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleEditRegionalBenefit}
+                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        EDIT
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleSimpanRegionalBenefit}
+                                        disabled={confirmSaving}
+                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        {confirmSaving ? 'Menyimpan…' : 'SIMPAN'}
+                                    </button>
+                                )}
+                                {confirmError && <p className="text-xs text-red-500">{confirmError}</p>}
                             </div>
                             <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm flex justify-between">
                                 <span className="text-gray-600">Total Cost (automatic)</span>

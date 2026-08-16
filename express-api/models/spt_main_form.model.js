@@ -134,6 +134,20 @@ const spt_main_form = sequelizeConf.define(
     p19b_bank_name: { type: DataTypes.STRING(255), allowNull: true },
     p19b_account_holder: { type: DataTypes.STRING(255), allowNull: true },
 
+    // Section H — Main Form questions 21a-21i (raw user input, BOOLEAN).
+    // 21j (q21j_excess_final_tax) intentionally has NO column — it is a
+    // derived/readonly value (Main Form 21j <- L5 e.15/totalDifference),
+    // never raw input, never persisted.
+    has_related_party_transactions: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_transfer_pricing_documentation: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_affiliated_capital_investment: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_affiliated_debt_or_receivable: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_fiscal_depreciation_amortization: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_entertainment_promotion_bad_debt_expense: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_investment_tax_facility: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_reinvestment: { type: DataTypes.BOOLEAN, allowNull: true },
+    has_overseas_dividend_income: { type: DataTypes.BOOLEAN, allowNull: true },
+
     // Statement / signature
     declaration: { type: DataTypes.TEXT, allowNull: true },
     signature: { type: DataTypes.STRING(255), allowNull: true },

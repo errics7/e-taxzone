@@ -165,6 +165,30 @@ class SptDraftController {
   }
 
   // -----------------------------------------------------------------
+  // 3b. deleteSection
+  //     DELETE /api/v3/spt/drafts/:headerId/sections/:sectionKey/:sectionId
+  //     Hard delete (Section G FINAL DECISION) for child rows removed by
+  //     the user via the Draft UI (L2/L3/L4/L7, etc).
+  // -----------------------------------------------------------------
+  async deleteSection(req, res) {
+    const actorContext = buildActorContext(req);
+    if (!actorContext) {
+      return res.status(401).json({
+        error: { code: "UNAUTHENTICATED", message: "Missing authenticated actor." },
+      });
+    }
+
+    const { headerId, sectionKey, sectionId } = req.params;
+
+    try {
+      await sptDraftPreparationService.deleteSection(actorContext, headerId, sectionKey, sectionId);
+      return res.status(204).send();
+    } catch (err) {
+      return sendServiceError(res, err);
+    }
+  }
+
+  // -----------------------------------------------------------------
   // 4. calculate
   //    POST /api/v3/spt/drafts/:headerId/calculate
   // -----------------------------------------------------------------
@@ -239,6 +263,67 @@ class SptDraftController {
     try {
       await sptDraftPreparationService.deleteDraft(actorContext, headerId);
       return res.status(204).send();
+    } catch (err) {
+      return sendServiceError(res, err);
+    }
+  }
+
+  // -----------------------------------------------------------------
+  // 7. resolveDraft
+  //    GET /api/v3/spt/drafts/resolve?company_id=&tax_year=&tax_return_type=&amendment_number=
+  //    READ-only. 404 DRAFT_NOT_FOUND means "no draft yet for this
+  //    business key" — caller falls back to POST /drafts (createDraft).
+  // -----------------------------------------------------------------
+  async resolveDraft(req, res) {
+    const actorContext = buildActorContext(req);
+    if (!actorContext) {
+      return res.status(401).json({
+        error: { code: "UNAUTHENTICATED", message: "Missing authenticated actor." },
+      });
+    }
+
+    const { company_id, tax_year, tax_return_type, amendment_number } = req.query;
+    if (company_id === undefined || tax_year === undefined) {
+      return res.status(400).json({
+        error: { code: "INVALID_BUSINESS_KEY", message: "company_id and tax_year are required." },
+      });
+    }
+
+    try {
+      const result = await sptDraftPreparationService.resolveDraft(actorContext, {
+        company_id,
+        tax_year,
+        tax_return_type,
+        amendment_number: amendment_number !== undefined ? Number(amendment_number) : undefined,
+      });
+      return res.status(200).json({
+        data: { headerId: result.header.id },
+      });
+    } catch (err) {
+      return sendServiceError(res, err);
+    }
+  }
+
+  // -----------------------------------------------------------------
+  // 8. getSection
+  //    GET /api/v3/spt/drafts/:headerId/sections/:sectionKey
+  //    READ-only. Returns all persisted rows for that section/header.
+  // -----------------------------------------------------------------
+  async getSection(req, res) {
+    const actorContext = buildActorContext(req);
+    if (!actorContext) {
+      return res.status(401).json({
+        error: { code: "UNAUTHENTICATED", message: "Missing authenticated actor." },
+      });
+    }
+
+    const { headerId, sectionKey } = req.params;
+
+    try {
+      const rows = await sptDraftPreparationService.getSection(actorContext, headerId, sectionKey);
+      return res.status(200).json({
+        data: { sectionKey, rows },
+      });
     } catch (err) {
       return sendServiceError(res, err);
     }

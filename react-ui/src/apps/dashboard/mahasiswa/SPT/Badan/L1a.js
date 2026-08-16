@@ -185,13 +185,16 @@ const buildInitialA = () =>
         posCorr:    '',
         negCorr:    '',
         corrCode:   '',
+        dbId:       null, // V3 persistence — PK spt_l1.id setelah tersimpan. null = belum pernah disimpan (POST); terisi = sudah ada di DB (PATCH). Murni field baru, tidak menggantikan internalId/code.
     }));
 
 const buildInitialB = () =>
-    SECTION_B_ACCOUNTS.map(a => ({ ...withDerived(a), amount: '' }));
+    SECTION_B_ACCOUNTS.map(a => ({ ...withDerived(a), amount: '', dbId: null }));
 
 // Merge field input mentah dari data draft ke initial rows.
-// Hanya commercial/nonTaxable/finalTax/posCorr/negCorr/corrCode yang di-merge.
+// Hanya commercial/nonTaxable/finalTax/posCorr/negCorr/corrCode/dbId yang di-merge.
+// dbId (PK spt_l1.id, V3 persistence) ditambahkan agar Save berikutnya bisa
+// membedakan POST (dbId kosong) vs PATCH (dbId terisi) — lihat buildInitialA/B.
 // Derived values (nonFinal, fiscalAmt, subtotal, a10) TIDAK disimpan — dihitung ulang.
 // Row subtotal / groupHeader / operatorMinus tidak memiliki input → skip merge.
 const mergeRowsWithDraft = (initialRows, draftRows) => {
@@ -210,6 +213,7 @@ const mergeRowsWithDraft = (initialRows, draftRows) => {
             posCorr:    d.posCorr    ?? row.posCorr,
             negCorr:    d.negCorr    ?? row.negCorr,
             corrCode:   d.corrCode   ?? row.corrCode,
+            dbId:       d.dbId       ?? row.dbId,
         };
     });
 };
@@ -221,7 +225,7 @@ const mergeRowsBWithDraft = (initialRows, draftRows) => {
     return initialRows.map(row => {
         if (!row.isInput) return row; // hanya input row yang bisa di-merge
         const d = map[row.code];
-        return d ? { ...row, amount: d.amount ?? row.amount } : row;
+        return d ? { ...row, amount: d.amount ?? row.amount, dbId: d.dbId ?? row.dbId } : row;
     });
 };
 
