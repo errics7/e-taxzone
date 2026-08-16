@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 16, 2026 at 03:00 AM
+-- Generation Time: Aug 16, 2026 at 09:34 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1901,7 +1901,46 @@ INSERT INTO `sequelizemeta` (`name`) VALUES
 ('20250501073431-new-column-student-results.js'),
 ('20250503023538-create-student-questionnaire.js'),
 ('20250518015206-create-feedback.js'),
-('20250518210708-create-user-tour.js');
+('20250214000000-create-scenario.js'),
+('20250518210708-create-user-tour.js'),
+('20260808150000-create-spt-header.js'),
+('20260808150010-create-spt-main-form.js'),
+('20260808150020-create-spt-l1.js'),
+('20260808150030-create-spt-l2.js'),
+('20260808150040-create-spt-l3.js'),
+('20260808150050-create-spt-l4.js'),
+('20260808150100-create-spt-l5-place.js'),
+('20260808150110-create-spt-l5-transaction.js'),
+('20260808150120-create-spt-l6.js'),
+('20260808150130-create-spt-l7.js'),
+('20260808150140-create-spt-l8.js'),
+('20260811160000-alter-spt-l1-unique-constraint.js'),
+('20260812120000-add-section-h-to-spt-main-form.js'),
+('20260808150150-create-spt-l9.js'),
+('20260808150160-create-spt-l9-asset.js'),
+('20260808150170-create-spt-l10a.js'),
+('20260808150180-create-spt-l10b.js'),
+('20260808150190-create-spt-l10c.js'),
+('20260808150200-create-spt-l10d.js'),
+('20260808150210-create-spt-l11a-promotion.js'),
+('20260808150220-create-spt-l11a-entertainment.js'),
+('20260808150230-create-spt-l11a-bad-debt.js'),
+('20260808150240-create-spt-l11a-facility.js'),
+('20260808150250-create-spt-l11a-regional-benefit.js'),
+('20260808150260-create-spt-l11a-regional-facility.js'),
+('20260808150270-create-spt-l11a-npl.js'),
+('20260808150280-create-spt-l11b.js'),
+('20260808150290-create-spt-l11b-debt-balance.js'),
+('20260808150300-create-spt-l11b-equity-balance.js'),
+('20260808150310-create-spt-l11b-borrowing-cost.js'),
+('20260808150320-create-spt-l11c.js'),
+('20260808150330-create-spt-l13a.js'),
+('20260808150340-create-spt-l13b.js'),
+('20260808150350-create-spt-l13b-agreement.js'),
+('20260808150360-create-spt-l13b-section-b.js'),
+('20260808150370-create-spt-l13b-rd.js'),
+('20260808150380-create-spt-l13c.js'),
+('20260808150390-create-spt-l14.js');
 
 -- --------------------------------------------------------
 
@@ -1977,6 +2016,1183 @@ INSERT INTO `spt_grade` (`id`, `spt_id`, `graded_by`, `student_id`, `completenes
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `spt_header`
+--
+
+CREATE TABLE `spt_header` (
+  `id` bigint(20) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `created_by` int(11) NOT NULL,
+  `tax_year` smallint(6) NOT NULL,
+  `tax_period` varchar(20) NOT NULL DEFAULT 'ANNUAL',
+  `tax_type` varchar(50) NOT NULL DEFAULT 'CORPORATE_INCOME_TAX',
+  `tax_return_type` varchar(30) NOT NULL DEFAULT 'NORMAL',
+  `amendment_number` smallint(6) NOT NULL DEFAULT 0,
+  `form_version` varchar(30) NOT NULL DEFAULT '1771',
+  `status` varchar(20) NOT NULL DEFAULT 'DRAFT',
+  `submitted_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_header`
+--
+
+INSERT INTO `spt_header` (`id`, `company_id`, `created_by`, `tax_year`, `tax_period`, `tax_type`, `tax_return_type`, `amendment_number`, `form_version`, `status`, `submitted_at`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 5, 251, 2025, 'ANNUAL', 'CORPORATE_INCOME_TAX', 'NORMAL', 0, '1771', 'DRAFT', NULL, '2026-08-10 05:29:16', '2026-08-10 05:29:16', NULL),
+(2, 5, 251, 2024, 'ANNUAL', 'CORPORATE_INCOME_TAX', 'NORMAL', 0, '1771', 'DRAFT', NULL, '2026-08-16 02:48:59', '2026-08-16 02:48:59', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l1`
+--
+
+CREATE TABLE `spt_l1` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `section_type` varchar(10) NOT NULL,
+  `section_code` varchar(30) NOT NULL,
+  `account_code` varchar(50) NOT NULL,
+  `account_name` varchar(255) NOT NULL,
+  `commercial_amount` decimal(20,2) NOT NULL,
+  `non_taxable_amount` decimal(20,2) NOT NULL,
+  `final_tax_amount` decimal(20,2) NOT NULL,
+  `positive_fiscal_correction` decimal(20,2) NOT NULL,
+  `negative_fiscal_correction` decimal(20,2) NOT NULL,
+  `correction_code` varchar(20) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l1`
+--
+
+INSERT INTO `spt_l1` (`id`, `header_id`, `section_type`, `section_code`, `account_code`, `account_name`, `commercial_amount`, `non_taxable_amount`, `final_tax_amount`, `positive_fiscal_correction`, `negative_fiscal_correction`, `correction_code`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 'L1A', 'A', '4002', 'Penjualan Domestik', 3000000.00, 200000.00, 300000.00, 30000.00, 40000.00, 'P1', '2026-08-10 05:29:16', '2026-08-12 17:22:29', NULL),
+(2, 1, 'L1A', 'A', '4003', 'Penjualan Ekspor', 2000000.00, 30000.00, 400000.00, 40000.00, 10000.00, 'P2', '2026-08-10 05:30:13', '2026-08-12 17:22:29', NULL),
+(63, 1, 'L1A', 'A', '4011', 'Retur', 100000.00, 3000.00, 20000.00, 70000.00, 10000.00, NULL, '2026-08-10 12:51:20', '2026-08-12 17:22:29', NULL),
+(124, 1, 'L1D', 'A', '4021', 'Pendapatan Jasa', 10000000.00, 0.00, 0.00, 0.00, 0.00, NULL, '2026-08-10 12:56:53', '2026-08-11 03:37:57', NULL),
+(125, 1, 'L1A', 'A', '4013', 'Penyesuaian Penjualan', 400000.00, 0.00, 0.00, 0.00, 0.00, NULL, '2026-08-10 13:09:15', '2026-08-12 17:22:29', NULL),
+(277, 1, 'L1D', 'B_ASET', '1101', 'Kas dan Setara Kas', 120000.00, 0.00, 0.00, 0.00, 0.00, NULL, '2026-08-10 16:32:11', '2026-08-11 03:37:57', NULL),
+(307, 1, 'L1C', 'A', '4002', 'Penjualan Domestik', 1200000.00, 300000.00, 40000.00, 20000.00, 30000.00, 'P1', '2026-08-11 03:37:56', '2026-08-11 04:04:51', NULL),
+(308, 1, 'L1C', 'A', '4003', 'Penjualan Ekspor', 3000000.00, 40000.00, 30000.00, 20000.00, 10000.00, 'P2', '2026-08-11 03:37:56', '2026-08-11 04:04:51', NULL),
+(309, 1, 'L1D', 'A', '4013', 'Penyesuaian Penjualan', 4500000.00, 0.00, 0.00, 200000.00, 300000.00, 'P1', '2026-08-11 03:37:57', '2026-08-11 03:37:57', NULL),
+(310, 1, 'L1C', 'A', '4011', 'Retur', 150000.00, 0.00, 0.00, 0.00, 0.00, NULL, '2026-08-11 04:04:02', '2026-08-11 04:04:51', NULL),
+(311, 1, 'L1C', 'B_ASET', '1101', 'Kas dan Setara Kas', 3000000.00, 0.00, 0.00, 0.00, 0.00, NULL, '2026-08-11 04:04:02', '2026-08-11 04:04:51', NULL),
+(312, 1, 'L1A', 'A', '4012', 'Potongan Penjualan', 200000.00, 0.00, 0.00, 0.00, 0.00, 'P2', '2026-08-12 17:22:29', '2026-08-12 17:22:29', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l2`
+--
+
+CREATE TABLE `spt_l2` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `section_type` varchar(10) NOT NULL,
+  `npwp_tin` varchar(50) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `position` varchar(100) DEFAULT NULL,
+  `country_code` varchar(10) DEFAULT NULL,
+  `paid_capital_amount` decimal(20,2) DEFAULT NULL,
+  `paid_capital_percentage` decimal(7,4) DEFAULT NULL,
+  `dividend_amount` decimal(20,2) DEFAULT NULL,
+  `investment_amount` decimal(20,2) DEFAULT NULL,
+  `investment_percentage` decimal(7,4) DEFAULT NULL,
+  `debt_amount` decimal(20,2) DEFAULT NULL,
+  `debt_year` smallint(6) DEFAULT NULL,
+  `debt_interest_percentage` decimal(7,4) DEFAULT NULL,
+  `receivable_amount` decimal(20,2) DEFAULT NULL,
+  `receivable_year` smallint(6) DEFAULT NULL,
+  `receivable_interest_percentage` decimal(7,4) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l2`
+--
+
+INSERT INTO `spt_l2` (`id`, `header_id`, `section_type`, `npwp_tin`, `name`, `position`, `country_code`, `paid_capital_amount`, `paid_capital_percentage`, `dividend_amount`, `investment_amount`, `investment_percentage`, `debt_amount`, `debt_year`, `debt_interest_percentage`, `receivable_amount`, `receivable_year`, `receivable_interest_percentage`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(2, 1, 'PART_B', '12312312', 'asdad', NULL, 'ID', NULL, NULL, NULL, 1000000.00, 2.0000, 30000.00, 2012, 2.0000, 20000.00, 2016, 2.0000, '2026-08-12 15:38:34', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l3`
+--
+
+CREATE TABLE `spt_l3` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `section_type` varchar(30) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `country_code` varchar(10) DEFAULT NULL,
+  `transaction_date` date DEFAULT NULL,
+  `income_code` varchar(20) DEFAULT NULL,
+  `net_income_amount` decimal(20,2) DEFAULT NULL,
+  `tax_payable_overseas_amount` decimal(20,2) DEFAULT NULL,
+  `currency_code` varchar(10) DEFAULT NULL,
+  `foreign_currency_amount` decimal(20,4) DEFAULT NULL,
+  `tax_credit_calculated_amount` decimal(20,2) DEFAULT NULL,
+  `tin` varchar(50) DEFAULT NULL,
+  `tax_type` varchar(30) DEFAULT NULL,
+  `tax_base_amount` decimal(20,2) DEFAULT NULL,
+  `tax_withheld_amount` decimal(20,2) DEFAULT NULL,
+  `withholding_slip_number` varchar(100) DEFAULT NULL,
+  `withholding_slip_date` date DEFAULT NULL,
+  `prior_year_credit_adjustment_amount` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l3`
+--
+
+INSERT INTO `spt_l3` (`id`, `header_id`, `section_type`, `name`, `country_code`, `transaction_date`, `income_code`, `net_income_amount`, `tax_payable_overseas_amount`, `currency_code`, `foreign_currency_amount`, `tax_credit_calculated_amount`, `tin`, `tax_type`, `tax_base_amount`, `tax_withheld_amount`, `withholding_slip_number`, `withholding_slip_date`, `prior_year_credit_adjustment_amount`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(18, 1, 'PRIOR_YEAR_ADJUSTMENT', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 200000.00, '2026-08-12 15:26:58', '2026-08-16 02:47:34', NULL),
+(19, 1, 'PART_A', 'asdasd', 'ID', '2026-07-31', '01', 123123.00, 1233.00, 'USD', NULL, 122222.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-12 15:35:23', '2026-08-16 02:47:34', NULL),
+(20, 1, 'PART_B', 'sadasd', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '123123', 'lb_bukan_lb', 123456.00, 12345.00, '123123', '2026-08-06', NULL, '2026-08-12 15:35:23', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l4`
+--
+
+CREATE TABLE `spt_l4` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `section_type` varchar(10) NOT NULL,
+  `withholding_tin` varchar(50) DEFAULT NULL,
+  `withholding_name` varchar(255) DEFAULT NULL,
+  `tax_object` varchar(50) DEFAULT NULL,
+  `tax_base_amount` decimal(20,2) DEFAULT NULL,
+  `tax_rate` decimal(7,4) DEFAULT NULL,
+  `income_type` varchar(50) DEFAULT NULL,
+  `income_source` varchar(255) DEFAULT NULL,
+  `gross_income_amount` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l4`
+--
+
+INSERT INTO `spt_l4` (`id`, `header_id`, `section_type`, `withholding_tin`, `withholding_name`, `tax_object`, `tax_base_amount`, `tax_rate`, `income_type`, `income_source`, `gross_income_amount`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(3, 1, 'PART_A', '213123', 'asdasd', 'TO09', 1000000.00, 22.0000, NULL, NULL, NULL, '2026-08-12 15:38:35', '2026-08-16 02:47:34', NULL),
+(4, 1, 'PART_B', NULL, NULL, NULL, NULL, NULL, 'C008', 'awa', 1000000.00, '2026-08-12 15:38:35', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l5_place`
+--
+
+CREATE TABLE `spt_l5_place` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `tku_number` varchar(50) NOT NULL,
+  `tku_name` varchar(255) NOT NULL,
+  `address` text NOT NULL,
+  `village` varchar(100) NOT NULL,
+  `district` varchar(100) NOT NULL,
+  `city` varchar(100) NOT NULL,
+  `province` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l5_place`
+--
+
+INSERT INTO `spt_l5_place` (`id`, `header_id`, `tku_number`, `tku_name`, `address`, `village`, `district`, `city`, `province`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, '1', 'teto', 'klantor', 'Mojolangu', 'Sukun', 'Malang', 'Jawa Timur', '2026-08-12 03:34:02', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l5_transaction`
+--
+
+CREATE TABLE `spt_l5_transaction` (
+  `id` bigint(20) NOT NULL,
+  `place_id` bigint(20) NOT NULL,
+  `tax_month` tinyint(4) NOT NULL,
+  `gross_turnover_amount` decimal(20,2) NOT NULL,
+  `self_paid_tax_amount` decimal(20,2) NOT NULL,
+  `withheld_tax_amount` decimal(20,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l5_transaction`
+--
+
+INSERT INTO `spt_l5_transaction` (`id`, `place_id`, `tax_month`, `gross_turnover_amount`, `self_paid_tax_amount`, `withheld_tax_amount`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 1, 10000000.00, 400000.00, 200000.00, '2026-08-12 03:34:02', '2026-08-16 02:47:34', NULL),
+(2, 1, 2, 20000.00, 30000.00, 40000.00, '2026-08-12 03:34:02', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l6`
+--
+
+CREATE TABLE `spt_l6` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `income_base_amount` decimal(20,2) NOT NULL,
+  `previous_year_tax_credit_amount` decimal(20,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l6`
+--
+
+INSERT INTO `spt_l6` (`id`, `header_id`, `income_base_amount`, `previous_year_tax_credit_amount`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 200000.00, 20000.00, '2026-08-12 03:23:41', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l7`
+--
+
+CREATE TABLE `spt_l7` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `tax_year` smallint(6) NOT NULL,
+  `fiscal_net_profit_income` decimal(20,2) NOT NULL,
+  `fiscal_loss_compensation_y_minus_4` decimal(20,2) NOT NULL,
+  `fiscal_loss_compensation_y_minus_3` decimal(20,2) NOT NULL,
+  `fiscal_loss_compensation_y_minus_2` decimal(20,2) NOT NULL,
+  `fiscal_loss_compensation_y_minus_1` decimal(20,2) NOT NULL,
+  `fiscal_loss_compensation_current_year` decimal(20,2) NOT NULL,
+  `fiscal_loss_compensation_next_year` decimal(20,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l7`
+--
+
+INSERT INTO `spt_l7` (`id`, `header_id`, `tax_year`, `fiscal_net_profit_income`, `fiscal_loss_compensation_y_minus_4`, `fiscal_loss_compensation_y_minus_3`, `fiscal_loss_compensation_y_minus_2`, `fiscal_loss_compensation_y_minus_1`, `fiscal_loss_compensation_current_year`, `fiscal_loss_compensation_next_year`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 2016, 20000.00, 30000.00, 40000.00, 50000.00, 10000.00, 20000.00, 30000.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(2, 1, 2017, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(3, 1, 2018, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(4, 1, 2019, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(5, 1, 2020, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(6, 1, 2021, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(7, 1, 2022, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(8, 1, 2023, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(9, 1, 2024, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL),
+(10, 1, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-12 03:35:30', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l8`
+--
+
+CREATE TABLE `spt_l8` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `gross_turnover_amount` decimal(20,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l8`
+--
+
+INSERT INTO `spt_l8` (`id`, `header_id`, `gross_turnover_amount`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 400000.00, '2026-08-12 03:23:41', '2026-08-16 02:47:34', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l9`
+--
+
+CREATE TABLE `spt_l9` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `total_commercial_depreciation` decimal(20,2) DEFAULT NULL,
+  `total_commercial_amortization` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l9`
+--
+
+INSERT INTO `spt_l9` (`id`, `header_id`, `total_commercial_depreciation`, `total_commercial_amortization`, `created_at`, `updated_at`) VALUES
+(1, 1, 100000.00, 20000.00, '2026-08-15 11:50:35', '2026-08-16 02:47:34');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l9_asset`
+--
+
+CREATE TABLE `spt_l9_asset` (
+  `id` bigint(20) NOT NULL,
+  `l9_id` bigint(20) NOT NULL,
+  `category` varchar(255) DEFAULT NULL,
+  `subgroup` varchar(255) DEFAULT NULL,
+  `asset_type` varchar(255) DEFAULT NULL,
+  `month_year` varchar(7) DEFAULT NULL,
+  `cost_of_acquisition` decimal(20,2) DEFAULT NULL,
+  `fiscal_book_begin_year` decimal(20,2) DEFAULT NULL,
+  `method_commercial` varchar(255) DEFAULT NULL,
+  `method_fiscal` varchar(255) DEFAULT NULL,
+  `fiscal_depr_this_year` decimal(20,2) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l9_asset`
+--
+
+INSERT INTO `spt_l9_asset` (`id`, `l9_id`, `category`, `subgroup`, `asset_type`, `month_year`, `cost_of_acquisition`, `fiscal_book_begin_year`, `method_commercial`, `method_fiscal`, `fiscal_depr_this_year`, `notes`, `created_at`, `updated_at`) VALUES
+(3, 1, 'tangible', 'group3', 'Mobil Penumpang', '01/2026', 1000000.00, 200000.00, 'Saldo Menurun', 'GL / Straight Line (Garis Lurus)', 100000.00, 'saf', '2026-08-15 17:55:06', '2026-08-16 02:47:34'),
+(4, 1, 'tangible', 'group4', 'Bus', '03/2026', 111111.00, 22222.00, 'Garis Lurus', 'GL / Straight Line (Garis Lurus)', 123333.00, NULL, '2026-08-15 17:55:06', '2026-08-16 02:47:34'),
+(5, 1, 'tangible', 'other', 'Kendaraan Khusus', '06/2026', 100000.00, 20000.00, 'Saldo Menurun Ganda', 'SM / Declining Method (Saldo Menurun)', 123000.00, NULL, '2026-08-15 17:55:06', '2026-08-16 02:47:34'),
+(7, 1, 'tangible', 'group2', 'Motor', '02/2026', 123123.00, 12312.00, 'Jumlah Jam Jasa', 'GL / Straight Line (Garis Lurus)', 12312.00, NULL, '2026-08-15 18:31:13', '2026-08-16 02:47:34'),
+(8, 1, 'tangible', 'group2', 'Sepeda', '02/2026', 2231321.00, 123123.00, 'Garis Lurus', 'GL / Straight Line (Garis Lurus)', 1231233.00, NULL, '2026-08-15 18:45:56', '2026-08-16 02:47:34'),
+(9, 1, 'tangible', 'group3', 'Sepeda', '03/2026', 123123.00, 2131233.00, 'Garis Lurus', 'GL / Straight Line (Garis Lurus)', 2131212.00, NULL, '2026-08-15 18:45:57', '2026-08-16 02:47:34'),
+(10, 1, 'tangible', 'group4', 'Motor', '12/2026', 213123.00, 123123.00, 'Garis Lurus', 'GL / Straight Line (Garis Lurus)', 231123.00, 'sdada', '2026-08-15 18:45:57', '2026-08-16 02:47:34'),
+(11, 1, 'tangible', 'other', 'Motor', '02/2026', 123123.00, 123123.00, 'Jumlah Angka Tahun', 'GL / Straight Line (Garis Lurus)', 123123.00, NULL, '2026-08-15 18:45:57', '2026-08-16 02:47:34'),
+(12, 1, 'building', 'permanent', 'Bangunan untuk usaha (toko, pabrik, kantor, gudang, dan sejenisnya)', '03/2026', 21312312.00, 12312.00, 'Saldo Menurun Ganda', 'GL / Straight Line (Garis Lurus)', 123132.00, NULL, '2026-08-15 18:45:57', '2026-08-16 02:47:34'),
+(13, 1, 'building', 'permanent', 'Apartemen', '02/2026', 21313123.00, 2122.00, 'Jumlah Angka Tahun', 'JSP / Number of Production Unit (Jumlah Satuan Produksi)', 2222.00, '2', '2026-08-15 18:45:57', '2026-08-16 02:47:34'),
+(14, 1, 'building', 'nonPermanent', 'Bangunan yang disewakan', '02/2026', 212121.00, 122121.00, 'Saldo Menurun', 'GL / Straight Line (Garis Lurus)', 121221.00, NULL, '2026-08-15 18:45:57', '2026-08-16 02:47:34'),
+(15, 1, 'building', 'nonPermanent', 'Bangunan untuk usaha (toko, pabrik, kantor, gudang, dan sejenisnya)', '04/2026', 122121.00, 212121.00, 'Jumlah Jam Jasa', 'GL / Straight Line (Garis Lurus)', 122121.00, '22', '2026-08-15 18:45:57', '2026-08-16 02:47:34'),
+(16, 1, 'tangible', 'group1', 'Sepeda', '02/2026', 23123.00, 1231221.00, 'Garis Lurus', 'GL / Straight Line (Garis Lurus)', 121221.00, NULL, '2026-08-15 18:48:25', '2026-08-16 02:47:34');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l10a`
+--
+
+CREATE TABLE `spt_l10a` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `tin` varchar(50) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `country` varchar(100) DEFAULT NULL,
+  `type_of_relationship` varchar(255) DEFAULT NULL,
+  `business_activity` text DEFAULT NULL,
+  `type_of_transaction` varchar(255) DEFAULT NULL,
+  `transaction_value` decimal(20,2) DEFAULT NULL,
+  `pricing_method_applied` varchar(255) DEFAULT NULL,
+  `reason_of_pricing_method` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l10a`
+--
+
+INSERT INTO `spt_l10a` (`id`, `header_id`, `tin`, `name`, `country`, `type_of_relationship`, `business_activity`, `type_of_transaction`, `transaction_value`, `pricing_method_applied`, `reason_of_pricing_method`, `created_at`, `updated_at`) VALUES
+(2, 1, '1233122', 'asdasd', 'Indonesia', 'Parent Company', 'asdasdas', 'Sale of Goods', 123333.00, 'Resale Price Method (RPM)', 'asdasd', '2026-08-15 16:52:33', '2026-08-16 02:47:34');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l10b`
+--
+
+CREATE TABLE `spt_l10b` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `group1_q1` tinyint(1) DEFAULT NULL,
+  `group1_q2` tinyint(1) DEFAULT NULL,
+  `group1_q3` tinyint(1) DEFAULT NULL,
+  `group1_q4` tinyint(1) DEFAULT NULL,
+  `group2_q1` tinyint(1) DEFAULT NULL,
+  `group2_q2` tinyint(1) DEFAULT NULL,
+  `group2_q3` tinyint(1) DEFAULT NULL,
+  `group3_q1` tinyint(1) DEFAULT NULL,
+  `group3_q2` tinyint(1) DEFAULT NULL,
+  `group3_q3` tinyint(1) DEFAULT NULL,
+  `group3_q4` tinyint(1) DEFAULT NULL,
+  `group3_q5` tinyint(1) DEFAULT NULL,
+  `group4_q1` tinyint(1) DEFAULT NULL,
+  `group4_q2` tinyint(1) DEFAULT NULL,
+  `group4_q3` tinyint(1) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l10b`
+--
+
+INSERT INTO `spt_l10b` (`id`, `header_id`, `group1_q1`, `group1_q2`, `group1_q3`, `group1_q4`, `group2_q1`, `group2_q2`, `group2_q3`, `group3_q1`, `group3_q2`, `group3_q3`, `group3_q4`, `group3_q5`, `group4_q1`, `group4_q2`, `group4_q3`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '2026-08-15 11:50:36', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l10c`
+--
+
+CREATE TABLE `spt_l10c` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `name_of_transaction_partner` varchar(255) DEFAULT NULL,
+  `type_of_transaction_code` varchar(100) DEFAULT NULL,
+  `country_code` char(2) DEFAULT NULL,
+  `transaction_value` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l10c`
+--
+
+INSERT INTO `spt_l10c` (`id`, `header_id`, `name_of_transaction_partner`, `type_of_transaction_code`, `country_code`, `transaction_value`, `created_at`, `updated_at`) VALUES
+(2, 1, 'asdsada', 'Sale of Goods', 'ID', 200000.00, '2026-08-15 16:52:33', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l10d`
+--
+
+CREATE TABLE `spt_l10d` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `master_summary_c1` tinyint(1) DEFAULT NULL,
+  `master_summary_c2` tinyint(1) DEFAULT NULL,
+  `master_summary_c3` tinyint(1) DEFAULT NULL,
+  `master_summary_c4` tinyint(1) DEFAULT NULL,
+  `master_summary_c5` tinyint(1) DEFAULT NULL,
+  `local_summary_c1` tinyint(1) DEFAULT NULL,
+  `local_summary_c2` tinyint(1) DEFAULT NULL,
+  `local_summary_c3` tinyint(1) DEFAULT NULL,
+  `local_summary_c4` tinyint(1) DEFAULT NULL,
+  `local_summary_c5` tinyint(1) DEFAULT NULL,
+  `master_doc_date` date DEFAULT NULL,
+  `local_doc_date` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l10d`
+--
+
+INSERT INTO `spt_l10d` (`id`, `header_id`, `master_summary_c1`, `master_summary_c2`, `master_summary_c3`, `master_summary_c4`, `master_summary_c5`, `local_summary_c1`, `local_summary_c2`, `local_summary_c3`, `local_summary_c4`, `local_summary_c5`, `master_doc_date`, `local_doc_date`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '2026-08-10', '2026-08-12', '2026-08-15 11:50:36', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11a_bad_debt`
+--
+
+CREATE TABLE `spt_l11a_bad_debt` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `identity_number` varchar(50) DEFAULT NULL,
+  `debtor_name` varchar(255) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `credit_ceiling` decimal(20,2) DEFAULT NULL,
+  `uncollectible_debt` decimal(20,2) DEFAULT NULL,
+  `deduction_method` varchar(255) DEFAULT NULL,
+  `document_type` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11a_bad_debt`
+--
+
+INSERT INTO `spt_l11a_bad_debt` (`id`, `header_id`, `identity_number`, `debtor_name`, `address`, `credit_ceiling`, `uncollectible_debt`, `deduction_method`, `document_type`, `created_at`, `updated_at`) VALUES
+(2, 1, 'asdada', 'asdada', 'asdada', 123334.00, 123244.00, 'Metode Langsung', 'Publikasi Media Massa', '2026-08-15 16:52:33', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11a_entertainment`
+--
+
+CREATE TABLE `spt_l11a_entertainment` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `date` date DEFAULT NULL,
+  `place` varchar(255) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `type` varchar(255) DEFAULT NULL,
+  `amount` decimal(20,2) DEFAULT NULL,
+  `partner_name` varchar(255) DEFAULT NULL,
+  `partner_position` varchar(255) DEFAULT NULL,
+  `partner_company_name` varchar(255) DEFAULT NULL,
+  `partner_business_type` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11a_entertainment`
+--
+
+INSERT INTO `spt_l11a_entertainment` (`id`, `header_id`, `date`, `place`, `address`, `type`, `amount`, `partner_name`, `partner_position`, `partner_company_name`, `partner_business_type`, `description`, `created_at`, `updated_at`) VALUES
+(2, 1, '2026-08-12', 'asdadsdasd', 'asdasdasd', 'Jamuan', 123332.00, 'asdads', 'asdasd', 'asdasd', 'asdad', 'gfadfs', '2026-08-15 16:52:33', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11a_facility`
+--
+
+CREATE TABLE `spt_l11a_facility` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `asset_type` varchar(255) DEFAULT NULL,
+  `acquisition_year` int(11) DEFAULT NULL,
+  `acquisition_value` decimal(20,2) DEFAULT NULL,
+  `depreciation_prior_year` decimal(20,2) DEFAULT NULL,
+  `depreciation_current_year` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11a_facility`
+--
+
+INSERT INTO `spt_l11a_facility` (`id`, `header_id`, `asset_type`, `acquisition_year`, `acquisition_value`, `depreciation_prior_year`, `depreciation_current_year`, `created_at`, `updated_at`) VALUES
+(2, 1, 'Peralatan', 2012, 1233456.00, 123345.00, 122333.00, '2026-08-15 16:52:33', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11a_npl`
+--
+
+CREATE TABLE `spt_l11a_npl` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `identity_number` varchar(50) DEFAULT NULL,
+  `debtor_name` varchar(255) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `credit_beginning` decimal(20,2) DEFAULT NULL,
+  `credit_ending` decimal(20,2) DEFAULT NULL,
+  `interest_amount` decimal(20,2) DEFAULT NULL,
+  `category` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11a_npl`
+--
+
+INSERT INTO `spt_l11a_npl` (`id`, `header_id`, `identity_number`, `debtor_name`, `address`, `credit_beginning`, `credit_ending`, `interest_amount`, `category`, `created_at`, `updated_at`) VALUES
+(2, 1, '1231231', 'asdasd', 'asdasdas', 1356567.00, 13123.00, 44312.00, 'Diragukan', '2026-08-15 16:52:33', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11a_promotion`
+--
+
+CREATE TABLE `spt_l11a_promotion` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `identity_number` varchar(50) DEFAULT NULL,
+  `recipient_name` varchar(255) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  `expense_type` varchar(255) DEFAULT NULL,
+  `amount` decimal(20,2) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `withholding_amount` decimal(20,2) DEFAULT NULL,
+  `withholding_slip_number` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11a_promotion`
+--
+
+INSERT INTO `spt_l11a_promotion` (`id`, `header_id`, `identity_number`, `recipient_name`, `address`, `date`, `expense_type`, `amount`, `description`, `withholding_amount`, `withholding_slip_number`, `created_at`, `updated_at`) VALUES
+(2, 1, '123123', 'asdasd', 'asdad', '2026-08-04', 'Biaya Promosi', 123213.00, 'asdasda', 123123.00, '12312', '2026-08-15 16:52:33', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11a_regional_benefit`
+--
+
+CREATE TABLE `spt_l11a_regional_benefit` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `location_address` text DEFAULT NULL,
+  `decree_number` varchar(255) DEFAULT NULL,
+  `decree_date` date DEFAULT NULL,
+  `ext_decree_number` varchar(255) DEFAULT NULL,
+  `ext_decree_date` date DEFAULT NULL,
+  `housing` decimal(20,2) DEFAULT NULL,
+  `healthcare` decimal(20,2) DEFAULT NULL,
+  `education` decimal(20,2) DEFAULT NULL,
+  `worship` decimal(20,2) DEFAULT NULL,
+  `transport` decimal(20,2) DEFAULT NULL,
+  `sports` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11a_regional_benefit`
+--
+
+INSERT INTO `spt_l11a_regional_benefit` (`id`, `header_id`, `location_address`, `decree_number`, `decree_date`, `ext_decree_number`, `ext_decree_date`, `housing`, `healthcare`, `education`, `worship`, `transport`, `sports`, `created_at`, `updated_at`) VALUES
+(1, 1, 'asdasdasd', 'asdasdasdas', '2026-08-05', 'asdasdasd', '2026-08-12', 2000001.00, 300007.00, 400007.00, 500007.00, 6000007.00, 77777.00, '2026-08-15 11:50:36', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11a_regional_facility`
+--
+
+CREATE TABLE `spt_l11a_regional_facility` (
+  `id` bigint(20) NOT NULL,
+  `regional_benefit_id` bigint(20) NOT NULL,
+  `asset_type` varchar(255) DEFAULT NULL,
+  `acquisition_year` int(11) DEFAULT NULL,
+  `acquisition_value` decimal(20,2) DEFAULT NULL,
+  `depreciation_prior_year` decimal(20,2) DEFAULT NULL,
+  `depreciation_current_year` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11a_regional_facility`
+--
+
+INSERT INTO `spt_l11a_regional_facility` (`id`, `regional_benefit_id`, `asset_type`, `acquisition_year`, `acquisition_value`, `depreciation_prior_year`, `depreciation_current_year`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Bangunan', 2015, 22321.00, 123344.00, 12312301.00, '2026-08-15 17:55:07', '2026-08-16 02:47:17');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11b`
+--
+
+CREATE TABLE `spt_l11b` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `has_foreign_debt` varchar(10) DEFAULT NULL,
+  `income_tax_expense` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11b`
+--
+
+INSERT INTO `spt_l11b` (`id`, `header_id`, `has_foreign_debt`, `income_tax_expense`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Ya', NULL, '2026-08-15 11:50:36', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11b_borrowing_cost`
+--
+
+CREATE TABLE `spt_l11b_borrowing_cost` (
+  `id` bigint(20) NOT NULL,
+  `l11b_id` bigint(20) NOT NULL,
+  `creditor` varchar(255) DEFAULT NULL,
+  `avg_debt_balance` decimal(20,2) DEFAULT NULL,
+  `borrowing_cost` decimal(20,2) DEFAULT NULL,
+  `deductible_cost` decimal(20,2) DEFAULT NULL,
+  `non_deductible_cost` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11b_borrowing_cost`
+--
+
+INSERT INTO `spt_l11b_borrowing_cost` (`id`, `l11b_id`, `creditor`, `avg_debt_balance`, `borrowing_cost`, `deductible_cost`, `non_deductible_cost`, `created_at`, `updated_at`) VALUES
+(1, 1, 'asdasda', 1231231.00, 1213.00, 123123.00, 1231123.00, '2026-08-15 17:55:07', '2026-08-15 17:55:07');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11b_debt_balance`
+--
+
+CREATE TABLE `spt_l11b_debt_balance` (
+  `id` bigint(20) NOT NULL,
+  `l11b_id` bigint(20) NOT NULL,
+  `creditor_identity` varchar(50) DEFAULT NULL,
+  `creditor_name` varchar(255) DEFAULT NULL,
+  `relationship` varchar(255) DEFAULT NULL,
+  `month_01` decimal(20,2) DEFAULT NULL,
+  `month_02` decimal(20,2) DEFAULT NULL,
+  `month_03` decimal(20,2) DEFAULT NULL,
+  `month_04` decimal(20,2) DEFAULT NULL,
+  `month_05` decimal(20,2) DEFAULT NULL,
+  `month_06` decimal(20,2) DEFAULT NULL,
+  `month_07` decimal(20,2) DEFAULT NULL,
+  `month_08` decimal(20,2) DEFAULT NULL,
+  `month_09` decimal(20,2) DEFAULT NULL,
+  `month_10` decimal(20,2) DEFAULT NULL,
+  `month_11` decimal(20,2) DEFAULT NULL,
+  `month_12` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11b_debt_balance`
+--
+
+INSERT INTO `spt_l11b_debt_balance` (`id`, `l11b_id`, `creditor_identity`, `creditor_name`, `relationship`, `month_01`, `month_02`, `month_03`, `month_04`, `month_05`, `month_06`, `month_07`, `month_08`, `month_09`, `month_10`, `month_11`, `month_12`, `created_at`, `updated_at`) VALUES
+(1, 1, '123132123', 'asdadsa', 'sadasd', 1233412.00, 1232131.00, 1231231.00, 123.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-15 17:55:07', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11b_equity_balance`
+--
+
+CREATE TABLE `spt_l11b_equity_balance` (
+  `id` bigint(20) NOT NULL,
+  `l11b_id` bigint(20) NOT NULL,
+  `equity_description` varchar(255) DEFAULT NULL,
+  `month_01` decimal(20,2) DEFAULT NULL,
+  `month_02` decimal(20,2) DEFAULT NULL,
+  `month_03` decimal(20,2) DEFAULT NULL,
+  `month_04` decimal(20,2) DEFAULT NULL,
+  `month_05` decimal(20,2) DEFAULT NULL,
+  `month_06` decimal(20,2) DEFAULT NULL,
+  `month_07` decimal(20,2) DEFAULT NULL,
+  `month_08` decimal(20,2) DEFAULT NULL,
+  `month_09` decimal(20,2) DEFAULT NULL,
+  `month_10` decimal(20,2) DEFAULT NULL,
+  `month_11` decimal(20,2) DEFAULT NULL,
+  `month_12` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11b_equity_balance`
+--
+
+INSERT INTO `spt_l11b_equity_balance` (`id`, `l11b_id`, `equity_description`, `month_01`, `month_02`, `month_03`, `month_04`, `month_05`, `month_06`, `month_07`, `month_08`, `month_09`, `month_10`, `month_11`, `month_12`, `created_at`, `updated_at`) VALUES
+(1, 1, 'asdada', 12313.00, 1231231.00, 123123.00, 123123.00, 222.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-15 17:55:07', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l11c`
+--
+
+CREATE TABLE `spt_l11c` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `nama_pemberi_pinjaman` varchar(255) DEFAULT NULL,
+  `alamat_pemberi_pinjaman` text DEFAULT NULL,
+  `negara_yurisdiksi` varchar(100) DEFAULT NULL,
+  `mata_uang` varchar(10) DEFAULT NULL,
+  `kurs_akhir_tahun` decimal(20,6) DEFAULT NULL,
+  `pokok_utang_awal_tahun` decimal(20,2) DEFAULT NULL,
+  `penambahan_pokok_utang` decimal(20,2) DEFAULT NULL,
+  `pengurangan_pokok_utang` decimal(20,2) DEFAULT NULL,
+  `tanggal_mulai_pinjaman` date DEFAULT NULL,
+  `tanggal_jatuh_tempo_pinjaman` date DEFAULT NULL,
+  `tingkat_suku_bunga` decimal(10,4) DEFAULT NULL,
+  `jumlah_bunga` decimal(20,2) DEFAULT NULL,
+  `biaya_terkait_perolehan` decimal(20,2) DEFAULT NULL,
+  `peruntukan_pinjaman` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l11c`
+--
+
+INSERT INTO `spt_l11c` (`id`, `header_id`, `nama_pemberi_pinjaman`, `alamat_pemberi_pinjaman`, `negara_yurisdiksi`, `mata_uang`, `kurs_akhir_tahun`, `pokok_utang_awal_tahun`, `penambahan_pokok_utang`, `pengurangan_pokok_utang`, `tanggal_mulai_pinjaman`, `tanggal_jatuh_tempo_pinjaman`, `tingkat_suku_bunga`, `jumlah_bunga`, `biaya_terkait_perolehan`, `peruntukan_pinjaman`, `created_at`, `updated_at`) VALUES
+(2, 1, 'asdasdas', 'asdasdasd', 'Singapura', 'USD', 122333.000000, 122233.00, 123334.00, 21231.00, '2026-08-05', '2026-08-14', 12.0000, 213345.00, 200000.00, '12333', '2026-08-15 16:52:34', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l13a`
+--
+
+CREATE TABLE `spt_l13a` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `decision_number` varchar(255) DEFAULT NULL,
+  `decision_date` date DEFAULT NULL,
+  `utilization_decision_number` varchar(255) DEFAULT NULL,
+  `utilization_decision_date` date DEFAULT NULL,
+  `approved_investment_foreign_currency` decimal(20,2) DEFAULT NULL,
+  `approved_investment_equivalent` decimal(20,2) DEFAULT NULL,
+  `approved_investment_rupiah` decimal(20,2) DEFAULT NULL,
+  `approved_investment_currency_code` char(3) DEFAULT NULL,
+  `investment_type` varchar(255) DEFAULT NULL,
+  `business_sector_area` text DEFAULT NULL,
+  `facility_type` varchar(255) DEFAULT NULL,
+  `facility_percentage` decimal(10,4) DEFAULT NULL,
+  `loss_compensation_year` varchar(20) DEFAULT NULL,
+  `investment_realization_cumulative` decimal(20,2) DEFAULT NULL,
+  `investment_realization_at_commercial` decimal(20,2) DEFAULT NULL,
+  `commercial_production_date` date DEFAULT NULL,
+  `net_income_deduction_year` varchar(20) DEFAULT NULL,
+  `net_income_deduction_amount` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l13a`
+--
+
+INSERT INTO `spt_l13a` (`id`, `header_id`, `decision_number`, `decision_date`, `utilization_decision_number`, `utilization_decision_date`, `approved_investment_foreign_currency`, `approved_investment_equivalent`, `approved_investment_rupiah`, `approved_investment_currency_code`, `investment_type`, `business_sector_area`, `facility_type`, `facility_percentage`, `loss_compensation_year`, `investment_realization_cumulative`, `investment_realization_at_commercial`, `commercial_production_date`, `net_income_deduction_year`, `net_income_deduction_amount`, `created_at`, `updated_at`) VALUES
+(2, 1, '12334', '2026-08-20', '12312', '2026-08-26', 312312.00, 33345.00, 1231321.00, NULL, 'New Investment', 'asdadad', 'lossCompensationExtension', 2.0000, '2012', 23333.00, 44444.00, '2026-08-12', 'Year 1', 200000.00, '2026-08-15 16:52:34', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l13b`
+--
+
+CREATE TABLE `spt_l13b` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `row2` decimal(20,2) DEFAULT NULL,
+  `row4` decimal(20,2) DEFAULT NULL,
+  `row5` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l13b`
+--
+
+INSERT INTO `spt_l13b` (`id`, `header_id`, `row2`, `row4`, `row5`, `created_at`, `updated_at`) VALUES
+(1, 1, 231239.00, 1231239.00, 1221319.00, '2026-08-15 11:50:36', '2026-08-16 02:47:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l13b_agreement`
+--
+
+CREATE TABLE `spt_l13b_agreement` (
+  `id` bigint(20) NOT NULL,
+  `l13b_id` bigint(20) NOT NULL,
+  `agreement_number` varchar(255) DEFAULT NULL,
+  `agreement_date` date DEFAULT NULL,
+  `partner` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l13b_agreement`
+--
+
+INSERT INTO `spt_l13b_agreement` (`id`, `l13b_id`, `agreement_number`, `agreement_date`, `partner`, `description`, `created_at`, `updated_at`) VALUES
+(1, 1, '123123', '2026-08-19', 'asdad', 'asdadsa', '2026-08-15 17:55:08', '2026-08-15 17:55:08');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l13b_rd`
+--
+
+CREATE TABLE `spt_l13b_rd` (
+  `id` bigint(20) NOT NULL,
+  `l13b_id` bigint(20) NOT NULL,
+  `proposal_number` varchar(255) DEFAULT NULL,
+  `period_from` int(11) DEFAULT NULL,
+  `period_to` int(11) DEFAULT NULL,
+  `cost_amount` decimal(20,2) DEFAULT NULL,
+  `facility_percentage` decimal(10,4) DEFAULT NULL,
+  `ip_year` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l13b_rd`
+--
+
+INSERT INTO `spt_l13b_rd` (`id`, `l13b_id`, `proposal_number`, `period_from`, `period_to`, `cost_amount`, `facility_percentage`, `ip_year`, `created_at`, `updated_at`) VALUES
+(22, 1, 'sadasd', 2015, 2018, 123123.00, 125.0000, 2012, '2026-08-16 02:47:36', '2026-08-16 02:47:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l13b_section_b`
+--
+
+CREATE TABLE `spt_l13b_section_b` (
+  `id` bigint(20) NOT NULL,
+  `l13b_id` bigint(20) NOT NULL,
+  `category_code` varchar(20) NOT NULL,
+  `category_description` text NOT NULL,
+  `amount` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l13b_section_b`
+--
+
+INSERT INTO `spt_l13b_section_b` (`id`, `l13b_id`, `category_code`, `category_description`, `amount`, `created_at`, `updated_at`) VALUES
+(1, 1, 'sb-1', 'Cost of providing special physical facilities such as workshops or similar training venues related to work practice and/or apprenticeship', 11111.00, '2026-08-15 17:55:08', '2026-08-16 02:47:36'),
+(2, 1, 'sb-2', 'Cost of instructors or teachers as work practice, apprenticeship, and/or learning supervisors', 2222.00, '2026-08-15 17:55:08', '2026-08-16 02:47:36'),
+(3, 1, 'sb-3', 'Goods and/or materials for the purposes of work practice, apprenticeship, and/or learning activities', 333.00, '2026-08-15 17:55:08', '2026-08-16 02:47:36'),
+(4, 1, 'sb-4', 'Honorarium or similar payments given to work practice and/or apprenticeship participants', 4444.00, '2026-08-15 17:55:08', '2026-08-16 02:47:36'),
+(5, 1, 'sb-5', 'Certification costs and electricity, water, and fuel costs for work practice and/or apprenticeship activities', 55555.00, '2026-08-15 17:55:08', '2026-08-16 02:47:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l13c`
+--
+
+CREATE TABLE `spt_l13c` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `grant_decision_number` varchar(255) DEFAULT NULL,
+  `grant_decision_date` date DEFAULT NULL,
+  `utilization_decision_number` varchar(255) DEFAULT NULL,
+  `utilization_decision_date` date DEFAULT NULL,
+  `facility_period` decimal(10,4) DEFAULT NULL,
+  `utilization_year` int(11) DEFAULT NULL,
+  `reduction_percentage` decimal(10,4) DEFAULT NULL,
+  `corporate_income_tax_rate` decimal(10,4) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l13c`
+--
+
+INSERT INTO `spt_l13c` (`id`, `header_id`, `grant_decision_number`, `grant_decision_date`, `utilization_decision_number`, `utilization_decision_date`, `facility_period`, `utilization_year`, `reduction_percentage`, `corporate_income_tax_rate`, `created_at`, `updated_at`) VALUES
+(2, 1, '231223123', '2026-08-14', '12323123', '2026-08-14', 2.0000, 2012, 22.0000, NULL, '2026-08-15 16:52:34', '2026-08-16 02:47:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_l14`
+--
+
+CREATE TABLE `spt_l14` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `tax_year` int(11) NOT NULL,
+  `bentuk_penanaman` varchar(255) DEFAULT NULL,
+  `penyediaan` decimal(20,2) DEFAULT NULL,
+  `tahun1` decimal(20,2) DEFAULT NULL,
+  `tahun2` decimal(20,2) DEFAULT NULL,
+  `tahun3` decimal(20,2) DEFAULT NULL,
+  `tahun4` decimal(20,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_l14`
+--
+
+INSERT INTO `spt_l14` (`id`, `header_id`, `tax_year`, `bentuk_penanaman`, `penyediaan`, `tahun1`, `tahun2`, `tahun3`, `tahun4`, `created_at`, `updated_at`) VALUES
+(111, 1, 2021, '1', 300000.00, 2000.00, 3000.00, 40000.00, 5000.00, '2026-08-16 02:47:36', '2026-08-16 02:47:36'),
+(112, 1, 2022, '3', 300000.00, 20000.00, 40000.00, 50000.00, 760000.00, '2026-08-16 02:47:36', '2026-08-16 02:47:36'),
+(113, 1, 2023, '1', 2132.00, 0.00, 0.00, 0.00, 0.00, '2026-08-16 02:47:36', '2026-08-16 02:47:36'),
+(114, 1, 2024, NULL, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-16 02:47:36', '2026-08-16 02:47:36'),
+(115, 1, 2025, NULL, 0.00, 0.00, 0.00, 0.00, 0.00, '2026-08-16 02:47:36', '2026-08-16 02:47:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `spt_main_form`
+--
+
+CREATE TABLE `spt_main_form` (
+  `id` bigint(20) NOT NULL,
+  `header_id` bigint(20) NOT NULL,
+  `business_name` varchar(255) DEFAULT NULL,
+  `taxpayer_npwp` varchar(32) DEFAULT NULL,
+  `company_email` varchar(255) DEFAULT NULL,
+  `company_phone` varchar(50) DEFAULT NULL,
+  `business_status` varchar(50) DEFAULT NULL,
+  `business_classification` varchar(100) DEFAULT NULL,
+  `bookkeeping_standard` varchar(100) DEFAULT NULL,
+  `reporting_currency` varchar(10) DEFAULT NULL,
+  `financial_year_start` varchar(20) DEFAULT NULL,
+  `financial_year_end` varchar(20) DEFAULT NULL,
+  `is_audited` tinyint(1) DEFAULT NULL,
+  `audit_opinion` varchar(100) DEFAULT NULL,
+  `kap_npwp` varchar(32) DEFAULT NULL,
+  `kap_name` varchar(255) DEFAULT NULL,
+  `has_gr23_income` tinyint(1) DEFAULT NULL,
+  `gr23_income_solely` tinyint(1) DEFAULT NULL,
+  `has_final_tax_income` tinyint(1) DEFAULT NULL,
+  `has_excluded_income` tinyint(1) DEFAULT NULL,
+  `investment_facility` tinyint(1) DEFAULT NULL,
+  `vocational_deduction_facility` tinyint(1) DEFAULT NULL,
+  `carried_forward_losses` tinyint(1) DEFAULT NULL,
+  `rd_deduction_facility` tinyint(1) DEFAULT NULL,
+  `tax_rate_type` varchar(100) DEFAULT NULL,
+  `custom_tax_rate` decimal(7,4) DEFAULT NULL,
+  `overseas_tax_credit_requested` tinyint(1) DEFAULT NULL,
+  `payable_deduction_requested` tinyint(1) DEFAULT NULL,
+  `has_art25_installment_obligation` tinyint(1) DEFAULT NULL,
+  `cash_and_cash_equivalents` decimal(20,2) DEFAULT NULL,
+  `trade_receivables` decimal(20,2) DEFAULT NULL,
+  `inventory` decimal(20,2) DEFAULT NULL,
+  `prepaid_expenses` decimal(20,2) DEFAULT NULL,
+  `other_current_assets` decimal(20,2) DEFAULT NULL,
+  `fixed_assets` decimal(20,2) DEFAULT NULL,
+  `accumulated_depreciation` decimal(20,2) DEFAULT NULL,
+  `intangible_assets` decimal(20,2) DEFAULT NULL,
+  `investment` decimal(20,2) DEFAULT NULL,
+  `other_non_current_assets` decimal(20,2) DEFAULT NULL,
+  `trade_payables` decimal(20,2) DEFAULT NULL,
+  `short_term_debt` decimal(20,2) DEFAULT NULL,
+  `tax_payable` decimal(20,2) DEFAULT NULL,
+  `accrued_expenses` decimal(20,2) DEFAULT NULL,
+  `other_current_liabilities` decimal(20,2) DEFAULT NULL,
+  `long_term_debt` decimal(20,2) DEFAULT NULL,
+  `deferred_tax_liability` decimal(20,2) DEFAULT NULL,
+  `other_non_current_liabilities` decimal(20,2) DEFAULT NULL,
+  `paid_up_capital` decimal(20,2) DEFAULT NULL,
+  `retained_earnings` decimal(20,2) DEFAULT NULL,
+  `current_year_profit` decimal(20,2) DEFAULT NULL,
+  `other_equity` decimal(20,2) DEFAULT NULL,
+  `gross_revenue` decimal(20,2) DEFAULT NULL,
+  `sales_returns` decimal(20,2) DEFAULT NULL,
+  `sales_discount` decimal(20,2) DEFAULT NULL,
+  `beginning_inventory` decimal(20,2) DEFAULT NULL,
+  `purchases` decimal(20,2) DEFAULT NULL,
+  `direct_labor` decimal(20,2) DEFAULT NULL,
+  `factory_overhead` decimal(20,2) DEFAULT NULL,
+  `ending_inventory` decimal(20,2) DEFAULT NULL,
+  `selling_expenses` decimal(20,2) DEFAULT NULL,
+  `administrative_expenses` decimal(20,2) DEFAULT NULL,
+  `general_expenses` decimal(20,2) DEFAULT NULL,
+  `interest_income` decimal(20,2) DEFAULT NULL,
+  `dividend_income` decimal(20,2) DEFAULT NULL,
+  `other_income` decimal(20,2) DEFAULT NULL,
+  `interest_expense` decimal(20,2) DEFAULT NULL,
+  `other_expenses` decimal(20,2) DEFAULT NULL,
+  `tax_expense` decimal(20,2) DEFAULT NULL,
+  `p5_investment_facility` decimal(20,2) DEFAULT NULL,
+  `p5_investment_facility_amount` decimal(20,2) DEFAULT NULL,
+  `p6_vocational_deduction` decimal(20,2) DEFAULT NULL,
+  `p6_vocational_deduction_amount` decimal(20,2) DEFAULT NULL,
+  `p8_carried_losses` decimal(20,2) DEFAULT NULL,
+  `p10_rd_deduction` decimal(20,2) DEFAULT NULL,
+  `p10_rd_deduction_amount` decimal(20,2) DEFAULT NULL,
+  `p11_tax_rate` decimal(7,4) DEFAULT NULL,
+  `p11a_custom_tax_rate` decimal(7,4) DEFAULT NULL,
+  `commercial_profit` decimal(20,2) DEFAULT NULL,
+  `positive_fiscal_corrections` decimal(20,2) DEFAULT NULL,
+  `negative_fiscal_corrections` decimal(20,2) DEFAULT NULL,
+  `q13_overseas_credit` decimal(20,2) DEFAULT NULL,
+  `p14_installment_art25` decimal(20,2) DEFAULT NULL,
+  `p15_notice_art25` decimal(20,2) DEFAULT NULL,
+  `q16_payable_deduction` decimal(20,2) DEFAULT NULL,
+  `withholding_tax_article_23` decimal(20,2) DEFAULT NULL,
+  `withholding_tax_article_22` decimal(20,2) DEFAULT NULL,
+  `withholding_tax_article_26` decimal(20,2) DEFAULT NULL,
+  `installment_article_25` decimal(20,2) DEFAULT NULL,
+  `overpayment_previous_year` decimal(20,2) DEFAULT NULL,
+  `foreign_tax_credit` decimal(20,2) DEFAULT NULL,
+  `p17b_has_postponement` tinyint(1) DEFAULT NULL,
+  `p17b_postponement_amount` decimal(20,2) DEFAULT NULL,
+  `p18a_previous_underpayment` decimal(20,2) DEFAULT NULL,
+  `p19a_refund_method` varchar(50) DEFAULT NULL,
+  `p19b_bank_account` varchar(100) DEFAULT NULL,
+  `p19b_account_no` varchar(100) DEFAULT NULL,
+  `p19b_bank_name` varchar(255) DEFAULT NULL,
+  `p19b_account_holder` varchar(255) DEFAULT NULL,
+  `declaration` text DEFAULT NULL,
+  `signature` varchar(255) DEFAULT NULL,
+  `company_name` varchar(255) DEFAULT NULL,
+  `pic_name` varchar(255) DEFAULT NULL,
+  `pic_nik` varchar(50) DEFAULT NULL,
+  `position` varchar(100) DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  `stamp` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `has_related_party_transactions` tinyint(1) DEFAULT NULL,
+  `has_transfer_pricing_documentation` tinyint(1) DEFAULT NULL,
+  `has_affiliated_capital_investment` tinyint(1) DEFAULT NULL,
+  `has_affiliated_debt_or_receivable` tinyint(1) DEFAULT NULL,
+  `has_fiscal_depreciation_amortization` tinyint(1) DEFAULT NULL,
+  `has_entertainment_promotion_bad_debt_expense` tinyint(1) DEFAULT NULL,
+  `has_investment_tax_facility` tinyint(1) DEFAULT NULL,
+  `has_reinvestment` tinyint(1) DEFAULT NULL,
+  `has_overseas_dividend_income` tinyint(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `spt_main_form`
+--
+
+INSERT INTO `spt_main_form` (`id`, `header_id`, `business_name`, `taxpayer_npwp`, `company_email`, `company_phone`, `business_status`, `business_classification`, `bookkeeping_standard`, `reporting_currency`, `financial_year_start`, `financial_year_end`, `is_audited`, `audit_opinion`, `kap_npwp`, `kap_name`, `has_gr23_income`, `gr23_income_solely`, `has_final_tax_income`, `has_excluded_income`, `investment_facility`, `vocational_deduction_facility`, `carried_forward_losses`, `rd_deduction_facility`, `tax_rate_type`, `custom_tax_rate`, `overseas_tax_credit_requested`, `payable_deduction_requested`, `has_art25_installment_obligation`, `cash_and_cash_equivalents`, `trade_receivables`, `inventory`, `prepaid_expenses`, `other_current_assets`, `fixed_assets`, `accumulated_depreciation`, `intangible_assets`, `investment`, `other_non_current_assets`, `trade_payables`, `short_term_debt`, `tax_payable`, `accrued_expenses`, `other_current_liabilities`, `long_term_debt`, `deferred_tax_liability`, `other_non_current_liabilities`, `paid_up_capital`, `retained_earnings`, `current_year_profit`, `other_equity`, `gross_revenue`, `sales_returns`, `sales_discount`, `beginning_inventory`, `purchases`, `direct_labor`, `factory_overhead`, `ending_inventory`, `selling_expenses`, `administrative_expenses`, `general_expenses`, `interest_income`, `dividend_income`, `other_income`, `interest_expense`, `other_expenses`, `tax_expense`, `p5_investment_facility`, `p5_investment_facility_amount`, `p6_vocational_deduction`, `p6_vocational_deduction_amount`, `p8_carried_losses`, `p10_rd_deduction`, `p10_rd_deduction_amount`, `p11_tax_rate`, `p11a_custom_tax_rate`, `commercial_profit`, `positive_fiscal_corrections`, `negative_fiscal_corrections`, `q13_overseas_credit`, `p14_installment_art25`, `p15_notice_art25`, `q16_payable_deduction`, `withholding_tax_article_23`, `withholding_tax_article_22`, `withholding_tax_article_26`, `installment_article_25`, `overpayment_previous_year`, `foreign_tax_credit`, `p17b_has_postponement`, `p17b_postponement_amount`, `p18a_previous_underpayment`, `p19a_refund_method`, `p19b_bank_account`, `p19b_account_no`, `p19b_bank_name`, `p19b_account_holder`, `declaration`, `signature`, `company_name`, `pic_name`, `pic_nik`, `position`, `date`, `stamp`, `created_at`, `updated_at`, `deleted_at`, `has_related_party_transactions`, `has_transfer_pricing_documentation`, `has_affiliated_capital_investment`, `has_affiliated_debt_or_receivable`, `has_fiscal_depreciation_amortization`, `has_entertainment_promotion_bad_debt_expense`, `has_investment_tax_facility`, `has_reinvestment`, `has_overseas_dividend_income`) VALUES
+(1, 1, 'teto', '1234567890', 'test@gmail.com', '081234567890', 'Normal Operations', 'Umum', 'Full Bookkeeping', 'IDR', '01 January', '31 December', 0, 'Wajar Tanpa Pengecualian', NULL, NULL, 1, 0, 1, 1, 1, 1, 1, 1, 'Tarif Fasilitas Pasal 31E ayat (1)', NULL, 1, 1, NULL, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, NULL, 200000.00, NULL, 73665.00, 20000.00, NULL, 1221319.00, NULL, NULL, 0.00, 0.00, 0.00, 90123.00, 0.00, 0.00, 148071.81, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0, 0.00, 0.00, 'Fast Refund', 'BCA-001', '1234567890', 'Bank Central Asia (BCA)', 'teto', NULL, NULL, 'teto', 'piyuh', '1234567890987654', 'Person in Charge', '2026-07-09', NULL, '2026-08-10 05:29:16', '2026-08-16 02:47:33', NULL, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+(2, 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-16 02:48:59', '2026-08-16 02:48:59', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `spt_tahunan`
 --
 
@@ -2041,13 +3257,13 @@ INSERT INTO `spt_tahunan` (`id`, `user_id`, `tax_year`, `tax_type`, `tax_return_
 (24, 245, 2025, NULL, NULL, NULL, '2025 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'draft', NULL, '{\"nik\":\"0517345790980001\",\"name\":\"Felix\",\"identity_type\":\"KTP\",\"id_number\":\"0517345790980001\",\"mobile_phone\":\"082244303053\",\"email\":\"felix@gmail.com\",\"tax_obligation_status\":\"Single\",\"spouse_nik\":\"\"}', '{\"employment_income\":false,\"business_income\":true,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":0,\"business_sector\":\"services\"}', '{\"net_income_deduction\":false,\"net_income_year\":0,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":0,\"tax_exemptions\":\"\",\"tax_exemptions_amount\":0,\"taxable_income\":0,\"income_tax_payable\":0,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":0}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":0,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":0}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":\"\"}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":false,\"debt_end_year\":false,\"final_income_tax\":false,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":false,\"signature\":\"\",\"tin_nik\":\"0517345790980001\",\"full_name\":\"Felix\",\"representative\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[],\"non_movable_assets\":[],\"other_assets\":[],\"debt_at_end_of_year\":[],\"employment_income\":[{\"id\":1755747709171,\"code\":\"0101\",\"tin_of_employer\":\"12345678\",\"employer_name\":\"PT Jaya Shakti\",\"gross_income\":\"48000000\",\"deduction_of_gross_income\":\"2400000\",\"net_income\":\"45600000\"}],\"withholding_tax\":[]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{\"header\":{\"fiscalYear\":\"2023\",\"version\":\"A2\"},\"profitLoss\":[{\"id\":1,\"accountCode\":\"4001\",\"accountName\":\"Service Income\",\"amount\":\"5000000000\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Income\"},{\"id\":2,\"accountCode\":\"5000\",\"accountName\":\"Cost of Service\",\"amount\":\"1500000000\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Income\"},{\"id\":3,\"accountCode\":\"4500\",\"accountName\":\"Gross Income\",\"amount\":\"3500000000\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Income\"},{\"id\":4,\"accountCode\":\"5111\",\"accountName\":\"Salaries, Wages, Bonuses, Gratification Expenses\",\"amount\":\"450000000\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":5,\"accountCode\":\"5113\",\"accountName\":\"Transportation Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":6,\"accountCode\":\"5114\",\"accountName\":\"Depreciation and Amortization Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":7,\"accountCode\":\"5115\",\"accountName\":\"Rental Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":8,\"accountCode\":\"5116\",\"accountName\":\"Interest Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":9,\"accountCode\":\"5117\",\"accountName\":\"Expenses Related to Services\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":10,\"accountCode\":\"5118\",\"accountName\":\"Bad Debt Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":11,\"accountCode\":\"5120\",\"accountName\":\"Marketing/Promotion Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":12,\"accountCode\":\"5121\",\"accountName\":\"Entertainment Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":13,\"accountCode\":\"5122\",\"accountName\":\"General and Administration Expenses\",\"amount\":\"200000000\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":14,\"accountCode\":\"5199\",\"accountName\":\"Other Operating Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":15,\"accountCode\":\"5600\",\"accountName\":\"Total Operating Expenses\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Operating Expenses\"},{\"id\":16,\"accountCode\":\"4800\",\"accountName\":\"Profit (Loss) Before Tax\",\"amount\":\"\",\"nonTaxableObject\":\"\",\"subjectToFinalTax\":\"\",\"nonFinal\":\"\",\"positiveFiscalCorrection\":\"\",\"negativeFiscalCorrection\":\"\",\"correctionCode\":\"\",\"fiscalAmount\":\"\",\"section\":\"Total\"}],\"assets\":[{\"id\":1,\"accountCode\":\"1101\",\"accountName\":\"Cash and Equivalent\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":2,\"accountCode\":\"1200\",\"accountName\":\"Investment\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":3,\"accountCode\":\"1312\",\"accountName\":\"Account Receivables - Third Parties\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":4,\"accountCode\":\"1313\",\"accountName\":\"Account Receivables - Related Parties\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":5,\"accountCode\":\"1314\",\"accountName\":\"Other Account Receivables - Third Parties\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":6,\"accountCode\":\"1315\",\"accountName\":\"Other Account Receivables - Related Parties\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":7,\"accountCode\":\"1316\",\"accountName\":\"Less: Allowance For Doubtful Account Receivables\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":8,\"accountCode\":\"1400\",\"accountName\":\"Inventories\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":9,\"accountCode\":\"1421\",\"accountName\":\"Prepaid Expenses\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":10,\"accountCode\":\"1422\",\"accountName\":\"Advances\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":11,\"accountCode\":\"1428\",\"accountName\":\"Deferred Taxes\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":12,\"accountCode\":\"1490\",\"accountName\":\"Other Current Assets\",\"amount\":\"\",\"section\":\"Current Assets\"},{\"id\":13,\"accountCode\":\"1521\",\"accountName\":\"Long - Term Receivables\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":14,\"accountCode\":\"1523\",\"accountName\":\"Land & Building\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":15,\"accountCode\":\"1524\",\"accountName\":\"Less: Accumulated Depreciation - Buildings\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":16,\"accountCode\":\"1526\",\"accountName\":\"Other Fixed Assets\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":17,\"accountCode\":\"1530\",\"accountName\":\"Less: Accumulated Depreciation - Other Fixed Assets\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":18,\"accountCode\":\"1541\",\"accountName\":\"Investment in Associates\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":19,\"accountCode\":\"1598\",\"accountName\":\"Other Long-Term Investment\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":20,\"accountCode\":\"1640\",\"accountName\":\"Intangible Assets - Net\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":21,\"accountCode\":\"1691\",\"accountName\":\"Deferred Tax Assets\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":22,\"accountCode\":\"1698\",\"accountName\":\"Other Non-Current Assets\",\"amount\":\"\",\"section\":\"Non-current Assets\"},{\"id\":23,\"accountCode\":\"1700\",\"accountName\":\"Total Assets\",\"amount\":\"\",\"section\":\"Total\"}],\"liabilitiesAndEquity\":[{\"id\":24,\"accountCode\":\"2102\",\"accountName\":\"Account Payable - Third Parties\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":25,\"accountCode\":\"2103\",\"accountName\":\"Accounts Payable-Related Parties\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":26,\"accountCode\":\"2111\",\"accountName\":\"Interest Payable\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":27,\"accountCode\":\"2141\",\"accountName\":\"Taxes Payable\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":28,\"accountCode\":\"2142\",\"accountName\":\"Dividends Payable\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":29,\"accountCode\":\"2149\",\"accountName\":\"Accrued Expenses\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":30,\"accountCode\":\"2201\",\"accountName\":\"Short-Term Bank Loans\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":31,\"accountCode\":\"2202\",\"accountName\":\"Long - Term Debts: Current Maturities\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":32,\"accountCode\":\"2203\",\"accountName\":\"Advances\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":33,\"accountCode\":\"2230\",\"accountName\":\"Other Current Liabilities\",\"amount\":\"\",\"section\":\"Current Liabilities\"},{\"id\":34,\"accountCode\":\"2301\",\"accountName\":\"Long-Term Debt:Bank Loans\",\"amount\":\"\",\"section\":\"Non-current Liabilities\"},{\"id\":35,\"accountCode\":\"2302\",\"accountName\":\"Long-term Debt: Third Parties\",\"amount\":\"\",\"section\":\"Non-current Liabilities\"},{\"id\":36,\"accountCode\":\"2304\",\"accountName\":\"Long-Term Debt:Related Parties\",\"amount\":\"\",\"section\":\"Non-current Liabilities\"},{\"id\":37,\"accountCode\":\"2321\",\"accountName\":\"Deferred Tax Liabilities\",\"amount\":\"\",\"section\":\"Non-current Liabilities\"},{\"id\":38,\"accountCode\":\"2390\",\"accountName\":\"Other Non-Current Liabilities\",\"amount\":\"\",\"section\":\"Non-current Liabilities\"},{\"id\":39,\"accountCode\":\"2900\",\"accountName\":\"Total Liabilities\",\"amount\":\"\",\"section\":\"Total Liabilities\"},{\"id\":40,\"accountCode\":\"3102\",\"accountName\":\"Capital Stock\",\"amount\":\"\",\"section\":\"Equity\"},{\"id\":41,\"accountCode\":\"3202\",\"accountName\":\"Additional Paid-in Capital\",\"amount\":\"\",\"section\":\"Equity\"},{\"id\":42,\"accountCode\":\"3200\",\"accountName\":\"Retained Earnings\",\"amount\":\"\",\"section\":\"Equity\"},{\"id\":43,\"accountCode\":\"3298\",\"accountName\":\"Other Equity\",\"amount\":\"\",\"section\":\"Equity\"},{\"id\":44,\"accountCode\":\"3299\",\"accountName\":\"Total Equity\",\"amount\":\"\",\"section\":\"Equity\"},{\"id\":45,\"accountCode\":\"3300\",\"accountName\":\"Total Liabilities and Equity\",\"amount\":\"\",\"section\":\"Final Total\"}]},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-07-28 11:32:52', '2025-08-26 13:18:44'),
 (25, 247, 2023, NULL, NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'approved', NULL, '{\"nik\":\"1802023020000010\",\"name\":\"Revaldi\",\"identity_type\":\"KTP\",\"id_number\":\"1802023020000010\",\"mobile_phone\":\"087123456789\",\"email\":\"revaldi@gmail.com\",\"tax_obligation_status\":\"Married\",\"spouse_nik\":\"\"}', '{\"employment_income\":true,\"business_income\":true,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":\"92625000\",\"is_oppt\":true,\"oppt_type\":\"yes_oppt\",\"use_norms\":true,\"norms_type\":\"yes_qualified\",\"show_business_net_income\":true,\"business_net_income_amount\":\"100000000\"}', '{\"net_income_deduction\":false,\"net_income_year\":192625000,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":192625000,\"tax_exemptions\":\"K/1\",\"tax_exemptions_amount\":63000000,\"taxable_income\":129625000,\"income_tax_payable\":13443750,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":13443750}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":13443750,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":13443750}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":13443750}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":true,\"debt_end_year\":true,\"final_income_tax\":false,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false,\"assets_end_year_amount\":900000000,\"debt_end_year_amount\":150000000}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"DJP20250728DZ8CC0\",\"tin_nik\":\"1802023020000010\",\"full_name\":\"Revaldi\",\"representative\":\"\"}', '2025-07-28 22:50:21', '2025-07-28 22:50:21', NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[{\"id\":1753715666185,\"code\":\"0401\",\"description_type\":\"Mobil Penumpang\",\"description_merk_model\":\"Pajero\",\"police_registration_number\":\"L 23 TC\",\"ownership\":\"Pribadi\",\"tin\":\"1802023020000010 \",\"name\":\"Revaldi\",\"year_of_acquisition\":\"2020\",\"cost_of_acquisition\":\"200000000\",\"fair_market_value\":\"200000000\",\"remark\":\"Harta PPS\"}],\"non_movable_assets\":[{\"id\":1753715574519,\"code\":\"0501\",\"description\":\"Tanah dan/atau Bangunan untuk Tempat Tinggal\",\"location_of_asset\":\"Surabaya\",\"property_size_land\":\"100\",\"property_size_building\":\"100\",\"source_of_ownership\":\"Hasil Sendiri\",\"certificate_number\":\"1234567\",\"year_of_acquisition\":\"2019\",\"cost_of_acquisition\":\"700000000\",\"fair_market_value\":\"700000000\",\"remark\":\"Harta PPS\"}],\"other_assets\":[],\"debt_at_end_of_year\":[{\"id\":1753715803204,\"code\":\"0701\",\"description\":\"Utang Bank /Lembaga Keuangan Bukan Bank (KPR, Leasing Kendaraan Bermotor, dan sejenisnya)\",\"creditor_tin\":\"18020230200000010 \",\"creditor_name\":\"Revaldi\",\"country_of_creditor\":\"Indonesia\",\"year_of_acquisition\":\"2019\",\"balance_of_debt\":\"150000000\",\"remark\":\"Harta PPS\"}],\"employment_income\":[{\"id\":1753715928290,\"code\":\"0101\",\"tin_of_employer\":\"1802023020000010 \",\"employer_name\":\"Revaldi\",\"gross_income\":\"97500000\",\"deduction_of_gross_income\":\"4875000\",\"net_income\":\"92625000\"}],\"withholding_tax\":[{\"id\":1753716225355,\"code\":\"0101\",\"name\":\"PT Amerta Indah Otsuka\",\"tin\":\"180202402000401\",\"slipNumber\":\"-\",\"slipDate\":\"2024-01-10\",\"taxType\":\"PPh Pasal 21\",\"taxBase\":\"29625000\",\"taxAmount\":\"1481250\"}]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-07-28 22:04:13', '2025-07-28 22:50:21'),
 (26, 247, 2024, NULL, NULL, NULL, '2024 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'approved', NULL, '{\"nik\":\"1802023020000010\",\"name\":\"Revaldi\",\"identity_type\":\"KTP\",\"id_number\":\"1802023020000010\",\"mobile_phone\":\"087123456789\",\"email\":\"revaldi@gmail.com\",\"tax_obligation_status\":\"Married\",\"spouse_nik\":\"\"}', '{\"employment_income\":true,\"business_income\":true,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":\"92625000\",\"is_oppt\":true,\"oppt_type\":\"yes_oppt\",\"use_norms\":true,\"norms_type\":\"yes_qualified\",\"show_business_net_income\":true,\"business_net_income_amount\":\"100000000\",\"other_domestic_income_amount\":\"-1\"}', '{\"net_income_deduction\":false,\"net_income_year\":192625000,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":192625000,\"tax_exemptions\":\"K/1\",\"tax_exemptions_amount\":63000000,\"taxable_income\":129625000,\"income_tax_payable\":13443750,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":13443749.99}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":13443750,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":13443750}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":13443750}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":true,\"debt_end_year\":true,\"final_income_tax\":true,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false,\"assets_end_year_amount\":899999999,\"debt_end_year_amount\":150000000}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"DJP20250728DZ8CC0\",\"tin_nik\":\"1802023020000010\",\"full_name\":\"Revaldi\",\"representative\":\"\"}', '2025-07-29 08:32:22', '2025-07-29 08:32:22', NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[{\"id\":1753752298948,\"code\":\"0401\",\"description_type\":\"Mobil Penumpang\",\"description_merk_model\":\"Pajero \",\"police_registration_number\":\"L 23 TC\",\"ownership\":\"Pribadi\",\"tin\":\"182\",\"name\":\"Revaldi\",\"year_of_acquisition\":\"2020\",\"cost_of_acquisition\":\"200000000\",\"fair_market_value\":\"199999999.99\",\"remark\":\"Harta PPS\"}],\"non_movable_assets\":[{\"id\":1753752373333,\"code\":\"0501\",\"description\":\"Tanah dan/atau Bangunan untuk Tempat Tinggal\",\"location_of_asset\":\"Malang\",\"property_size_land\":\"100\",\"property_size_building\":\"100\",\"source_of_ownership\":\"Hasil Sendiri\",\"certificate_number\":\"1234\",\"year_of_acquisition\":\"2019\",\"cost_of_acquisition\":\"700000000\",\"fair_market_value\":\"700000000\",\"remark\":\"\"}],\"other_assets\":[],\"debt_at_end_of_year\":[{\"id\":1753752628355,\"code\":\"0701\",\"description\":\"Utang Bank /Lembaga Keuangan Bukan Bank (KPR, Leasing Kendaraan Bermotor, dan sejenisnya)\",\"creditor_tin\":\"1234\",\"creditor_name\":\"Rervaldi\",\"country_of_creditor\":\"Indonesia\",\"year_of_acquisition\":\"2019\",\"balance_of_debt\":\"150000000\",\"remark\":\"\"}],\"employment_income\":[{\"id\":1753751479897,\"code\":\"0101\",\"tin_of_employer\":\"180202302000010\",\"employer_name\":\"Revaldi\",\"gross_income\":\"97500000\",\"deduction_of_gross_income\":\"4875000\",\"net_income\":\"92625000\"}],\"withholding_tax\":[{\"id\":1753751706806,\"code\":\"0101\",\"name\":\"PT Amerta Indah Otsuka\",\"tin\":\"180202402000401\",\"slipNumber\":\"123456\",\"slipDate\":\"2024-01-10\",\"taxType\":\"PPh Pasal 21\",\"taxBase\":\"29625000\",\"taxAmount\":\"1481250\"}]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-07-29 08:09:20', '2025-07-29 08:32:22'),
-(27, 248, 2023, NULL, NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'graded', NULL, '{\"nik\":\"0517345790980005\",\"name\":\"Felix Wahyudi\",\"identity_type\":\"KTP\",\"id_number\":\"0517345790980005\",\"mobile_phone\":\"082244303053\",\"email\":\"felixwahyudi@gmail.com\",\"tax_obligation_status\":\"Single\",\"spouse_nik\":\"\"}', '{\"employment_income\":true,\"business_income\":false,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":\"45600000\"}', '{\"net_income_deduction\":false,\"net_income_year\":45600000,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":45600000,\"tax_exemptions\":\"TK/0\",\"tax_exemptions_amount\":54000000,\"taxable_income\":0,\"income_tax_payable\":0,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":0}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":0,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":0}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":\"\"}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":true,\"debt_end_year\":false,\"final_income_tax\":false,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false,\"assets_end_year_amount\":22600000}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"DJP20250821VI2XE3\",\"tin_nik\":\"0517345790980005\",\"full_name\":\"Felix Wahyudi\",\"representative\":\"\"}', '2025-08-21 13:19:08', '2025-08-21 13:25:32', 143, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[{\"id\":1755756737987,\"code\":\"0401\",\"description_type\":\"Sepeda Motor\",\"description_merk_model\":\"Yamaha\",\"police_registration_number\":\"000\",\"ownership\":\"Pribadi\",\"tin\":\"0517345790980005\",\"name\":\"Felix Wahyudi\",\"year_of_acquisition\":\"2023\",\"cost_of_acquisition\":\"20000000\",\"fair_market_value\":\"20000000\",\"remark\":\"\"}],\"non_movable_assets\":[],\"other_assets\":[{\"id\":1755756883806,\"code\":\"0601\",\"description\":\"Peralatan elektronik\",\"year_of_acquisition\":\"2023\",\"cost_of_acquisition\":\"2600000\",\"fair_market_value\":\"2600000\",\"account_number\":\"000\",\"additional_information\":\"-\",\"remark\":\"\"}],\"debt_at_end_of_year\":[],\"employment_income\":[{\"id\":1755755404532,\"code\":\"0101\",\"tin_of_employer\":\"0517345790980005\",\"employer_name\":\"Felix Wahyudi\",\"gross_income\":\"48000000\",\"deduction_of_gross_income\":\"2400000\",\"net_income\":\"45600000\"}],\"withholding_tax\":[{\"id\":1755755765718,\"code\":\"0101\",\"name\":\"PT Jaya Shakti\",\"tin\":\"180202402600401\",\"slipNumber\":\"001\",\"slipDate\":\"2023-01-12\",\"taxType\":\"PPh Pasal 21\",\"taxBase\":\"45600000\",\"taxAmount\":\"0\"}]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-08-21 12:44:02', '2025-08-21 13:25:32');
+(27, 248, 2023, NULL, NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'graded', NULL, '{\"nik\":\"0517345790980005\",\"name\":\"Felix Wahyudi\",\"identity_type\":\"KTP\",\"id_number\":\"0517345790980005\",\"mobile_phone\":\"082244303053\",\"email\":\"felixwahyudi@gmail.com\",\"tax_obligation_status\":\"Single\",\"spouse_nik\":\"\"}', '{\"employment_income\":true,\"business_income\":false,\"other_domestic_income\":false,\"foreign_income\":false,\"employment_income_amount\":\"45600000\"}', '{\"net_income_deduction\":false,\"net_income_year\":45600000,\"additional_deduction\":false,\"additional_deduction_amount\":0,\"net_income_after_deduction\":45600000,\"tax_exemptions\":\"TK/0\",\"tax_exemptions_amount\":54000000,\"taxable_income\":0,\"income_tax_payable\":0,\"income_tax_deduction\":false,\"income_tax_deduction_amount\":0,\"income_tax_after_deduction\":0}', '{\"withheld_income_tax\":false,\"withheld_income_tax_amount\":0,\"installment_article_25\":false,\"installment_article_25_amount\":0,\"notice_tax_collection\":false,\"notice_tax_collection_amount\":0,\"foreign_tax_credit\":false,\"foreign_tax_credit_amount\":0}', '{\"underpayment_amount\":0,\"approval_letter\":false,\"approval_letter_amount\":0,\"final_payment_amount\":0}', '{\"previous_underpayment\":\"\",\"amendment_underpayment\":\"\"}', '{\"refund_method\":\"\",\"bank_account\":\"\"}', '{\"article_25_obligation\":false,\"specific_entrepreneur\":false}', '{\"assets_end_year\":true,\"debt_end_year\":false,\"final_income_tax\":false,\"excluded_income\":false,\"depreciation_amortization\":false,\"entertainment_expense\":false,\"dividend_income\":false,\"assets_end_year_amount\":22600000}', '{\"financial_statement\":{\"required\":false,\"file\":null},\"payment_proof\":{\"required\":false,\"file\":null},\"withholding_relation\":{\"required\":false,\"file\":null},\"attorney_letter\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"DJP20250821VI2XE3\",\"tin_nik\":\"0517345790980005\",\"full_name\":\"Felix Wahyudi\",\"representative\":\"\"}', '2025-08-21 13:19:08', '2025-08-21 13:25:32', 143, NULL, 0.00, 'not_required', NULL, NULL, NULL, '{\"l1_assets\":{\"cash_and_cash_equivalents\":[],\"account_receivable\":[],\"investments_securities\":[],\"movable_assets\":[{\"id\":1755756737987,\"code\":\"0401\",\"description_type\":\"Sepeda Motor\",\"description_merk_model\":\"Yamaha\",\"police_registration_number\":\"000\",\"ownership\":\"Pribadi\",\"tin\":\"0517345790980005\",\"name\":\"Felix Wahyudi\",\"year_of_acquisition\":\"2023\",\"cost_of_acquisition\":\"20000000\",\"fair_market_value\":\"20000000\",\"remark\":\"\"}],\"non_movable_assets\":[],\"other_assets\":[{\"id\":1755756883806,\"code\":\"0601\",\"description\":\"Peralatan elektronik\",\"year_of_acquisition\":\"2023\",\"cost_of_acquisition\":\"2600000\",\"fair_market_value\":\"2600000\",\"account_number\":\"000\",\"additional_information\":\"-\",\"remark\":\"\"}],\"debt_at_end_of_year\":[],\"employment_income\":[{\"id\":1755755404532,\"code\":\"0101\",\"tin_of_employer\":\"0517345790980005\",\"employer_name\":\"Felix Wahyudi\",\"gross_income\":\"48000000\",\"deduction_of_gross_income\":\"2400000\",\"net_income\":\"45600000\"}],\"withholding_tax\":[{\"id\":1755755765718,\"code\":\"0101\",\"name\":\"PT Jaya Shakti\",\"tin\":\"180202402600401\",\"slipNumber\":\"001\",\"slipDate\":\"2023-01-12\",\"taxType\":\"PPh Pasal 21\",\"taxBase\":\"45600000\",\"taxAmount\":\"0\"}]},\"l2_data\":{},\"l3a1_data\":{},\"l3a2_data\":{},\"l3a3_data\":{},\"l3a4_data\":{},\"l3b_data\":{},\"l3c_data\":{},\"l3d_data\":{},\"l4_data\":{},\"l5_data\":{}}', '2025-08-21 12:44:02', '2025-08-21 13:25:32'),
+(53, 251, 2023, 'Individual', NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'draft', NULL, '{\"nik\":\"1234567890987654\",\"name\":\"piyu\",\"identity_type\":\"KTP\",\"id_number\":\"1234567890987654\",\"mobile_phone\":\"081234567890\",\"email\":\"test@gmail.com\",\"tax_obligation_status\":\"\",\"spouse_nik\":\"\"}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{\"declaration\":false,\"signature\":\"\",\"tin_nik\":\"1234567890987654\",\"full_name\":\"piyu\",\"representative\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-08 23:02:27', '2026-05-08 23:02:27');
 INSERT INTO `spt_tahunan` (`id`, `user_id`, `tax_year`, `tax_type`, `tax_return_type`, `tax_period_type`, `tax_period`, `tax_return_model`, `bookkeeping_type`, `source_of_income`, `status`, `reference_number`, `taxpayer_identity`, `income_summary`, `income_tax_calculation`, `income_tax_credit`, `underpayment_overpayment`, `amendment_tax_return`, `refund_data`, `income_tax_installment`, `other_transactions`, `additional_attachments`, `statement_data`, `submission_date`, `processed_date`, `processed_by`, `rejection_reason`, `payment_amount`, `payment_status`, `payment_date`, `payment_reference`, `payment_method`, `detail`, `created_date`, `updated_date`) VALUES
-(50, 251, 2024, 'Corporate Income Tax', NULL, NULL, '2024 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'draft', NULL, '{\"company_name\":\"teto\",\"npwp\":\"12345677\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyu\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"address\":\"\",\"business_activity\":\"\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"business_status\":\"Normal Operations\",\"tax_facility\":\"General Rate\",\"bookkeeping_standard\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"financial_year_start\":\"01 January\",\"financial_year_end\":\"31 December\",\"business_classification\":\"Jasa\",\"is_audited\":\"Yes\",\"audit_opinion\":\"Wajar Tanpa Pengecualian\",\"kap_npwp\":\"\",\"kap_name\":\"\",\"tax_year\":2024,\"reporting_period\":\"01 January 2024 - 31 December 2024\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"submission_type\":\"Electronic\"}', '{\"q1_gr23\":\"Yes\",\"q1b_solely_gr23\":\"No\",\"q2_final_tax\":\"Yes\",\"q3_excluded_tax\":\"Yes\",\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":\"123456677\",\"retained_earnings\":0,\"other_equity\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"gross_profit\":0,\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0},\"operating_profit\":0,\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0},\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0,\"fiscal_net_income_before_facility\":0,\"p5_investment_facility\":\"Yes\",\"p5_investment_facility_amount\":0,\"p6_vocational_deduction\":\"No\",\"p6_vocational_deduction_amount\":0,\"p8_carried_losses\":\"No\",\"p8_carried_forward_losses\":0,\"p9_taxable_income\":0,\"p10_rd_deduction\":\"Yes\",\"p10_rd_deduction_amount\":0,\"p11_tax_rate\":\"\",\"p11a_custom_tax_rate\":\"\",\"p12_income_tax_in_year\":0,\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', '{\"commercial_profit\":0,\"fiscal_adjustments\":{\"positive_corrections\":0,\"negative_corrections\":0,\"total_adjustments\":0},\"fiscal_profit\":0,\"loss_compensation\":0,\"taxable_income\":0,\"tax_rate\":25,\"income_tax_payable\":0,\"q13_overseas_credit\":\"Yes\",\"q13_overseas_credit_amount\":0,\"p14_installment_art25\":0,\"p15_notice_art25\":121011,\"q16_payable_deduction\":\"Yes\",\"q16_payable_deduction_amount\":0}', '{\"withholding_tax_article_23\":0,\"withholding_tax_article_22\":0,\"withholding_tax_article_26\":0,\"installment_article_25\":0,\"overpayment_previous_year\":0,\"foreign_tax_credit\":0,\"total_tax_credit\":0,\"p17b_has_postponement\":\"Yes\",\"p17b_postponement_amount\":0,\"p18a_previous_underpayment\":1000000,\"p19a_refund_method\":\"Fast Refund\",\"p19b_bank_account\":\"BCA-001\",\"p19b_account_no\":\"1234567890\",\"p19b_bank_name\":\"Bank Central Asia (BCA)\",\"p19b_account_holder\":\"teto\"}', '{\"income_tax_payable\":0,\"total_tax_credit\":0,\"tax_underpayment\":0,\"tax_overpayment\":0,\"final_status\":\"Nihil\",\"q20_art25_obliged\":\"No\",\"q20_art25_amount\":0}', NULL, NULL, '{\"financial_statements\":{\"required\":true,\"file\":null},\"audit_report\":{\"required\":false,\"file\":null},\"tax_withholding_certificates\":{\"required\":false,\"file\":null},\"related_party_transactions\":{\"required\":false,\"file\":null},\"transfer_pricing_documentation\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\",\"date\":\"2026-07-09\",\"stamp\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-07 04:01:51', '2026-07-12 17:31:39'),
-(53, 251, 2023, 'Individual', NULL, NULL, '2023 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'draft', NULL, '{\"nik\":\"1234567890987654\",\"name\":\"piyu\",\"identity_type\":\"KTP\",\"id_number\":\"1234567890987654\",\"mobile_phone\":\"081234567890\",\"email\":\"test@gmail.com\",\"tax_obligation_status\":\"\",\"spouse_nik\":\"\"}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{\"declaration\":false,\"signature\":\"\",\"tin_nik\":\"1234567890987654\",\"full_name\":\"piyu\",\"representative\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-08 23:02:27', '2026-05-08 23:02:27'),
+(60, 251, 2024, 'Corporate Income Tax', 'Rupiah', 'Yearly', '2024 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'draft', NULL, '{\"company_name\":\"teto\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"tax_year\":2024,\"reporting_period\":\"01 January 2024 - 31 December 2024\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"submission_type\":\"Electronic\"}', '{\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":\"123456677\",\"retained_earnings\":0,\"other_equity\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0},\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0},\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', NULL, NULL, NULL, NULL, NULL, NULL, '{\"declaration\":false,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-08-16 09:48:56', '2026-08-16 09:48:56'),
 (55, 251, 2025, 'Individual', NULL, NULL, '2025 January - December', 'NORMAL', 'Simple Bookkeeping', 'Pekerjaan', 'draft', NULL, '{\"nik\":\"1234567890987654\",\"name\":\"piyu\",\"identity_type\":\"KTP\",\"id_number\":\"1234567890987654\",\"mobile_phone\":\"081234567890\",\"email\":\"test@gmail.com\",\"tax_obligation_status\":\"\",\"spouse_nik\":\"\"}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{\"declaration\":false,\"signature\":\"\",\"tin_nik\":\"1234567890987654\",\"full_name\":\"piyu\",\"representative\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-09 00:34:49', '2026-05-09 00:34:49'),
 (57, 251, 2023, 'Corporate Income Tax', 'Rupiah', 'Yearly', '2023 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'approved', NULL, '{\"company_name\":\"teto\",\"npwp\":\"\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyu\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"address\":\"\",\"business_activity\":\"\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"business_status\":\"Normal Operations\",\"tax_facility\":\"General Rate\",\"bookkeeping_standard\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"financial_year_start\":\"01 January\",\"financial_year_end\":\"31 December\",\"business_classification\":\"\",\"is_audited\":\"\",\"audit_opinion\":\"\",\"kap_npwp\":\"\",\"kap_name\":\"\",\"tax_year\":2023,\"reporting_period\":\"01 January 2023 - 31 December 2023\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"submission_type\":\"Electronic\"}', '{\"q1_gr23\":\"\",\"q1b_solely_gr23\":\"\",\"q2_final_tax\":\"\",\"q3_excluded_tax\":\"\",\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":\"123456677\",\"retained_earnings\":0,\"other_equity\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"gross_profit\":0,\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0},\"operating_profit\":0,\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0},\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0,\"fiscal_net_income_before_facility\":0,\"p5_investment_facility\":\"\",\"p5_investment_facility_amount\":0,\"p6_vocational_deduction\":\"\",\"p6_vocational_deduction_amount\":0,\"p8_carried_losses\":\"\",\"p8_carried_forward_losses\":0,\"p10_rd_deduction\":\"\",\"p10_rd_deduction_amount\":0,\"p11_tax_rate\":\"\",\"p11a_custom_tax_rate\":\"\",\"p12_income_tax_in_year\":0,\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', '{\"commercial_profit\":0,\"fiscal_adjustments\":{\"positive_corrections\":0,\"negative_corrections\":0,\"total_adjustments\":0},\"fiscal_profit\":0,\"loss_compensation\":0,\"taxable_income\":0,\"tax_rate\":25,\"income_tax_payable\":0,\"q13_overseas_credit\":\"\",\"q13_overseas_credit_amount\":0,\"p14_installment_art25\":0,\"p15_notice_art25\":0,\"q16_payable_deduction\":\"\",\"q16_payable_deduction_amount\":0}', '{\"withholding_tax_article_23\":0,\"withholding_tax_article_22\":0,\"withholding_tax_article_26\":0,\"installment_article_25\":0,\"overpayment_previous_year\":0,\"foreign_tax_credit\":0,\"total_tax_credit\":0,\"p17b_has_postponement\":\"\",\"p17b_postponement_amount\":0,\"p18a_previous_underpayment\":0,\"p19a_refund_method\":\"\",\"p19b_bank_account\":\"\",\"p19b_account_no\":\"\",\"p19b_bank_name\":\"\",\"p19b_account_holder\":\"\"}', '{\"income_tax_payable\":0,\"total_tax_credit\":0,\"tax_underpayment\":0,\"tax_overpayment\":0,\"final_status\":\"Nihil\",\"q20_art25_obliged\":\"\",\"q20_art25_amount\":0}', NULL, NULL, '{\"financial_statements\":{\"required\":true,\"file\":null},\"audit_report\":{\"required\":false,\"file\":null},\"tax_withholding_certificates\":{\"required\":false,\"file\":null},\"related_party_transactions\":{\"required\":false,\"file\":null},\"transfer_pricing_documentation\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyu\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\",\"date\":\"\",\"stamp\":\"\"}', '2026-05-28 10:17:04', '2026-05-28 10:17:04', NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-05-24 00:37:49', '2026-05-28 10:17:04'),
-(58, 251, 2025, 'Corporate Income Tax', 'Dollar', 'Yearly', '2025 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'draft', NULL, '{\"company_name\":\"teto\",\"npwp\":\"1297554331331331\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"address\":\"\",\"business_activity\":\"\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"business_status\":\"Normal Operations\",\"tax_facility\":\"General Rate\",\"bookkeeping_standard\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"financial_year_start\":\"01 January\",\"financial_year_end\":\"31 December\",\"business_classification\":\"Dagang\",\"is_audited\":\"Yes\",\"audit_opinion\":\"Wajar Tanpa Pengecualian\",\"kap_npwp\":\"\",\"kap_name\":\"\",\"tax_year\":2025,\"reporting_period\":\"01 January 2025 - 31 December 2025\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"submission_type\":\"Electronic\"}', '{\"q1_gr23\":\"Yes\",\"q1b_solely_gr23\":\"No\",\"q2_final_tax\":\"Yes\",\"q3_excluded_tax\":\"Yes\",\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":\"123456677\",\"retained_earnings\":0,\"other_equity\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"gross_profit\":0,\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0},\"operating_profit\":0,\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0},\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0,\"fiscal_net_income_before_facility\":580000,\"p5_investment_facility\":\"Yes\",\"p5_investment_facility_amount\":0,\"p6_vocational_deduction\":\"Yes\",\"p6_vocational_deduction_amount\":0,\"p8_carried_losses\":\"Yes\",\"p8_carried_forward_losses\":20000,\"p9_taxable_income\":560000,\"p10_rd_deduction\":\"Yes\",\"p10_rd_deduction_amount\":0,\"p11_tax_rate\":\"Tarif Fasilitas Pasal 31E ayat (1)\",\"p11a_custom_tax_rate\":\"2\",\"p12_income_tax_in_year\":83125,\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', '{\"commercial_profit\":0,\"fiscal_adjustments\":{\"positive_corrections\":0,\"negative_corrections\":0,\"total_adjustments\":0},\"fiscal_profit\":0,\"loss_compensation\":0,\"taxable_income\":0,\"tax_rate\":25,\"income_tax_payable\":0,\"q13_overseas_credit\":\"Yes\",\"q13_overseas_credit_amount\":-240000,\"p14_installment_art25\":0,\"p15_notice_art25\":2000000,\"q16_payable_deduction\":\"Yes\",\"q16_payable_deduction_amount\":0}', '{\"withholding_tax_article_23\":0,\"withholding_tax_article_22\":0,\"withholding_tax_article_26\":0,\"installment_article_25\":0,\"overpayment_previous_year\":0,\"foreign_tax_credit\":0,\"total_tax_credit\":0,\"p17b_has_postponement\":\"No\",\"p17b_postponement_amount\":0,\"p18a_previous_underpayment\":0,\"p19a_refund_method\":\"Normal Refund\",\"p19b_bank_account\":\"BNI-001\",\"p19b_account_no\":\"0987654321\",\"p19b_bank_name\":\"Bank Negara Indonesia (BNI)\",\"p19b_account_holder\":\"teto\"}', '{\"income_tax_payable\":0,\"total_tax_credit\":0,\"tax_underpayment\":0,\"tax_overpayment\":0,\"final_status\":\"Nihil\",\"q20_art25_obliged\":\"No\",\"q20_art25_amount\":0}', NULL, NULL, '{\"financial_statements\":{\"required\":true,\"file\":null},\"audit_report\":{\"required\":false,\"file\":null},\"tax_withholding_certificates\":{\"required\":false,\"file\":null},\"related_party_transactions\":{\"required\":false,\"file\":null},\"transfer_pricing_documentation\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":true,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\",\"date\":\"\",\"stamp\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-07-11 23:40:05', '2026-07-13 21:48:39');
+(59, 251, 2025, 'Corporate Income Tax', 'Rupiah', 'Yearly', '2025 January - December', 'NORMAL', 'Full Bookkeeping', 'Business Activities', 'draft', NULL, '{\"company_name\":\"teto\",\"npwp\":\"1234567890\",\"company_type\":\"perseroan-terbatas\",\"establishment_date\":\"2026-04-01\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"email\":\"test@gmail.com\",\"phone\":\"081234567890\",\"address\":\"\",\"business_activity\":\"\",\"basic_capital\":\"123456677\",\"reporting_currency\":\"IDR\"}', '{\"business_status\":\"Normal Operations\",\"tax_facility\":\"General Rate\",\"bookkeeping_standard\":\"Full Bookkeeping\",\"reporting_currency\":\"IDR\",\"financial_year_start\":\"01 January\",\"financial_year_end\":\"31 December\",\"business_classification\":\"Umum\",\"is_audited\":\"No\",\"audit_opinion\":\"\",\"kap_npwp\":\"\",\"kap_name\":\"\",\"tax_year\":2025,\"reporting_period\":\"01 January 2025 - 31 December 2025\",\"tax_return_type\":\"Normal\",\"bookkeeping_method\":\"Full Bookkeeping\",\"submission_type\":\"Electronic\"}', '{\"q1_gr23\":\"Yes\",\"q1b_solely_gr23\":\"No\",\"q2_final_tax\":\"Yes\",\"q3_excluded_tax\":\"Yes\",\"assets\":{\"current_assets\":{\"cash_and_cash_equivalents\":0,\"trade_receivables\":0,\"inventory\":0,\"prepaid_expenses\":0,\"other_current_assets\":0},\"non_current_assets\":{\"fixed_assets\":0,\"accumulated_depreciation\":0,\"intangible_assets\":0,\"investment\":0,\"other_non_current_assets\":0}},\"liabilities\":{\"current_liabilities\":{\"trade_payables\":0,\"short_term_debt\":0,\"accrued_expenses\":0,\"tax_payable\":0,\"other_current_liabilities\":0},\"non_current_liabilities\":{\"long_term_debt\":0,\"deferred_tax_liability\":0,\"other_non_current_liabilities\":0}},\"equity\":{\"paid_up_capital\":0,\"retained_earnings\":0,\"other_equity\":0,\"current_year_profit\":0}}', '{\"revenue\":{\"gross_revenue\":0,\"sales_returns\":0,\"net_revenue\":0,\"sales_discount\":0},\"cost_of_goods_sold\":{\"beginning_inventory\":0,\"purchases\":0,\"direct_labor\":0,\"factory_overhead\":0,\"ending_inventory\":0,\"total_cogs\":0},\"gross_profit\":0,\"operating_expenses\":{\"selling_expenses\":0,\"administrative_expenses\":0,\"total_operating_expenses\":0,\"general_expenses\":0},\"operating_profit\":0,\"other_income_expenses\":{\"interest_income\":0,\"other_income\":0,\"interest_expense\":0,\"other_expenses\":0,\"dividend_income\":0},\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0,\"fiscal_net_income_before_facility\":3353000,\"p5_investment_facility\":\"Yes\",\"p5_investment_facility_amount\":200000,\"p6_vocational_deduction\":\"Yes\",\"p6_vocational_deduction_amount\":73665,\"p8_carried_losses\":\"Yes\",\"p8_carried_forward_losses\":20000,\"p9_taxable_income\":3059335,\"p10_rd_deduction\":\"Yes\",\"p10_rd_deduction_amount\":1221319,\"p11_tax_rate\":\"Tarif Fasilitas Pasal 31E ayat (1)\",\"p11a_custom_tax_rate\":\"\",\"p12_income_tax_in_year\":382375,\"tax_calculation\":{\"gross_profit\":0,\"operating_profit\":0,\"profit_before_tax\":0,\"tax_expense\":0,\"net_profit\":0}}', '{\"commercial_profit\":0,\"fiscal_adjustments\":{\"positive_corrections\":0,\"negative_corrections\":0,\"total_adjustments\":0},\"fiscal_profit\":0,\"loss_compensation\":0,\"taxable_income\":0,\"tax_rate\":25,\"income_tax_payable\":0,\"q13_overseas_credit\":\"Yes\",\"q13_overseas_credit_amount\":90123,\"p14_installment_art25\":0,\"p15_notice_art25\":0,\"q16_payable_deduction\":\"Yes\",\"q16_payable_deduction_amount\":148071.81399999998}', '{\"withholding_tax_article_23\":0,\"withholding_tax_article_22\":0,\"withholding_tax_article_26\":0,\"installment_article_25\":0,\"overpayment_previous_year\":0,\"foreign_tax_credit\":0,\"total_tax_credit\":0,\"p17b_has_postponement\":\"No\",\"p17b_postponement_amount\":0,\"p18a_previous_underpayment\":0,\"p19a_refund_method\":\"\",\"p19b_bank_account\":\"\",\"p19b_account_no\":\"\",\"p19b_bank_name\":\"\",\"p19b_account_holder\":\"\"}', '{\"income_tax_payable\":0,\"total_tax_credit\":0,\"tax_underpayment\":0,\"tax_overpayment\":0,\"final_status\":\"Nihil\",\"q20_art25_obliged\":\"No\",\"q20_art25_amount\":1166.6666666666665}', NULL, NULL, '{\"financial_statements\":{\"required\":true,\"file\":null},\"audit_report\":{\"required\":false,\"file\":null},\"tax_withholding_certificates\":{\"required\":false,\"file\":null},\"related_party_transactions\":{\"required\":false,\"file\":null},\"transfer_pricing_documentation\":{\"required\":false,\"file\":null},\"other_documents\":{\"required\":false,\"file\":null}}', '{\"declaration\":false,\"signature\":\"\",\"company_name\":\"teto\",\"pic_name\":\"piyuh\",\"pic_nik\":\"1234567890987654\",\"position\":\"Person in Charge\",\"date\":\"\",\"stamp\":\"\"}', NULL, NULL, NULL, NULL, 0.00, 'not_required', NULL, NULL, NULL, NULL, '2026-08-09 16:18:25', '2026-08-16 09:47:14');
 
 -- --------------------------------------------------------
 
@@ -2430,7 +3646,7 @@ INSERT INTO `users` (`id`, `nim`, `nama`, `email`, `kelas`, `role`, `password`, 
 (247, '1802023020000010', 'Revaldi', 'revaldi@gmail.com', 'Individual-NIK', 1, '$2b$10$KNew8uTVvnDY4EyZMiLx5.VcG2PJSUzROS6B05SRHBskjzrkpCfdi', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-07-29 08:06:23.000000', 1, 0, 247, '2025-07-28 22:00:13.000000', '2025-07-29 08:08:40.355000', NULL),
 (248, '0517345790980005', 'Felix Wahyudi', 'felixwahyudi@gmail.com', 'Individual-NIK', 1, '$2b$10$xxyaQf2M1x5i/F0LzZ8MFepKH/L1Dxgk4qQxW8bKPtGxJVqebO67q', '/assets/uploads/img/profile-1747449287171-167035495.png', '2025-08-21 12:42:52.000000', 1, 0, 143, '2025-08-21 12:39:40.000000', '2025-08-21 12:42:52.588000', NULL),
 (249, '1234567890123451', 'teto', 'fakerdino13@gmail.com', 'Individual-NIK', 1, '$2b$10$HUYvvJkLAwxNXNKlv0tkg.MAPLZH1wMwt/gwSfK.eDJvRWFlHiwn.', '/assets/uploads/img/profile-1747449287171-167035495.png', '2026-07-13 20:02:45.000000', 1, 0, 143, '2026-04-30 01:46:31.000000', '2026-07-13 20:02:45.316000', NULL),
-(251, '1234567890987654', 'piyuh', 'test@gmail.com', 'Company-PIC', 1, '$2b$10$QSwYbpL1b8LFfRt/t1A3U.czlkECKYfCQvIzvCN2rer4vdb2DcbcW', '/assets/uploads/img/profile-1747449287171-167035495.png', '2026-07-13 20:02:59.000000', 1, 0, 251, '2026-05-01 01:24:53.000000', '2026-07-13 20:02:59.737000', NULL);
+(251, '1234567890987654', 'piyuh', 'test@gmail.com', 'Company-PIC', 1, '$2b$10$QSwYbpL1b8LFfRt/t1A3U.czlkECKYfCQvIzvCN2rer4vdb2DcbcW', '/assets/uploads/img/profile-1747449287171-167035495.png', '2026-08-16 12:42:01.000000', 1, 0, 251, '2026-05-01 01:24:53.000000', '2026-08-16 12:42:01.713000', NULL);
 
 -- --------------------------------------------------------
 
@@ -2477,156 +3693,7 @@ CREATE TABLE `user_tours` (
   `completed` tinyint(1) DEFAULT NULL,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `user_tours`
---
-
-INSERT INTO `user_tours` (`id`, `user_id`, `tour_key`, `completed`, `createdAt`, `updatedAt`) VALUES
-(24, 121, 'home_tour', 1, '2025-05-19 06:50:05', '2025-05-19 06:50:05'),
-(25, 121, 'class_detail_tour', 1, '2025-05-19 06:50:18', '2025-05-19 06:50:18'),
-(26, 121, 'quiz_tour', 1, '2025-05-19 06:50:41', '2025-05-19 06:50:41'),
-(27, 121, 'ueq_questionnaire_tour', 1, '2025-05-19 06:51:08', '2025-05-19 06:51:08'),
-(28, 155, 'home_tour', 1, '2025-05-19 08:28:23', '2025-05-19 08:28:23'),
-(29, 155, 'class_detail_tour', 1, '2025-05-19 08:28:48', '2025-05-19 08:28:48'),
-(30, 216, 'home_tour', 1, '2025-05-19 12:50:36', '2025-05-19 12:50:36'),
-(31, 195, 'home_tour', 1, '2025-05-19 12:50:57', '2025-05-19 12:50:57'),
-(32, 212, 'home_tour', 1, '2025-05-19 12:51:01', '2025-05-19 12:51:01'),
-(33, 202, 'home_tour', 1, '2025-05-19 12:51:26', '2025-05-19 12:51:26'),
-(34, 208, 'home_tour', 1, '2025-05-19 12:51:54', '2025-05-19 12:51:54'),
-(35, 204, 'home_tour', 1, '2025-05-19 12:52:22', '2025-05-19 12:52:22'),
-(36, 209, 'home_tour', 1, '2025-05-19 12:52:33', '2025-05-19 12:52:33'),
-(37, 222, 'home_tour', 1, '2025-05-19 12:52:39', '2025-05-19 12:52:39'),
-(38, 211, 'home_tour', 1, '2025-05-19 12:52:46', '2025-05-19 12:52:46'),
-(39, 217, 'home_tour', 1, '2025-05-19 12:52:48', '2025-05-19 12:52:48'),
-(40, 210, 'home_tour', 1, '2025-05-19 12:52:49', '2025-05-19 12:52:49'),
-(41, 225, 'home_tour', 1, '2025-05-19 12:52:52', '2025-05-19 12:52:52'),
-(42, 196, 'home_tour', 1, '2025-05-19 12:52:52', '2025-05-19 12:52:52'),
-(43, 223, 'home_tour', 1, '2025-05-19 12:52:53', '2025-05-19 12:52:53'),
-(44, 213, 'home_tour', 1, '2025-05-19 12:52:56', '2025-05-19 12:52:56'),
-(45, 215, 'home_tour', 1, '2025-05-19 12:53:13', '2025-05-19 12:53:13'),
-(46, 218, 'home_tour', 1, '2025-05-19 12:53:18', '2025-05-19 12:53:18'),
-(47, 198, 'home_tour', 1, '2025-05-19 12:53:43', '2025-05-19 12:53:43'),
-(48, 199, 'home_tour', 1, '2025-05-19 12:54:07', '2025-05-19 12:54:07'),
-(49, 203, 'home_tour', 1, '2025-05-19 12:54:22', '2025-05-19 12:54:22'),
-(50, 207, 'home_tour', 1, '2025-05-19 12:54:23', '2025-05-19 12:54:23'),
-(51, 205, 'home_tour', 1, '2025-05-19 12:54:25', '2025-05-19 12:54:25'),
-(52, 221, 'home_tour', 1, '2025-05-19 12:54:32', '2025-05-19 12:54:32'),
-(53, 206, 'home_tour', 1, '2025-05-19 12:54:36', '2025-05-19 12:54:36'),
-(54, 219, 'home_tour', 1, '2025-05-19 12:54:56', '2025-05-19 12:54:56'),
-(55, 197, 'home_tour', 1, '2025-05-19 12:57:01', '2025-05-19 12:57:01'),
-(56, 200, 'home_tour', 1, '2025-05-19 12:57:10', '2025-05-19 12:57:10'),
-(57, 224, 'home_tour', 1, '2025-05-19 12:59:35', '2025-05-19 12:59:35'),
-(58, 206, 'class_detail_tour', 1, '2025-05-19 13:00:26', '2025-05-19 13:00:26'),
-(59, 217, 'class_detail_tour', 1, '2025-05-19 13:00:29', '2025-05-19 13:00:29'),
-(60, 211, 'class_detail_tour', 1, '2025-05-19 13:00:49', '2025-05-19 13:00:49'),
-(61, 202, 'class_detail_tour', 1, '2025-05-19 13:00:53', '2025-05-19 13:00:53'),
-(62, 216, 'class_detail_tour', 1, '2025-05-19 13:00:58', '2025-05-19 13:00:58'),
-(63, 203, 'class_detail_tour', 1, '2025-05-19 13:01:01', '2025-05-19 13:01:01'),
-(64, 195, 'class_detail_tour', 1, '2025-05-19 13:01:08', '2025-05-19 13:01:08'),
-(65, 222, 'class_detail_tour', 1, '2025-05-19 13:01:16', '2025-05-19 13:01:16'),
-(66, 200, 'class_detail_tour', 1, '2025-05-19 13:01:25', '2025-05-19 13:01:25'),
-(67, 197, 'class_detail_tour', 1, '2025-05-19 13:01:34', '2025-05-19 13:01:34'),
-(68, 209, 'class_detail_tour', 1, '2025-05-19 13:01:44', '2025-05-19 13:01:44'),
-(69, 204, 'class_detail_tour', 1, '2025-05-19 13:01:54', '2025-05-19 13:01:54'),
-(70, 215, 'class_detail_tour', 1, '2025-05-19 13:03:22', '2025-05-19 13:03:22'),
-(71, 225, 'class_detail_tour', 1, '2025-05-19 13:03:49', '2025-05-19 13:03:49'),
-(72, 213, 'class_detail_tour', 1, '2025-05-19 13:03:53', '2025-05-19 13:03:53'),
-(73, 218, 'class_detail_tour', 1, '2025-05-19 13:04:00', '2025-05-19 13:04:00'),
-(74, 198, 'class_detail_tour', 1, '2025-05-19 13:04:01', '2025-05-19 13:04:01'),
-(75, 207, 'class_detail_tour', 1, '2025-05-19 13:04:09', '2025-05-19 13:04:09'),
-(76, 223, 'class_detail_tour', 1, '2025-05-19 13:04:57', '2025-05-19 13:04:57'),
-(77, 210, 'class_detail_tour', 1, '2025-05-19 13:05:02', '2025-05-19 13:05:02'),
-(78, 221, 'class_detail_tour', 1, '2025-05-19 13:06:31', '2025-05-19 13:06:31'),
-(79, 205, 'class_detail_tour', 1, '2025-05-19 13:06:39', '2025-05-19 13:06:39'),
-(80, 205, 'class_detail_tour', 1, '2025-05-19 13:06:39', '2025-05-19 13:06:39'),
-(81, 205, 'class_detail_tour', 1, '2025-05-19 13:06:39', '2025-05-19 13:06:39'),
-(82, 205, 'class_detail_tour', 1, '2025-05-19 13:06:39', '2025-05-19 13:06:39'),
-(83, 205, 'class_detail_tour', 1, '2025-05-19 13:06:39', '2025-05-19 13:06:39'),
-(84, 219, 'class_detail_tour', 1, '2025-05-19 13:07:42', '2025-05-19 13:07:42'),
-(85, 207, 'quiz_tour', 1, '2025-05-19 13:07:45', '2025-05-19 13:07:45'),
-(86, 211, 'quiz_tour', 1, '2025-05-19 13:07:53', '2025-05-19 13:07:53'),
-(87, 218, 'quiz_tour', 1, '2025-05-19 13:08:11', '2025-05-19 13:08:11'),
-(88, 205, 'quiz_tour', 1, '2025-05-19 13:08:15', '2025-05-19 13:08:15'),
-(89, 200, 'quiz_tour', 1, '2025-05-19 13:08:16', '2025-05-19 13:08:16'),
-(90, 215, 'quiz_tour', 1, '2025-05-19 13:08:22', '2025-05-19 13:08:22'),
-(91, 217, 'quiz_tour', 1, '2025-05-19 13:08:28', '2025-05-19 13:08:28'),
-(92, 223, 'quiz_tour', 1, '2025-05-19 13:08:28', '2025-05-19 13:08:28'),
-(93, 210, 'quiz_tour', 1, '2025-05-19 13:08:28', '2025-05-19 13:08:28'),
-(94, 199, 'class_detail_tour', 1, '2025-05-19 13:08:45', '2025-05-19 13:08:45'),
-(95, 225, 'quiz_tour', 1, '2025-05-19 13:08:51', '2025-05-19 13:08:51'),
-(96, 198, 'quiz_tour', 1, '2025-05-19 13:08:53', '2025-05-19 13:08:53'),
-(97, 209, 'quiz_tour', 1, '2025-05-19 13:08:56', '2025-05-19 13:08:56'),
-(98, 199, 'quiz_tour', 1, '2025-05-19 13:09:25', '2025-05-19 13:09:25'),
-(99, 221, 'quiz_tour', 1, '2025-05-19 13:09:26', '2025-05-19 13:09:26'),
-(100, 197, 'quiz_tour', 1, '2025-05-19 13:10:13', '2025-05-19 13:10:13'),
-(101, 203, 'quiz_tour', 1, '2025-05-19 13:10:34', '2025-05-19 13:10:34'),
-(102, 219, 'quiz_tour', 1, '2025-05-19 13:10:41', '2025-05-19 13:10:41'),
-(103, 195, 'quiz_tour', 1, '2025-05-19 13:10:46', '2025-05-19 13:10:46'),
-(104, 206, 'quiz_tour', 1, '2025-05-19 13:11:01', '2025-05-19 13:11:01'),
-(105, 212, 'class_detail_tour', 1, '2025-05-19 13:11:05', '2025-05-19 13:11:05'),
-(106, 214, 'home_tour', 1, '2025-05-19 13:11:12', '2025-05-19 13:11:12'),
-(107, 212, 'quiz_tour', 1, '2025-05-19 13:11:16', '2025-05-19 13:11:16'),
-(108, 196, 'class_detail_tour', 1, '2025-05-19 13:11:20', '2025-05-19 13:11:20'),
-(109, 196, 'quiz_tour', 1, '2025-05-19 13:11:43', '2025-05-19 13:11:43'),
-(110, 214, 'class_detail_tour', 1, '2025-05-19 13:11:48', '2025-05-19 13:11:48'),
-(111, 202, 'quiz_tour', 1, '2025-05-19 13:11:57', '2025-05-19 13:11:57'),
-(112, 201, 'home_tour', 1, '2025-05-19 13:12:33', '2025-05-19 13:12:33'),
-(113, 213, 'quiz_tour', 1, '2025-05-19 13:12:54', '2025-05-19 13:12:54'),
-(114, 204, 'quiz_tour', 1, '2025-05-19 13:12:56', '2025-05-19 13:12:56'),
-(115, 201, 'class_detail_tour', 1, '2025-05-19 13:13:18', '2025-05-19 13:13:18'),
-(116, 220, 'home_tour', 1, '2025-05-19 13:14:50', '2025-05-19 13:14:50'),
-(117, 222, 'quiz_tour', 1, '2025-05-19 13:14:52', '2025-05-19 13:14:52'),
-(118, 214, 'quiz_tour', 1, '2025-05-19 13:15:17', '2025-05-19 13:15:17'),
-(119, 224, 'class_detail_tour', 1, '2025-05-19 13:15:20', '2025-05-19 13:15:20'),
-(120, 220, 'class_detail_tour', 1, '2025-05-19 13:15:30', '2025-05-19 13:15:30'),
-(121, 224, 'quiz_tour', 1, '2025-05-19 13:15:49', '2025-05-19 13:15:49'),
-(122, 224, 'quiz_tour', 1, '2025-05-19 13:15:49', '2025-05-19 13:15:49'),
-(123, 224, 'quiz_tour', 1, '2025-05-19 13:15:49', '2025-05-19 13:15:49'),
-(124, 220, 'quiz_tour', 1, '2025-05-19 13:15:53', '2025-05-19 13:15:53'),
-(125, 216, 'quiz_tour', 1, '2025-05-19 13:17:10', '2025-05-19 13:17:10'),
-(126, 196, 'ueq_questionnaire_tour', 1, '2025-05-19 13:19:11', '2025-05-19 13:19:11'),
-(127, 203, 'ueq_questionnaire_tour', 1, '2025-05-19 13:19:23', '2025-05-19 13:19:23'),
-(128, 195, 'ueq_questionnaire_tour', 1, '2025-05-19 13:19:44', '2025-05-19 13:19:44'),
-(129, 223, 'ueq_questionnaire_tour', 1, '2025-05-19 13:19:50', '2025-05-19 13:19:50'),
-(130, 201, 'quiz_tour', 1, '2025-05-19 13:20:57', '2025-05-19 13:20:57'),
-(131, 220, 'ueq_questionnaire_tour', 1, '2025-05-19 13:21:22', '2025-05-19 13:21:22'),
-(132, 215, 'ueq_questionnaire_tour', 1, '2025-05-19 13:21:44', '2025-05-19 13:21:44'),
-(133, 208, 'class_detail_tour', 1, '2025-05-19 13:21:57', '2025-05-19 13:21:57'),
-(134, 208, 'quiz_tour', 1, '2025-05-19 13:22:10', '2025-05-19 13:22:10'),
-(135, 216, 'ueq_questionnaire_tour', 1, '2025-05-19 13:22:28', '2025-05-19 13:22:28'),
-(136, 210, 'ueq_questionnaire_tour', 1, '2025-05-19 13:23:12', '2025-05-19 13:23:12'),
-(137, 207, 'ueq_questionnaire_tour', 1, '2025-05-19 13:28:11', '2025-05-19 13:28:11'),
-(138, 213, 'ueq_questionnaire_tour', 1, '2025-05-19 13:28:25', '2025-05-19 13:28:25'),
-(139, 208, 'ueq_questionnaire_tour', 1, '2025-05-19 13:28:32', '2025-05-19 13:28:32'),
-(140, 218, 'ueq_questionnaire_tour', 1, '2025-05-19 13:28:39', '2025-05-19 13:28:39'),
-(141, 218, 'ueq_questionnaire_tour', 1, '2025-05-19 13:28:39', '2025-05-19 13:28:39'),
-(142, 198, 'ueq_questionnaire_tour', 1, '2025-05-19 13:28:42', '2025-05-19 13:28:42'),
-(143, 197, 'ueq_questionnaire_tour', 1, '2025-05-19 13:29:18', '2025-05-19 13:29:18'),
-(144, 204, 'ueq_questionnaire_tour', 1, '2025-05-19 13:29:54', '2025-05-19 13:29:54'),
-(145, 221, 'ueq_questionnaire_tour', 1, '2025-05-19 13:33:14', '2025-05-19 13:33:14'),
-(146, 214, 'ueq_questionnaire_tour', 1, '2025-05-19 13:38:28', '2025-05-19 13:38:28'),
-(147, 202, 'ueq_questionnaire_tour', 1, '2025-05-19 13:38:46', '2025-05-19 13:38:46'),
-(148, 201, 'ueq_questionnaire_tour', 1, '2025-05-19 13:40:03', '2025-05-19 13:40:03'),
-(153, 230, 'home_tour', 1, '2025-05-24 00:48:41', '2025-05-24 00:48:41'),
-(154, 230, 'class_detail_tour', 1, '2025-05-24 00:48:55', '2025-05-24 00:48:55'),
-(155, 230, 'quiz_tour', 1, '2025-05-24 01:02:46', '2025-05-24 01:02:46'),
-(156, 230, 'ueq_questionnaire_tour', 1, '2025-05-24 01:10:08', '2025-05-24 01:10:08'),
-(157, 231, 'home_tour', 1, '2025-05-24 06:45:45', '2025-05-24 06:45:45'),
-(158, 231, 'class_detail_tour', 1, '2025-05-24 06:52:29', '2025-05-24 06:52:29'),
-(159, 231, 'quiz_tour', 1, '2025-05-24 06:54:13', '2025-05-24 06:54:13'),
-(160, 231, 'ueq_questionnaire_tour', 1, '2025-05-24 07:08:56', '2025-05-24 07:08:56'),
-(161, 206, 'ueq_questionnaire_tour', 1, '2025-05-24 11:49:52', '2025-05-24 11:49:52'),
-(162, 205, 'ueq_questionnaire_tour', 1, '2025-05-25 09:41:11', '2025-05-25 09:41:11'),
-(163, 225, 'ueq_questionnaire_tour', 1, '2025-05-27 11:20:15', '2025-05-27 11:20:15'),
-(164, 200, 'ueq_questionnaire_tour', 1, '2025-05-27 11:23:25', '2025-05-27 11:23:25'),
-(165, 211, 'ueq_questionnaire_tour', 1, '2025-05-27 11:25:21', '2025-05-27 11:25:21'),
-(166, 224, 'ueq_questionnaire_tour', 1, '2025-05-27 11:30:35', '2025-05-27 11:30:35'),
-(167, 209, 'ueq_questionnaire_tour', 1, '2025-05-27 11:33:10', '2025-05-27 11:33:10'),
-(168, 222, 'ueq_questionnaire_tour', 1, '2025-05-27 11:40:51', '2025-05-27 11:40:51'),
-(169, 219, 'ueq_questionnaire_tour', 1, '2025-05-27 11:44:47', '2025-05-27 11:44:47'),
-(170, 233, 'home_tour', 1, '2025-05-30 08:49:22', '2025-05-30 08:49:22');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3138,6 +4205,267 @@ ALTER TABLE `spt_grade`
   ADD KEY `idx_graded_date` (`graded_date`);
 
 --
+-- Indexes for table `spt_header`
+--
+ALTER TABLE `spt_header`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_spt_header_company_year_type_amend` (`company_id`,`tax_year`,`tax_return_type`,`amendment_number`),
+  ADD KEY `created_by` (`created_by`),
+  ADD KEY `idx_spt_header_company_id` (`company_id`),
+  ADD KEY `idx_spt_header_tax_year` (`tax_year`),
+  ADD KEY `idx_spt_header_tax_type` (`tax_type`),
+  ADD KEY `idx_spt_header_status` (`status`);
+
+--
+-- Indexes for table `spt_l1`
+--
+ALTER TABLE `spt_l1`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_spt_l1_header_type_section_account` (`header_id`,`section_type`,`section_code`,`account_code`),
+  ADD KEY `idx_spt_l1_header_section_type` (`header_id`,`section_type`),
+  ADD KEY `idx_spt_l1_header_section_code` (`header_id`,`section_code`);
+
+--
+-- Indexes for table `spt_l2`
+--
+ALTER TABLE `spt_l2`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_spt_l2_header_section_type` (`header_id`,`section_type`);
+
+--
+-- Indexes for table `spt_l3`
+--
+ALTER TABLE `spt_l3`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`),
+  ADD KEY `idx_spt_l3_section_type` (`section_type`);
+
+--
+-- Indexes for table `spt_l4`
+--
+ALTER TABLE `spt_l4`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`),
+  ADD KEY `idx_spt_l4_section_type` (`section_type`);
+
+--
+-- Indexes for table `spt_l5_place`
+--
+ALTER TABLE `spt_l5_place`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_spt_l5_place_header_tku_number` (`header_id`,`tku_number`);
+
+--
+-- Indexes for table `spt_l5_transaction`
+--
+ALTER TABLE `spt_l5_transaction`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_spt_l5_transaction_place_month` (`place_id`,`tax_month`);
+
+--
+-- Indexes for table `spt_l6`
+--
+ALTER TABLE `spt_l6`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l7`
+--
+ALTER TABLE `spt_l7`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_spt_l7_header_tax_year` (`header_id`,`tax_year`);
+
+--
+-- Indexes for table `spt_l8`
+--
+ALTER TABLE `spt_l8`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l9`
+--
+ALTER TABLE `spt_l9`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l9_asset`
+--
+ALTER TABLE `spt_l9_asset`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `l9_id` (`l9_id`);
+
+--
+-- Indexes for table `spt_l10a`
+--
+ALTER TABLE `spt_l10a`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l10b`
+--
+ALTER TABLE `spt_l10b`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l10c`
+--
+ALTER TABLE `spt_l10c`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l10d`
+--
+ALTER TABLE `spt_l10d`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11a_bad_debt`
+--
+ALTER TABLE `spt_l11a_bad_debt`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11a_entertainment`
+--
+ALTER TABLE `spt_l11a_entertainment`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11a_facility`
+--
+ALTER TABLE `spt_l11a_facility`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11a_npl`
+--
+ALTER TABLE `spt_l11a_npl`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11a_promotion`
+--
+ALTER TABLE `spt_l11a_promotion`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11a_regional_benefit`
+--
+ALTER TABLE `spt_l11a_regional_benefit`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11a_regional_facility`
+--
+ALTER TABLE `spt_l11a_regional_facility`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `regional_benefit_id` (`regional_benefit_id`);
+
+--
+-- Indexes for table `spt_l11b`
+--
+ALTER TABLE `spt_l11b`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l11b_borrowing_cost`
+--
+ALTER TABLE `spt_l11b_borrowing_cost`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `l11b_id` (`l11b_id`);
+
+--
+-- Indexes for table `spt_l11b_debt_balance`
+--
+ALTER TABLE `spt_l11b_debt_balance`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `l11b_id` (`l11b_id`);
+
+--
+-- Indexes for table `spt_l11b_equity_balance`
+--
+ALTER TABLE `spt_l11b_equity_balance`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `l11b_id` (`l11b_id`);
+
+--
+-- Indexes for table `spt_l11c`
+--
+ALTER TABLE `spt_l11c`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l13a`
+--
+ALTER TABLE `spt_l13a`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l13b`
+--
+ALTER TABLE `spt_l13b`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l13b_agreement`
+--
+ALTER TABLE `spt_l13b_agreement`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `l13b_id` (`l13b_id`);
+
+--
+-- Indexes for table `spt_l13b_rd`
+--
+ALTER TABLE `spt_l13b_rd`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `l13b_id` (`l13b_id`);
+
+--
+-- Indexes for table `spt_l13b_section_b`
+--
+ALTER TABLE `spt_l13b_section_b`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_spt_l13b_section_b_l13b_category` (`l13b_id`,`category_code`);
+
+--
+-- Indexes for table `spt_l13c`
+--
+ALTER TABLE `spt_l13c`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `header_id` (`header_id`);
+
+--
+-- Indexes for table `spt_l14`
+--
+ALTER TABLE `spt_l14`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_spt_l14_header_tax_year` (`header_id`,`tax_year`);
+
+--
+-- Indexes for table `spt_main_form`
+--
+ALTER TABLE `spt_main_form`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `header_id` (`header_id`);
+
+--
 -- Indexes for table `spt_tahunan`
 --
 ALTER TABLE `spt_tahunan`
@@ -3382,10 +4710,226 @@ ALTER TABLE `spt_grade`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
+-- AUTO_INCREMENT for table `spt_header`
+--
+ALTER TABLE `spt_header`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l1`
+--
+ALTER TABLE `spt_l1`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=313;
+
+--
+-- AUTO_INCREMENT for table `spt_l2`
+--
+ALTER TABLE `spt_l2`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l3`
+--
+ALTER TABLE `spt_l3`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `spt_l4`
+--
+ALTER TABLE `spt_l4`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `spt_l5_place`
+--
+ALTER TABLE `spt_l5_place`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l5_transaction`
+--
+ALTER TABLE `spt_l5_transaction`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l6`
+--
+ALTER TABLE `spt_l6`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l7`
+--
+ALTER TABLE `spt_l7`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `spt_l8`
+--
+ALTER TABLE `spt_l8`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l9`
+--
+ALTER TABLE `spt_l9`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l9_asset`
+--
+ALTER TABLE `spt_l9_asset`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+
+--
+-- AUTO_INCREMENT for table `spt_l10a`
+--
+ALTER TABLE `spt_l10a`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l10b`
+--
+ALTER TABLE `spt_l10b`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l10c`
+--
+ALTER TABLE `spt_l10c`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l10d`
+--
+ALTER TABLE `spt_l10d`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l11a_bad_debt`
+--
+ALTER TABLE `spt_l11a_bad_debt`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l11a_entertainment`
+--
+ALTER TABLE `spt_l11a_entertainment`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l11a_facility`
+--
+ALTER TABLE `spt_l11a_facility`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l11a_npl`
+--
+ALTER TABLE `spt_l11a_npl`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l11a_promotion`
+--
+ALTER TABLE `spt_l11a_promotion`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l11a_regional_benefit`
+--
+ALTER TABLE `spt_l11a_regional_benefit`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l11a_regional_facility`
+--
+ALTER TABLE `spt_l11a_regional_facility`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l11b`
+--
+ALTER TABLE `spt_l11b`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l11b_borrowing_cost`
+--
+ALTER TABLE `spt_l11b_borrowing_cost`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l11b_debt_balance`
+--
+ALTER TABLE `spt_l11b_debt_balance`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l11b_equity_balance`
+--
+ALTER TABLE `spt_l11b_equity_balance`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l11c`
+--
+ALTER TABLE `spt_l11c`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l13a`
+--
+ALTER TABLE `spt_l13a`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l13b`
+--
+ALTER TABLE `spt_l13b`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `spt_l13b_agreement`
+--
+ALTER TABLE `spt_l13b_agreement`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `spt_l13b_rd`
+--
+ALTER TABLE `spt_l13b_rd`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+
+--
+-- AUTO_INCREMENT for table `spt_l13b_section_b`
+--
+ALTER TABLE `spt_l13b_section_b`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `spt_l13c`
+--
+ALTER TABLE `spt_l13c`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `spt_l14`
+--
+ALTER TABLE `spt_l14`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=116;
+
+--
+-- AUTO_INCREMENT for table `spt_main_form`
+--
+ALTER TABLE `spt_main_form`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `spt_tahunan`
 --
 ALTER TABLE `spt_tahunan`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `student_questionnaire`
@@ -3421,7 +4965,7 @@ ALTER TABLE `users_detail`
 -- AUTO_INCREMENT for table `user_tours`
 --
 ALTER TABLE `user_tours`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=171;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `vt_area`
@@ -3486,6 +5030,222 @@ ALTER TABLE `question_options`
 --
 ALTER TABLE `sentence`
   ADD CONSTRAINT `fkitem_sentance` FOREIGN KEY (`items_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_header`
+--
+ALTER TABLE `spt_header`
+  ADD CONSTRAINT `spt_header_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l1`
+--
+ALTER TABLE `spt_l1`
+  ADD CONSTRAINT `spt_l1_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l2`
+--
+ALTER TABLE `spt_l2`
+  ADD CONSTRAINT `spt_l2_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l3`
+--
+ALTER TABLE `spt_l3`
+  ADD CONSTRAINT `spt_l3_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l4`
+--
+ALTER TABLE `spt_l4`
+  ADD CONSTRAINT `spt_l4_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l5_place`
+--
+ALTER TABLE `spt_l5_place`
+  ADD CONSTRAINT `spt_l5_place_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l5_transaction`
+--
+ALTER TABLE `spt_l5_transaction`
+  ADD CONSTRAINT `spt_l5_transaction_ibfk_1` FOREIGN KEY (`place_id`) REFERENCES `spt_l5_place` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l6`
+--
+ALTER TABLE `spt_l6`
+  ADD CONSTRAINT `spt_l6_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l7`
+--
+ALTER TABLE `spt_l7`
+  ADD CONSTRAINT `spt_l7_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l8`
+--
+ALTER TABLE `spt_l8`
+  ADD CONSTRAINT `spt_l8_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l9`
+--
+ALTER TABLE `spt_l9`
+  ADD CONSTRAINT `spt_l9_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l9_asset`
+--
+ALTER TABLE `spt_l9_asset`
+  ADD CONSTRAINT `spt_l9_asset_ibfk_1` FOREIGN KEY (`l9_id`) REFERENCES `spt_l9` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l10a`
+--
+ALTER TABLE `spt_l10a`
+  ADD CONSTRAINT `spt_l10a_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l10b`
+--
+ALTER TABLE `spt_l10b`
+  ADD CONSTRAINT `spt_l10b_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l10c`
+--
+ALTER TABLE `spt_l10c`
+  ADD CONSTRAINT `spt_l10c_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l10d`
+--
+ALTER TABLE `spt_l10d`
+  ADD CONSTRAINT `spt_l10d_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11a_bad_debt`
+--
+ALTER TABLE `spt_l11a_bad_debt`
+  ADD CONSTRAINT `spt_l11a_bad_debt_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11a_entertainment`
+--
+ALTER TABLE `spt_l11a_entertainment`
+  ADD CONSTRAINT `spt_l11a_entertainment_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11a_facility`
+--
+ALTER TABLE `spt_l11a_facility`
+  ADD CONSTRAINT `spt_l11a_facility_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11a_npl`
+--
+ALTER TABLE `spt_l11a_npl`
+  ADD CONSTRAINT `spt_l11a_npl_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11a_promotion`
+--
+ALTER TABLE `spt_l11a_promotion`
+  ADD CONSTRAINT `spt_l11a_promotion_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11a_regional_benefit`
+--
+ALTER TABLE `spt_l11a_regional_benefit`
+  ADD CONSTRAINT `spt_l11a_regional_benefit_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11a_regional_facility`
+--
+ALTER TABLE `spt_l11a_regional_facility`
+  ADD CONSTRAINT `spt_l11a_regional_facility_ibfk_1` FOREIGN KEY (`regional_benefit_id`) REFERENCES `spt_l11a_regional_benefit` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11b`
+--
+ALTER TABLE `spt_l11b`
+  ADD CONSTRAINT `spt_l11b_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11b_borrowing_cost`
+--
+ALTER TABLE `spt_l11b_borrowing_cost`
+  ADD CONSTRAINT `spt_l11b_borrowing_cost_ibfk_1` FOREIGN KEY (`l11b_id`) REFERENCES `spt_l11b` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11b_debt_balance`
+--
+ALTER TABLE `spt_l11b_debt_balance`
+  ADD CONSTRAINT `spt_l11b_debt_balance_ibfk_1` FOREIGN KEY (`l11b_id`) REFERENCES `spt_l11b` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11b_equity_balance`
+--
+ALTER TABLE `spt_l11b_equity_balance`
+  ADD CONSTRAINT `spt_l11b_equity_balance_ibfk_1` FOREIGN KEY (`l11b_id`) REFERENCES `spt_l11b` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l11c`
+--
+ALTER TABLE `spt_l11c`
+  ADD CONSTRAINT `spt_l11c_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l13a`
+--
+ALTER TABLE `spt_l13a`
+  ADD CONSTRAINT `spt_l13a_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l13b`
+--
+ALTER TABLE `spt_l13b`
+  ADD CONSTRAINT `spt_l13b_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l13b_agreement`
+--
+ALTER TABLE `spt_l13b_agreement`
+  ADD CONSTRAINT `spt_l13b_agreement_ibfk_1` FOREIGN KEY (`l13b_id`) REFERENCES `spt_l13b` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l13b_rd`
+--
+ALTER TABLE `spt_l13b_rd`
+  ADD CONSTRAINT `spt_l13b_rd_ibfk_1` FOREIGN KEY (`l13b_id`) REFERENCES `spt_l13b` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l13b_section_b`
+--
+ALTER TABLE `spt_l13b_section_b`
+  ADD CONSTRAINT `spt_l13b_section_b_ibfk_1` FOREIGN KEY (`l13b_id`) REFERENCES `spt_l13b` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l13c`
+--
+ALTER TABLE `spt_l13c`
+  ADD CONSTRAINT `spt_l13c_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_l14`
+--
+ALTER TABLE `spt_l14`
+  ADD CONSTRAINT `spt_l14_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `spt_main_form`
+--
+ALTER TABLE `spt_main_form`
+  ADD CONSTRAINT `spt_main_form_ibfk_1` FOREIGN KEY (`header_id`) REFERENCES `spt_header` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `taxpayer`
