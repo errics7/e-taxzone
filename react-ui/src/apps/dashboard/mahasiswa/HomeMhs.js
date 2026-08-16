@@ -17,7 +17,6 @@ import DJP from "../assets/home.png";
 /* =========================================================
    SECURITY ITEM
    ========================================================= */
-
 function SecurityItem({
   icon,
   title,
@@ -29,30 +28,21 @@ function SecurityItem({
       sx={{
         display: "flex",
         alignItems: "flex-start",
-
         gap: "14px",
-
         /*
          * Area item dibuat sedikit lebih lebar
          * agar hover putih terasa seperti panel.
          */
         padding: "13px 14px",
-
         margin: "0 -14px",
-
         borderRadius: "14px",
-
         cursor: "default",
-
         transition:
           "background-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease",
-
         "&:hover": {
           backgroundColor: "#FFFFFF",
-
           boxShadow:
             "0 6px 18px rgba(35, 55, 90, 0.08)",
-
           transform: "translateX(2px)",
         },
       }}
@@ -60,20 +50,15 @@ function SecurityItem({
       {/* =====================================================
           ICON
           ===================================================== */}
-
       <Box
         sx={{
           flexShrink: 0,
-
           width: "40px",
           height: "40px",
-
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-
           color,
-
           "& svg": {
             fontSize: "23px",
           },
@@ -85,7 +70,6 @@ function SecurityItem({
       {/* =====================================================
           TEXT
           ===================================================== */}
-
       <Box
         sx={{
           minWidth: 0,
@@ -96,17 +80,11 @@ function SecurityItem({
           sx={{
             fontFamily:
               '"Poppins", "Inter", Arial, sans-serif',
-
             fontSize: "16px",
-
             fontWeight: 700,
-
             lineHeight: 1.35,
-
             color: "#172A5C",
-
             marginBottom: "3px",
-
             letterSpacing: "-0.15px",
           }}
         >
@@ -117,15 +95,10 @@ function SecurityItem({
           sx={{
             fontFamily:
               '"Poppins", "Inter", Arial, sans-serif',
-
             fontSize: "14px",
-
             fontWeight: 400,
-
             lineHeight: 1.45,
-
             color: "#4B5870",
-
             letterSpacing: "-0.05px",
           }}
         >
@@ -159,15 +132,10 @@ function SecurityCard({
          * karena layout sebelumnya sudah pas.
          */
         top: isSafe ? "12%" : "44%",
-
         left: isSafe ? "51.5%" : "64%",
-
         width: "31%",
-
         boxSizing: "border-box",
-
         padding: "30px 30px 28px",
-
         borderRadius: "30px",
 
         /*
@@ -181,9 +149,7 @@ function SecurityCard({
          */
         background:
           "linear-gradient(145deg, rgba(255,255,255,0.88), rgba(247,249,253,0.76))",
-
         backdropFilter: "blur(16px)",
-
         WebkitBackdropFilter: "blur(16px)",
 
         /*
@@ -223,13 +189,9 @@ function SecurityCard({
       <Box
         sx={{
           display: "flex",
-
           alignItems: "flex-start",
-
           gap: "16px",
-
           paddingBottom: "19px",
-
           borderBottom:
             "1px solid rgba(30, 50, 90, 0.08)",
         }}
@@ -239,16 +201,12 @@ function SecurityCard({
         <Box
           sx={{
             flexShrink: 0,
-
             width: "54px",
             height: "54px",
-
             borderRadius: "16px",
-
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-
             backgroundColor: isSafe
               ? "rgba(44, 210, 165, 0.14)"
               : "rgba(255, 90, 90, 0.12)",
@@ -277,17 +235,11 @@ function SecurityCard({
             sx={{
               fontFamily:
                 '"Poppins", "Inter", Arial, sans-serif',
-
               fontSize: "23px",
-
               fontWeight: 800,
-
               lineHeight: 1.15,
-
               color: "#17213F",
-
               marginBottom: "5px",
-
               letterSpacing: "-0.4px",
             }}
           >
@@ -298,13 +250,9 @@ function SecurityCard({
             sx={{
               fontFamily:
                 '"Poppins", "Inter", Arial, sans-serif',
-
               fontSize: "14px",
-
               fontWeight: 400,
-
               lineHeight: 1.4,
-
               color: "#45516A",
             }}
           >
@@ -320,11 +268,8 @@ function SecurityCard({
       <Box
         sx={{
           marginTop: "13px",
-
           display: "flex",
-
           flexDirection: "column",
-
           gap: "2px",
         }}
       >
@@ -352,16 +297,12 @@ function HomeMhs() {
       <Box
         sx={{
           position: "relative",
-
           width: "100%",
-
           aspectRatio: "1672 / 941",
-
           overflow: "hidden",
-
           margin: 0,
-
           padding: 0,
+          marginTop: "64px",
         }}
       >
         {/* ===================================================
@@ -374,19 +315,12 @@ function HomeMhs() {
           alt="Informasi Coretax DJP"
           sx={{
             position: "absolute",
-
             inset: 0,
-
             display: "block",
-
             width: "100%",
-
             height: "100%",
-
             objectFit: "cover",
-
             margin: 0,
-
             padding: 0,
           }}
         />
