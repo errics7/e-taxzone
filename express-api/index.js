@@ -46,7 +46,9 @@ sequelize.authenticate()
 
 require("./models/associations");
 
-app.listen(process.env.PORT || 8000, function () {
+const PORT = process.env.PORT || 8000;
+
+app.listen(PORT, "0.0.0.0", function () {
   console.log(
     "Express server listening on port %d in %s mode",
     this.address().port,
