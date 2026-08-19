@@ -49,7 +49,6 @@ const MainStyle = styled("div")(({ theme }) => ({
   flexGrow: 1,
   minHeight: "100%",
   margin: "0 auto",
-  paddingTop: "80px",
   boxSizing: "border-box",
 }));
 

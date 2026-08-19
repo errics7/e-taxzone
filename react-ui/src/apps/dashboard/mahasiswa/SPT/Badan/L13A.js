@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Add, Edit, Delete, Refresh, Description, GridOn, PictureAsPdf, CalendarToday, Close } from '@mui/icons-material';
+import { exportTableToCSV, exportTableToExcel, exportTableToPDF } from '../../../../../utils/tableExport';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // L13A — Daftar Fasilitas Penanaman Modal (List of Investment Facilities)
@@ -142,6 +143,41 @@ const grantedFacilitySummary = (row) => {
             return '—';
     }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT — column definitions for CSV/Excel/PDF (tableExport.js).
+// Mirrors the actual <table> structure below 1:1 (group headers, order,
+// alignment, data type) — no field is exported that isn't already shown to
+// the user in the L13A table.
+// ─────────────────────────────────────────────────────────────────────────────
+const L13A_EXPORT_COLUMNS = [
+    { key: 'decisionNumber', header: 'Decision Number', group: 'Decision / Grant of Tax Facility', dataType: 'text' },
+    { key: 'decisionDate', header: 'Decision Date', group: 'Decision / Grant of Tax Facility', dataType: 'date' },
+    { key: 'utilizationDecisionNumber', header: 'Utilization Decision Number', group: 'Facility Utilization Decision', dataType: 'text' },
+    { key: 'utilizationDecisionDate', header: 'Utilization Decision Date', group: 'Facility Utilization Decision', dataType: 'date' },
+    { key: 'approvedInvestmentForeignCurrency', header: 'Foreign Currency', group: 'Approved Investment Amount', dataType: 'number', align: 'right' },
+    { key: 'approvedInvestmentEquivalent', header: 'Equivalent', group: 'Approved Investment Amount', dataType: 'currency', align: 'right' },
+    { key: 'approvedInvestmentRupiah', header: 'In Rupiah', group: 'Approved Investment Amount', dataType: 'currency', align: 'right' },
+    { key: 'approvedInvestmentTotal', header: 'Total', group: 'Approved Investment Amount', dataType: 'currency', align: 'right' },
+    { key: 'investmentType', header: 'Investment Type', group: null, dataType: 'text' },
+    { key: 'businessSectorArea', header: 'Business Sector / Area', group: null, dataType: 'text' },
+    { key: 'grantedFacilitiesSummary', header: 'Granted Facilities', group: null, dataType: 'text' },
+    { key: 'investmentRealizationAtCommercial', header: 'Commercial Production Start', group: 'Investment Realization', dataType: 'currency', align: 'right' },
+    { key: 'investmentRealizationCumulative', header: 'Cumulative to Date', group: 'Investment Realization', dataType: 'currency', align: 'right' },
+    { key: 'commercialProductionDate', header: 'Commercial Production Date', group: null, dataType: 'date' },
+    { key: 'netIncomeDeductionYear', header: 'Year', group: 'Net Income Deduction Facility', dataType: 'text' },
+    { key: 'netIncomeDeductionAmount', header: 'Amount', group: 'Net Income Deduction Facility', dataType: 'currency', align: 'right' },
+];
+
+// Maps raw row objects (as held in L13A state) into the flat, display-ready
+// shape the export utility expects — adds the two derived/computed fields
+// (approvedInvestmentTotal, grantedFacilitiesSummary) that only exist at
+// render time in the table, without mutating or persisting them anywhere.
+const buildL13AExportRows = (rowsData) => rowsData.map((row) => ({
+    ...row,
+    approvedInvestmentTotal: computeApprovedInvestmentTotal(row),
+    grantedFacilitiesSummary: grantedFacilitySummary(row),
+}));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ReadonlyField — pola identik L1D.js / L10A.js
@@ -685,6 +721,43 @@ const L13A = ({ taxYear, tin, rows, onRowsChange, onTotalNetIncomeDeductionChang
         [safeRows]
     );
 
+    // ── EXPORT — CSV / Excel / PDF ────────────────────────────────────────
+    // Reads ONLY from existing L13A React state (safeRows/taxYear/tin) plus
+    // the footer totals already computed above — no new API call, no direct
+    // DB access. Shared identity/columns are built once per click; format-
+    // specific work (CSV string / .xlsx workbook / .pdf document) lives in
+    // src/utils/tableExport.js so the same architecture can be reused by
+    // other Lampiran in Phase 2.
+    const buildExportConfig = useCallback(() => ({
+        formTitle: 'CORPORATE INCOME TAX RETURN (SPT TAHUNAN BADAN)',
+        lampiranTitle: 'LAMPIRAN 13-A — LIST OF INVESTMENT FACILITIES',
+        taxYear,
+        tin,
+        columns: L13A_EXPORT_COLUMNS,
+        rows: buildL13AExportRows(safeRows),
+        totalsRow: safeRows.length > 0 ? {
+            decisionNumber: 'Total',
+            approvedInvestmentForeignCurrency: totalApprovedInvestmentForeignCurrency,
+            approvedInvestmentEquivalent: totalApprovedInvestmentEquivalent,
+            approvedInvestmentRupiah: totalApprovedInvestmentRupiah,
+            approvedInvestmentTotal: totalApprovedInvestmentTotal,
+            investmentRealizationAtCommercial: totalInvestmentRealizationAtCommercial,
+            investmentRealizationCumulative: totalInvestmentRealizationCumulative,
+            netIncomeDeductionAmount: totalNetIncomeDeductionAmount,
+        } : null,
+        filename: 'SPT_Badan_Lampiran_13A',
+    }), [
+        taxYear, tin, safeRows,
+        totalApprovedInvestmentForeignCurrency, totalApprovedInvestmentEquivalent,
+        totalApprovedInvestmentRupiah, totalApprovedInvestmentTotal,
+        totalInvestmentRealizationAtCommercial, totalInvestmentRealizationCumulative,
+        totalNetIncomeDeductionAmount,
+    ]);
+
+    const handleExportCSV = useCallback(() => exportTableToCSV(buildExportConfig()), [buildExportConfig]);
+    const handleExportExcel = useCallback(() => exportTableToExcel(buildExportConfig()), [buildExportConfig]);
+    const handleExportPDF = useCallback(() => exportTableToPDF(buildExportConfig()), [buildExportConfig]);
+
     // ── MAIN FORM MAPPING — Total Net Income Deduction Facility → Section D
     // Question 5 (p5_investment_facility_amount). L13A.js HANYA melaporkan
     // total mentah lewat callback (pola identik onCreditAmountChange L3.js /
@@ -727,16 +800,16 @@ const L13A = ({ taxYear, tin, rows, onRowsChange, onTotalNetIncomeDeductionChang
                         className="w-9 h-9 flex items-center justify-center rounded-full bg-yellow-400 hover:bg-yellow-500 text-white transition-colors">
                         <Refresh fontSize="small" />
                     </button>
-                    <button type="button" title="Export CSV (belum tersedia)"
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-400 text-white cursor-default opacity-90">
+                    <button type="button" onClick={handleExportCSV} title="Export CSV"
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-400 hover:bg-gray-500 text-white transition-colors">
                         <Description fontSize="small" />
                     </button>
-                    <button type="button" title="Export Excel (belum tersedia)"
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-green-600 text-white cursor-default opacity-90">
+                    <button type="button" onClick={handleExportExcel} title="Export Excel"
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white transition-colors">
                         <GridOn fontSize="small" />
                     </button>
-                    <button type="button" title="Export PDF (belum tersedia)"
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-red-600 text-white cursor-default opacity-90">
+                    <button type="button" onClick={handleExportPDF} title="Export PDF"
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors">
                         <PictureAsPdf fontSize="small" />
                     </button>
                 </div>
