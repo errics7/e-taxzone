@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Add, Refresh, MoreHoriz, GridOn, PictureAsPdf } from '@mui/icons-material';
+import { Add, Refresh, Description, GridOn, PictureAsPdf } from '@mui/icons-material';
+import { exportTableToCSV, exportTableToExcel, exportTableToPDF } from '../../../../../utils/tableExport';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STATIC CONFIG
@@ -91,11 +92,11 @@ const AMORTIZATION_CATEGORY_KEYS = ['intangible'];
 // layout bespoke L10A (Add kiri, 4 ikon bulat kanan) — bukan lagi loop
 // generik seragam — tapi status/label di sini tetap acuan makna tiap tombol.
 const TOOLBAR_CONFIG = [
-    { key: 'add',    label: 'Add',            status: 'active'      },
-    { key: 'refresh',label: 'Refresh Table',  status: 'active'      }, // visual aktif, no business logic (no-op, pola L10A)
-    { key: 'doc',    label: 'Reserved',       status: 'disabled'    },
-    { key: 'xlsx',   label: 'Export Excel',   status: 'placeholder' },
-    { key: 'pdf',    label: 'Export PDF',     status: 'placeholder' },
+    { key: 'add',    label: 'Add',            status: 'active' },
+    { key: 'refresh',label: 'Refresh Table',  status: 'active' }, // visual aktif, no business logic (no-op, pola L10A)
+    { key: 'csv',    label: 'Export CSV',     status: 'active' },
+    { key: 'xlsx',   label: 'Export Excel',   status: 'active' },
+    { key: 'pdf',    label: 'Export PDF',     status: 'active' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -399,13 +400,76 @@ const tdType   = { position: 'sticky', left: COL_ACTION_W + COL_CODE_W,         
 // identik komentar L10A).
 // ═══════════════════════════════════════════════════════════════════════════
 
-const AssetToolbar = ({ onAdd }) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT — column definitions for CSV/Excel/PDF (tableExport.js).
+// Mirrors AssetTable's actual <thead> 1:1 — same 9 business columns, same
+// order. Uniform across every category/subgroup since AssetTable itself is
+// one shared component reused by all of them. Action/No are display-only
+// and intentionally excluded.
+// ─────────────────────────────────────────────────────────────────────────────
+const L9_EXPORT_COLUMNS = [
+    { key: 'code', header: 'Code Of Assets', group: null, dataType: 'text' },
+    { key: 'assetType', header: 'Group/Type Of Asset(s)', group: null, dataType: 'text' },
+    { key: 'monthYear', header: 'Month/Year of Acquisition', group: null, dataType: 'text' },
+    { key: 'costOfAcquisition', header: 'Acquisition Price', group: null, dataType: 'currency', align: 'right' },
+    { key: 'fiscalBookBeginYear', header: 'Remaining Book Value in the Beginning of Year', group: null, dataType: 'currency', align: 'right' },
+    { key: 'methodCommercial', header: 'Depreciation/Amortization Method — Commercial', group: null, dataType: 'text' },
+    { key: 'methodFiscal', header: 'Depreciation/Amortization Method — Fiscal', group: null, dataType: 'text' },
+    { key: 'fiscalDeprThisYear', header: 'Fiscal Depreciation/Amortization in This Year', group: null, dataType: 'currency', align: 'right' },
+    { key: 'notes', header: 'Notes', group: null, dataType: 'text' },
+];
+
+// Sanitizes a category/subgroup label into a filename-safe token, e.g.
+// "Tangible Asset" → "Tangible_Asset".
+const slugifyExportLabel = (label) => String(label || '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+// Builds the export config for ONE subgroup's rows only (e.g. Tangible
+// Asset → Group 1) — never the whole of l9Data. `rows` is exactly the
+// `categoryData[sg.key]` array already rendered by this subgroup's
+// AssetTable, so the export always matches what the user sees on screen.
+//
+// totalsRow reuses the SAME formula AssetTable already uses for its own
+// subtotal (parse(r.fiscalDeprThisYear) summed) — this is a read-only
+// replica for the export, not a change to AssetTable's own calculation.
+const buildL9SubgroupExportConfig = ({ taxYear, tin, name, email, categoryLabel, subgroupTitle, rows }) => {
+    const safeRows = rows || [];
+    return {
+        formTitle: 'CORPORATE INCOME TAX RETURN (SPT TAHUNAN BADAN)',
+        lampiranTitle: `LAMPIRAN 9 — DAFTAR PENYUSUTAN DAN AMORTISASI FISKAL — ${categoryLabel} — ${subgroupTitle}`,
+        taxYear,
+        tin,
+        name,
+        email,
+        columns: L9_EXPORT_COLUMNS,
+        rows: safeRows,
+        totalsRow: safeRows.length > 0 ? {
+            code: 'Total',
+            fiscalDeprThisYear: safeRows.reduce((sum, r) => sum + parse(r.fiscalDeprThisYear), 0),
+        } : null,
+        filename: `SPT_Badan_Lampiran_9_${slugifyExportLabel(categoryLabel)}_${slugifyExportLabel(subgroupTitle)}`,
+    };
+};
+
+const AssetToolbar = ({ onAdd, rows, taxYear, tin, name, email, categoryLabel, subgroupTitle }) => {
     // Refresh Table — no-op yang disengaja (lihat catatan di atas). Tabel
     // sudah reaktif terhadap l9Data melalui render normal React; tombol
     // tetap tersedia agar toolbar identik dengan tampilan Coretax.
     const handleRefreshTable = () => {
         // No-op secara sengaja — tidak ada business logic di sini.
     };
+
+    // ── EXPORT — CSV / Excel / PDF (subgroup-scoped) ───────────────────────
+    // `rows` di sini SELALU rows subgroup ini saja (categoryData[sg.key]
+    // dari AssetSection), tidak pernah seluruh l9Data.
+    const handleExportCSV = () => exportTableToCSV(
+        buildL9SubgroupExportConfig({ taxYear, tin, name, email, categoryLabel, subgroupTitle, rows })
+    );
+    const handleExportExcel = () => exportTableToExcel(
+        buildL9SubgroupExportConfig({ taxYear, tin, name, email, categoryLabel, subgroupTitle, rows })
+    );
+    const handleExportPDF = () => exportTableToPDF(
+        buildL9SubgroupExportConfig({ taxYear, tin, name, email, categoryLabel, subgroupTitle, rows })
+    );
 
     return (
         <div className="flex items-center gap-2 mb-2">
@@ -428,27 +492,30 @@ const AssetToolbar = ({ onAdd }) => {
             >
                 <Refresh fontSize="small" />
             </button>
-            {/* Grey — Reserved, placeholder murni */}
+            {/* Gray — Export CSV */}
             <button
                 type="button"
-                title="Reserved"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-300 text-white cursor-default"
+                onClick={handleExportCSV}
+                title="Export CSV"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-400 hover:bg-gray-500 text-white transition-colors"
             >
-                <MoreHoriz fontSize="small" />
+                <Description fontSize="small" />
             </button>
-            {/* Green — Export Excel, placeholder murni */}
+            {/* Green — Export Excel */}
             <button
                 type="button"
-                title="Export Excel (belum tersedia)"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-green-600 text-white cursor-default opacity-90"
+                onClick={handleExportExcel}
+                title="Export Excel"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white transition-colors"
             >
                 <GridOn fontSize="small" />
             </button>
-            {/* Red — Export PDF, placeholder murni */}
+            {/* Red — Export PDF */}
             <button
                 type="button"
-                title="Export PDF (belum tersedia)"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-red-600 text-white cursor-default opacity-90"
+                onClick={handleExportPDF}
+                title="Export PDF"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors"
             >
                 <PictureAsPdf fontSize="small" />
             </button>
@@ -762,7 +829,7 @@ const AssetTable = ({ rows, onEdit, onDelete }) => {
 // data sendiri (tidak ada duplicate state), hanya meneruskan rows & handler.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const AssetSection = ({ categoryKey, categoryLabel, subgroups, assetOptions, categoryData, onAddRow, onUpdateRow, onDeleteRow }) => {
+const AssetSection = ({ categoryKey, categoryLabel, subgroups, assetOptions, categoryData, onAddRow, onUpdateRow, onDeleteRow, taxYear, tin, name, email }) => {
     const [expanded, setExpanded]         = useState(false);
     const [modalState, setModalState]     = useState(null); // { subgroupKey, editingRow | null } | null
     const [pendingDelete, setPendingDelete] = useState(null); // { subgroupKey, uid } | null
@@ -816,6 +883,13 @@ const AssetSection = ({ categoryKey, categoryLabel, subgroups, assetOptions, cat
 
                                 <AssetToolbar
                                     onAdd={() => handleAdd(sg.key)}
+                                    rows={rows}
+                                    taxYear={taxYear}
+                                    tin={tin}
+                                    name={name}
+                                    email={email}
+                                    categoryLabel={categoryLabel}
+                                    subgroupTitle={sg.title}
                                 />
 
                                 <AssetTable
@@ -924,7 +998,7 @@ const generateUid = () => {
 //   l9Data                — raw data dari SptTahunanBadan.js (restore draft)
 //   onL9DataChange         — emit ke parent SETIAP CRUD (Add/Edit/Delete),
 //                            pola identik onRowsAChange L1A
-const L9 = ({ taxYear = '', tin = '', l9Data: l9DataProp, onL9DataChange } = {}) => {
+const L9 = ({ taxYear = '', tin = '', name = '', email = '', l9Data: l9DataProp, onL9DataChange } = {}) => {
     const [l9Data, setL9Data] = useState(() =>
         l9DataProp ? mergeWithInitial(l9DataProp) : buildInitialL9Data()
     );
@@ -1075,6 +1149,10 @@ const L9 = ({ taxYear = '', tin = '', l9Data: l9DataProp, onL9DataChange } = {})
             onAddRow={handleAddRow}
             onUpdateRow={handleUpdateRow}
             onDeleteRow={handleDeleteRow}
+            taxYear={taxYear}
+            tin={tin}
+            name={name}
+            email={email}
         />
     );
 

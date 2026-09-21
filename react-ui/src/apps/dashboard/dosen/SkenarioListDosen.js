@@ -39,7 +39,7 @@ import swal from "sweetalert";
 import useSWR from "swr";
 import jsPDF from 'jspdf';
 import { useEffect } from "react";
-import generateCompleteSPTPDF, { generateSPTPDF } from "../component/generateSPTPDF";
+import generateCompleteSPTPDF from "../component/generateSPTPDF";
 
 // const generateSPTPDF = (sptData) => {
 //   console.log('spt data ', sptData);

@@ -1572,7 +1572,7 @@ const SptCreationWizard = () => {
     };
 
     return (
-        <div className="relative -mt-[80px]">
+        <div className="relative">
             {renderCurrentView()}
 
             <Alert type="error" message={error} onClose={() => setError('')} />

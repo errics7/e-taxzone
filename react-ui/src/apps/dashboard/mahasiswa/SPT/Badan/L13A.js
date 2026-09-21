@@ -607,7 +607,7 @@ const DeleteConfirmDialog = ({ open, onConfirm, onCancel }) => {
 // L13A — Daftar Fasilitas Penanaman Modal
 // Props: taxYear, tin, rows, onRowsChange — pola identik L10A.js.
 // ─────────────────────────────────────────────────────────────────────────────
-const L13A = ({ taxYear, tin, rows, onRowsChange, onTotalNetIncomeDeductionChange }) => {
+const L13A = ({ taxYear, tin, name, email, rows, onRowsChange, onTotalNetIncomeDeductionChange }) => {
     const safeRows = rows || [];
 
     const [modalMode, setModalMode] = useState(null); // null | 'create' | 'edit'
@@ -733,6 +733,8 @@ const L13A = ({ taxYear, tin, rows, onRowsChange, onTotalNetIncomeDeductionChang
         lampiranTitle: 'LAMPIRAN 13-A — LIST OF INVESTMENT FACILITIES',
         taxYear,
         tin,
+        name,
+        email,
         columns: L13A_EXPORT_COLUMNS,
         rows: buildL13AExportRows(safeRows),
         totalsRow: safeRows.length > 0 ? {
@@ -747,7 +749,7 @@ const L13A = ({ taxYear, tin, rows, onRowsChange, onTotalNetIncomeDeductionChang
         } : null,
         filename: 'SPT_Badan_Lampiran_13A',
     }), [
-        taxYear, tin, safeRows,
+        taxYear, tin, name, email, safeRows,
         totalApprovedInvestmentForeignCurrency, totalApprovedInvestmentEquivalent,
         totalApprovedInvestmentRupiah, totalApprovedInvestmentTotal,
         totalInvestmentRealizationAtCommercial, totalInvestmentRealizationCumulative,

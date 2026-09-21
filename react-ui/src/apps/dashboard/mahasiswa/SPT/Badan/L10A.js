@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Add, Edit, Delete, Refresh, Upload, MoreHoriz, GridOn, PictureAsPdf } from '@mui/icons-material';
+import { Add, Edit, Delete, Refresh, Upload, Description, GridOn, PictureAsPdf } from '@mui/icons-material';
+import { exportTableToCSV, exportTableToExcel, exportTableToPDF } from '../../../../../utils/tableExport';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REFERENCE DATA — Blueprint Final Revisi 5 §2 (Reference Data Contract)
@@ -343,7 +344,24 @@ const DeleteConfirmDialog = ({ open, onConfirm, onCancel }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // L10A — Declaration of Transaction with Related Parties
 // ─────────────────────────────────────────────────────────────────────────────
-const L10A = ({ taxYear, tin, rows, onRowsChange }) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT — column definitions for CSV/Excel/PDF (tableExport.js).
+// Mirrors the actual <thead> 1:1 — same 9 business columns, same order.
+// Action/No are display-only and intentionally excluded.
+// ─────────────────────────────────────────────────────────────────────────────
+const L10A_EXPORT_COLUMNS = [
+    { key: 'name', header: 'Name', group: null, dataType: 'text' },
+    { key: 'tin', header: 'NPWP/TIN', group: null, dataType: 'text' },
+    { key: 'country', header: 'Country', group: null, dataType: 'text' },
+    { key: 'typeOfRelationship', header: 'Type of Relationship', group: null, dataType: 'text' },
+    { key: 'businessActivity', header: 'Business Activity', group: null, dataType: 'text' },
+    { key: 'typeOfTransaction', header: 'Type of Transaction', group: null, dataType: 'text' },
+    { key: 'transactionValue', header: 'Transaction Value', group: null, dataType: 'currency', align: 'right' },
+    { key: 'pricingMethodApplied', header: 'Pricing Method Applied', group: null, dataType: 'text' },
+    { key: 'reasonOfPricingMethod', header: 'Reason of Pricing Method Application', group: null, dataType: 'text' },
+];
+
+const L10A = ({ taxYear, tin, name, email, rows, onRowsChange }) => {
     const safeRows = rows || [];
 
     // ── Modal state (Blueprint Final Revisi 5 §11 — Modal Contract) ───────────
@@ -434,6 +452,27 @@ const L10A = ({ taxYear, tin, rows, onRowsChange }) => {
         // No-op secara sengaja — lihat catatan di atas.
     }, []);
 
+    // ── EXPORT — CSV / Excel / PDF ────────────────────────────────────────
+    // Reads ONLY from existing L10A React state (safeRows/taxYear/tin/
+    // name/email) — no API call, no direct DB access. Same architecture as
+    // L13A: buildExportConfig() → tableExport.js → CSV/Excel/PDF.
+    const buildExportConfig = useCallback(() => ({
+        formTitle: 'CORPORATE INCOME TAX RETURN (SPT TAHUNAN BADAN)',
+        lampiranTitle: 'LAMPIRAN 10A — DECLARATION OF TRANSACTION WITH RELATED PARTIES',
+        taxYear,
+        tin,
+        name,
+        email,
+        columns: L10A_EXPORT_COLUMNS,
+        rows: safeRows,
+        totalsRow: null,
+        filename: 'SPT_Badan_Lampiran_10A',
+    }), [taxYear, tin, name, email, safeRows]);
+
+    const handleExportCSV = useCallback(() => exportTableToCSV(buildExportConfig()), [buildExportConfig]);
+    const handleExportExcel = useCallback(() => exportTableToExcel(buildExportConfig()), [buildExportConfig]);
+    const handleExportPDF = useCallback(() => exportTableToPDF(buildExportConfig()), [buildExportConfig]);
+
     const rowCount = safeRows.length;
 
     return (
@@ -474,25 +513,28 @@ const L10A = ({ taxYear, tin, rows, onRowsChange }) => {
                         className="w-9 h-9 flex items-center justify-center rounded-full bg-yellow-400 hover:bg-yellow-500 text-white transition-colors">
                         <Refresh fontSize="small" />
                     </button>
-                    {/* Grey — Placeholder murni */}
+                    {/* Gray — Export CSV */}
                     <button
                         type="button"
-                        title="Reserved"
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-300 text-white cursor-default">
-                        <MoreHoriz fontSize="small" />
+                        onClick={handleExportCSV}
+                        title="Export CSV"
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-400 hover:bg-gray-500 text-white transition-colors">
+                        <Description fontSize="small" />
                     </button>
-                    {/* Green — Placeholder murni (Export Excel — out of scope fase ini) */}
+                    {/* Green — Export Excel */}
                     <button
                         type="button"
-                        title="Export Excel (belum tersedia)"
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-green-600 text-white cursor-default opacity-90">
+                        onClick={handleExportExcel}
+                        title="Export Excel"
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white transition-colors">
                         <GridOn fontSize="small" />
                     </button>
-                    {/* Red — Placeholder murni (Export PDF — out of scope fase ini) */}
+                    {/* Red — Export PDF */}
                     <button
                         type="button"
-                        title="Export PDF (belum tersedia)"
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-red-600 text-white cursor-default opacity-90">
+                        onClick={handleExportPDF}
+                        title="Export PDF"
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors">
                         <PictureAsPdf fontSize="small" />
                     </button>
                 </div>

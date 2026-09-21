@@ -1021,6 +1021,8 @@ const SptTahunanBadan = () => {
                     <L9
                         taxYear={sptData.header?.tax_year}
                         tin={sptData.company_identity?.npwp}
+                        name={sptData.company_identity?.company_name}
+                        email={sptData.company_identity?.email}
                         l9Data={l9Data}
                         onL9DataChange={handleL9DataChange}
                     />
@@ -1029,6 +1031,8 @@ const SptTahunanBadan = () => {
                     <L10A
                         taxYear={sptData.header?.tax_year}
                         tin={sptData.company_identity?.npwp}
+                        name={sptData.company_identity?.company_name}
+                        email={sptData.company_identity?.email}
                         rows={l10aRows}
                         onRowsChange={handleL10aRowsChange}
                     />
@@ -1090,6 +1094,8 @@ const SptTahunanBadan = () => {
                         <L13A
                             taxYear={sptData.header?.tax_year}
                             tin={sptData.company_identity?.npwp}
+                            name={sptData.company_identity?.company_name}
+                            email={sptData.company_identity?.email}
                             rows={l13aRows}
                             onRowsChange={handleL13aRowsChange}
                             onTotalNetIncomeDeductionChange={handleTotalNetIncomeDeductionChangeL13A}

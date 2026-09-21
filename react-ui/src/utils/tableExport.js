@@ -18,6 +18,10 @@
 //     lampiranTitle:string   // e.g. "LAMPIRAN 13-A — LIST OF INVESTMENT FACILITIES"
 //     taxYear:      string | number | undefined
 //     tin:          string | undefined
+//     name:         string | undefined   // taxpayer / PIC name
+//     email:        string | undefined
+//     // Identity order is fixed across all formats: Tax Year, TIN, Name, Email.
+//     // Any of these may be missing — a missing field is simply omitted.
 //     columns: [
 //       {
 //         key:      string   // matches a property name on each row object
@@ -109,6 +113,29 @@ const formatDisplayValue = (rawValue, dataType) => {
     }
 };
 
+// Builds the document identity block shared by CSV, Excel and PDF.
+// Single source of truth so the field order is guaranteed identical in
+// every format: Tax Year → TIN → Name → Email.
+//
+// A field is omitted when it is null/undefined/empty rather than printed
+// with a blank or "undefined" value — this matches the pre-existing
+// behaviour of Tax Year and TIN and keeps missing data from producing a
+// broken-looking report. Export never throws on a missing field.
+const buildIdentityLines = ({ taxYear, tin, name, email }) => {
+    const lines = [];
+    const push = (label, value) => {
+        if (value === null || value === undefined) return;
+        const str = String(value).trim();
+        if (str === '') return;
+        lines.push(`${label}: ${str}`);
+    };
+    push('Tax Year', taxYear);
+    push('TIN', tin);
+    push('Name', name);
+    push('Email', email);
+    return lines;
+};
+
 const downloadBlob = (blob, filename) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -150,7 +177,7 @@ const sheetNameFromFilename = (filename) => {
 // CSV
 // ─────────────────────────────────────────────────────────────────────────────
 export const exportTableToCSV = (config) => {
-    const { formTitle, lampiranTitle, taxYear, tin, columns, rows, totalsRow, filename } = config || {};
+    const { formTitle, lampiranTitle, taxYear, tin, name, email, columns, rows, totalsRow, filename } = config || {};
     try {
         if (!rows || rows.length === 0) {
             notifyNoData();
@@ -168,8 +195,7 @@ export const exportTableToCSV = (config) => {
         const lines = [];
         if (formTitle) lines.push(escapeCSV(formTitle));
         if (lampiranTitle) lines.push(escapeCSV(lampiranTitle));
-        if (taxYear !== undefined && taxYear !== null && taxYear !== '') lines.push(escapeCSV(`Tax Year: ${taxYear}`));
-        if (tin) lines.push(escapeCSV(`TIN: ${tin}`));
+        buildIdentityLines({ taxYear, tin, name, email }).forEach((line) => lines.push(escapeCSV(line)));
         lines.push('');
 
         // CSV has no merged cells, so a grouped column is flattened to
@@ -202,7 +228,7 @@ export const exportTableToCSV = (config) => {
 // EXCEL (.xlsx)
 // ─────────────────────────────────────────────────────────────────────────────
 export const exportTableToExcel = (config) => {
-    const { formTitle, lampiranTitle, taxYear, tin, columns, rows, totalsRow, filename } = config || {};
+    const { formTitle, lampiranTitle, taxYear, tin, name, email, columns, rows, totalsRow, filename } = config || {};
     try {
         if (!rows || rows.length === 0) {
             notifyNoData();
@@ -216,8 +242,7 @@ export const exportTableToExcel = (config) => {
         const identityRows = [];
         if (formTitle) identityRows.push(formTitle);
         if (lampiranTitle) identityRows.push(lampiranTitle);
-        if (taxYear !== undefined && taxYear !== null && taxYear !== '') identityRows.push(`Tax Year: ${taxYear}`);
-        if (tin) identityRows.push(`TIN: ${tin}`);
+        buildIdentityLines({ taxYear, tin, name, email }).forEach((line) => identityRows.push(line));
         identityRows.forEach((text) => aoa.push([text]));
         aoa.push([]); // blank separator row
 
@@ -294,7 +319,7 @@ export const exportTableToExcel = (config) => {
 // PDF
 // ─────────────────────────────────────────────────────────────────────────────
 export const exportTableToPDF = (config) => {
-    const { formTitle, lampiranTitle, taxYear, tin, columns, rows, totalsRow, filename } = config || {};
+    const { formTitle, lampiranTitle, taxYear, tin, name, email, columns, rows, totalsRow, filename } = config || {};
     try {
         if (!rows || rows.length === 0) {
             notifyNoData();
@@ -321,32 +346,43 @@ export const exportTableToPDF = (config) => {
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        if (taxYear !== undefined && taxYear !== null && taxYear !== '') {
-            doc.text(`Tax Year: ${taxYear}`, 30, cursorY);
+        buildIdentityLines({ taxYear, tin, name, email }).forEach((line) => {
+            doc.text(line, 30, cursorY);
             cursorY += 12;
-        }
-        if (tin) {
-            doc.text(`TIN: ${tin}`, 30, cursorY);
-            cursorY += 12;
-        }
+        });
         cursorY += 4;
 
         const segments = buildHeaderSegments(columns);
 
-        // Header row 1 — group cells (colSpan) or ungrouped labels (rowSpan 2).
+        // Whether this table actually has any grouped column — the ONLY
+        // condition under which the header legitimately has 2 rows.
+        // rowSpan: 2 on a header cell is only valid when `head` truly
+        // contains 2 rows; declaring it against a 1-row head confuses
+        // AutoTable's row/column layout (the span "claims" a row that
+        // doesn't exist in head, which then eats into the first body row —
+        // this was the root cause of the missing first row).
+        const hasGroupedColumns = columns.some((col) => col.group);
+
+        // Header row 1 — group cells (colSpan) or ungrouped labels
+        // (rowSpan 2 ONLY when a second head row actually exists below).
         const headRow1 = segments.map((seg) => (
             seg.grouped
                 ? { content: seg.label, colSpan: seg.span, styles: { halign: 'center' } }
-                : { content: seg.label, rowSpan: 2, styles: { halign: 'center', valign: 'middle' } }
+                : hasGroupedColumns
+                    ? { content: seg.label, rowSpan: 2, styles: { halign: 'center', valign: 'middle' } }
+                    : { content: seg.label, styles: { halign: 'center', valign: 'middle' } }
         ));
 
-        // Header row 2 — only grouped columns contribute a cell; row-spanned
-        // ungrouped columns already occupy that slot from row 1.
+        // Header row 2 — only built (and only included in `head`) when the
+        // table actually has grouped columns. Otherwise the header stays a
+        // single valid row.
         const headRow2 = [];
-        columns.forEach((col) => {
-            if (col.group) headRow2.push(col.header);
-        });
-        const head = headRow2.length > 0 ? [headRow1, headRow2] : [headRow1];
+        if (hasGroupedColumns) {
+            columns.forEach((col) => {
+                if (col.group) headRow2.push(col.header);
+            });
+        }
+        const head = hasGroupedColumns ? [headRow1, headRow2] : [headRow1];
 
         const body = rows.map((row) => columns.map((col) => formatDisplayValue(row[col.key], col.dataType)));
         const foot = totalsRow ? [columns.map((col) => formatDisplayValue(totalsRow[col.key], col.dataType))] : undefined;

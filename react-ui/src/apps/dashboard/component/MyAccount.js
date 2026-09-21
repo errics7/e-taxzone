@@ -340,7 +340,7 @@ function MyAccount(props) {
   if (error) return "Failed to load...";
 
   return (
-    <div className="bg-white shadow-md border rounded flex flex-col -mt-16">
+    <div className="bg-white shadow-md border rounded flex flex-col">
       <Helmet>
         <title>Account Saya | Polinema</title>
       </Helmet>
