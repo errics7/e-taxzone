@@ -80,6 +80,7 @@ const sptL13bSectionBRepository = require("../repositories/sptL13bSectionBReposi
 const sptL13bRdRepository = require("../repositories/sptL13bRdRepository");
 const sptL13cRepository = require("../repositories/sptL13cRepository");
 const sptL14Repository = require("../repositories/sptL14Repository");
+const sptAttachmentRepository = require("../repositories/sptAttachmentRepository");
 
 // -----------------------------------------------------------------------
 // Domain errors (in-file only — no new files created for these).
@@ -239,6 +240,8 @@ const SECTION_REGISTRY = Object.freeze({
   l13c: { repository: sptL13cRepository, scope: "header", parentKey: "header_id", cardinality: "many", finder: null },
 
   l14: { repository: sptL14Repository, scope: "header", parentKey: "header_id", cardinality: "many", finder: "findByHeaderAndTaxYear" },
+
+  sptAttachment: { repository: sptAttachmentRepository, scope: "header", parentKey: "header_id", cardinality: "many", finder: null },
 });
 
 class SptDraftPreparationService {
