@@ -577,3 +577,25 @@ spt_l14.belongsTo(spt_header, {
   targetKey: "id",
   as: "header",
 });
+
+// =========================================================================
+// SECTION I ATTACHMENT ASSOCIATION
+// Database-foundation task for Section I file attachments. Added below the
+// L9-L14 block without modifying any existing line above.
+// =========================================================================
+
+const spt_attachment = require("./spt_attachment.model");
+
+// -----------------------------------------------------------------------
+// spt_header <-> spt_attachment (1:N)
+// -----------------------------------------------------------------------
+spt_header.hasMany(spt_attachment, {
+  foreignKey: "header_id",
+  sourceKey: "id",
+  as: "attachments",
+});
+spt_attachment.belongsTo(spt_header, {
+  foreignKey: "header_id",
+  targetKey: "id",
+  as: "header",
+});
