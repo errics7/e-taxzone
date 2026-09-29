@@ -303,6 +303,14 @@ function Login(props) {
                       Register here
                     </NavLink>
                   </div>
+                  <div className="text-sm">
+                    <NavLink
+                      to="/privacy-policy"
+                      className="text-gray-600 hover:text-gray-800 underline"
+                    >
+                      Privacy Policy
+                    </NavLink>
+                  </div>
                 </div>
               </form>
             </div>

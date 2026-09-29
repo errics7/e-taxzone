@@ -12,6 +12,7 @@ import ThemeConfig from "./theme";
 import DashboardLayout from "./apps/dashboard/layout";
 const Login = lazy(() => import("./apps/dashboard/pages/Login"));
 const Register = lazy(() => import("./apps/dashboard/pages/RegisterAccount/RegisterAccount"));
+const PrivacyPolicy = lazy(() => import("./apps/dashboard/pages/PrivacyPolicy"));
 
 const Home = lazy(() => import("./apps/dashboard/pages/Home"));
 const BlogPerdagangan = lazy(() => import("./apps/dashboard/pages/blogs/BlogPerdagangan"));
@@ -68,6 +69,7 @@ function AppRoute() {
           <Route exact path="/b/:title" component={MODE === "perdagangan" ? BlogPerdagangan : BlogManufaktur} />
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
+          <Route exact path="/privacy-policy" component={PrivacyPolicy} />
 
           <Route path="/dasboard" component={DashboardLayout} />
           <ProtectedRoute allowed={["mahasiswa", "admin"]} path="/home" component={DashboardRoutesMhs} />
