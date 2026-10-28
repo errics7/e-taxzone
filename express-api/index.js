@@ -21,6 +21,9 @@ app.use("/assets/uploads/img/gs_icon", express.static("assets/uploads/img/gs_ico
 app.use("/assets/uploads/img", express.static("assets/uploads/img"));
 app.use('/assets/uploads/file', express.static("assets/uploads/file"));
 
+// Google OAuth authorization foundation (outside JWT-protected API routes)
+app.use(require("./routes/googleOAuth"));
+
 // app.use("/api/v1", require("./routes/v1/index"));
 app.use("/api/v2", require("./routes/v2/index"));
 app.use("/api/v3", require("./routes/v3/index"));

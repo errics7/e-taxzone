@@ -19,6 +19,7 @@
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
+    "googleapis": "^183.0.0",
     "ip": "^1.1.9",
     "joi": "^17.13.3",
     "jsonwebtoken": "^8.5.1",
