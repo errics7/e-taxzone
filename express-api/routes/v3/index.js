@@ -5,6 +5,8 @@ const v = require("../../middleware/verifikasi");
 //#region Import
 const scen = require("./scenario/skenario.controller");
 const sptDraftController = require("../../controllers/sptDraftController");
+const sptAttachmentController = require("../../controllers/sptAttachmentController");
+const sptAttachmentUpload = require("../../middleware/sptAttachmentUpload.middleware");
 
 
 
@@ -36,6 +38,9 @@ router.get("/spt/drafts/:headerId/sections/:sectionKey", v.verifall(), sptDraftC
 router.post("/spt/drafts/:headerId/calculate", v.verifall(), sptDraftController.calculate);
 router.post("/spt/drafts/:headerId/recalculate", v.verifall(), sptDraftController.recalculate);
 router.delete("/spt/drafts/:headerId", v.verifall(), sptDraftController.deleteDraft);
+
+// SPT Attachment Upload (Google Drive + TiDB metadata)
+router.post("/spt/drafts/:headerId/attachments", v.verifall(), sptAttachmentUpload, sptAttachmentController.upload);
 
 //#endregion
 
