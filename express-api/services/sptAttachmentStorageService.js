@@ -746,6 +746,17 @@ class SptAttachmentStorageService {
    *   driveFileId was obtained) and the subsequent failure's Drive compensation
    *   delete also failed.
    */
+  /**
+   * List persisted attachment metadata for one SPT header.
+   * TiDB remains the source of truth; this method never searches Google Drive.
+   */
+  async listAttachmentsByHeaderId(headerId) {
+    if (!/^\\d+$/.test(String(headerId)) || Number(headerId) <= 0) {
+      throw new AttachmentValidationError('headerId tidak valid.');
+    }
+    return sptAttachmentRepository.findAllByHeaderId(Number(headerId));
+  }
+
   async uploadAndPersistAttachment(input) {
     // 1. Validate input — reuses the G2.6-A validation boundary unchanged.
     this._validateUploadInput(input);

@@ -2,7 +2,6 @@
 
 const path = require("path");
 const sptHeaderRepository = require("../repositories/sptHeaderRepository");
-const sptAttachmentRepository = require("../repositories/sptAttachmentRepository");
 const sptAttachmentStorageService = require("../services/sptAttachmentStorageService");
 const sptAttachmentUploadMiddleware = require("../middleware/sptAttachmentUpload.middleware");
 
@@ -34,6 +33,62 @@ function sendError(res, error) {
 }
 
 class SptAttachmentController {
+  /** GET /api/v3/spt/drafts/:headerId/attachments */
+  async list(req, res) {
+    const actorId = getActorId(req);
+    if (actorId === null) {
+      return res.status(401).json({
+        error: { code: "UNAUTHENTICATED", message: "Pengguna belum terautentikasi." },
+      });
+    }
+
+    const { headerId } = req.params;
+    if (!/^\\d+$/.test(String(headerId)) || Number(headerId) <= 0) {
+      return res.status(400).json({
+        error: { code: "INVALID_HEADER_ID", message: "headerId tidak valid." },
+      });
+    }
+
+    try {
+      const header = await sptHeaderRepository.findById(headerId);
+      if (!header) {
+        return res.status(404).json({
+          error: { code: "DRAFT_NOT_FOUND", message: "SPT tidak ditemukan." },
+        });
+      }
+
+      if (String(header.created_by) !== String(actorId)) {
+        return res.status(403).json({
+          error: { code: "SPT_ACCESS_DENIED", message: "Anda tidak memiliki akses ke SPT ini." },
+        });
+      }
+
+      const rows = await sptAttachmentStorageService.listAttachmentsByHeaderId(headerId);
+      const attachments = rows.map((row) => ({
+        attachmentId: row.id,
+        headerId: row.header_id,
+        documentCode: row.document_code,
+        originalFileName: row.original_file_name,
+        mimeType: row.mime_type,
+        fileSize: Number(row.file_size),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+
+      return res.status(200).json({ data: { attachments } });
+    } catch (error) {
+      if (error && error.code === "ATTACHMENT_VALIDATION_ERROR") {
+        return res.status(400).json({
+          error: { code: error.code, message: error.message },
+        });
+      }
+      console.error("[SPT_ATTACHMENT_LIST_FAILED]", error && error.message);
+      return res.status(500).json({
+        error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan saat memuat daftar attachment." },
+      });
+    }
+  }
+
   /** POST /api/v3/spt/drafts/:headerId/attachments */
   async upload(req, res) {
     const actorId = getActorId(req);
@@ -48,17 +103,14 @@ class SptAttachmentController {
     const documentCode = req.body && req.body.documentCode;
     const file = req.file;
 
-    const numericHeaderId = Number(headerId);
-    if (!/^\d+$/.test(String(headerId)) ||
-        !Number.isSafeInteger(numericHeaderId) || numericHeaderId <= 0) {
+    if (!/^\d+$/.test(String(headerId)) || Number(headerId) <= 0) {
       await cleanupTempFile(file && file.path).catch(() => {});
       return res.status(400).json({
         error: { code: "INVALID_HEADER_ID", message: "headerId tidak valid." },
       });
     }
 
-    if (typeof documentCode !== "string" ||
-        !documentCode.trim() || documentCode.trim().length > 100) {
+    if (typeof documentCode !== "string" || !documentCode.trim()) {
       await cleanupTempFile(file && file.path).catch(() => {});
       return res.status(400).json({
         error: { code: "DOCUMENT_CODE_REQUIRED", message: "Field documentCode wajib diisi." },
@@ -67,7 +119,7 @@ class SptAttachmentController {
 
     try {
       // sptHeaderRepository.findById only returns active headers (deleted_at IS NULL).
-      const header = await sptHeaderRepository.findById(numericHeaderId);
+      const header = await sptHeaderRepository.findById(headerId);
       if (!header) {
         return res.status(404).json({
           error: { code: "DRAFT_NOT_FOUND", message: "SPT tidak ditemukan." },
@@ -88,7 +140,7 @@ class SptAttachmentController {
       }
 
       const saved = await sptAttachmentStorageService.uploadAndPersistAttachment({
-        headerId: numericHeaderId,
+        headerId,
         documentCode: documentCode.trim(),
         filePath: file.path,
         originalFileName: path.basename(file.originalname),
@@ -113,86 +165,6 @@ class SptAttachmentController {
       await cleanupTempFile(file && file.path).catch((cleanupError) => {
         // The request outcome is already determined. Do not expose local paths.
         console.error("[SPT_ATTACHMENT_TEMP_CLEANUP_FAILED]", cleanupError.code || "UNKNOWN");
-      });
-    }
-  }
-
-  /** GET /api/v3/spt/drafts/:headerId/attachments */
-  async list(req, res) {
-    const actorId = getActorId(req);
-
-    if (actorId === null) {
-      return res.status(401).json({
-        error: {
-          code: "UNAUTHENTICATED",
-          message: "Pengguna belum terautentikasi.",
-        },
-      });
-    }
-
-    const { headerId } = req.params;
-    const numericHeaderId = Number(headerId);
-
-    if (
-      !/^\d+$/.test(String(headerId)) ||
-      !Number.isSafeInteger(numericHeaderId) ||
-      numericHeaderId <= 0
-    ) {
-      return res.status(400).json({
-        error: {
-          code: "INVALID_HEADER_ID",
-          message: "headerId tidak valid.",
-        },
-      });
-    }
-
-    try {
-      // findById only returns active headers (deleted_at IS NULL).
-      const header = await sptHeaderRepository.findById(numericHeaderId);
-
-      if (!header) {
-        return res.status(404).json({
-          error: {
-            code: "DRAFT_NOT_FOUND",
-            message: "SPT tidak ditemukan.",
-          },
-        });
-      }
-
-      // Account ownership is per SPT creator.
-      if (String(header.created_by) !== String(actorId)) {
-        return res.status(403).json({
-          error: {
-            code: "SPT_ACCESS_DENIED",
-            message: "Anda tidak memiliki akses ke SPT ini.",
-          },
-        });
-      }
-
-      const attachments =
-        await sptAttachmentRepository.findAllByHeaderId(numericHeaderId);
-
-      return res.status(200).json({
-        data: attachments.map((item) => ({
-          attachmentId: item.id,
-          headerId: item.header_id,
-          documentCode: item.document_code,
-          originalFileName: item.original_file_name,
-          mimeType: item.mime_type,
-          fileSize: Number(item.file_size),
-        })),
-      });
-    } catch (error) {
-      console.error(
-        "[SPT_ATTACHMENT_LIST_FAILED]",
-        error.code || error.name || "UNKNOWN"
-      );
-
-      return res.status(500).json({
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Terjadi kesalahan saat mengambil daftar attachment.",
-        },
       });
     }
   }

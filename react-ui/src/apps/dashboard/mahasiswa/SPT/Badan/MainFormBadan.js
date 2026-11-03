@@ -1441,7 +1441,7 @@ const SECTION_I_DOCS = [
     { code: 'OTHER_DOCUMENTS',             label: 'Other Documents',                                                          multi: true  },
 ];
 
-const AttachmentsSection = () => {
+const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAuthHeaders }) => {
     // Per-row selection state: { code -> { file, previewUrl, warning } }
     const [rowState, setRowState] = useState(() => {
         const init = {};
@@ -1449,14 +1449,88 @@ const AttachmentsSection = () => {
         return init;
     });
 
-    // Global uploaded files table: array of { id, code, label, originalName, generatedName, file, uploadDate }
-    const [uploadedFiles, setUploadedFiles] = useState([]);
+    // Uploaded file metadata is owned by the parent so it can be hydrated
+    // from the V3 attachment listing endpoint and shared with the whole form.
+    const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
+    const [attachmentLoadError, setAttachmentLoadError] = useState('');
 
     // Success notice per code — persists while file is uploaded, clears on delete/replace/cancel
     const [successNotice, setSuccessNotice] = useState({});
 
     const showSuccess  = (code) => setSuccessNotice(prev => ({ ...prev, [code]: true  }));
     const clearSuccess = (code) => setSuccessNotice(prev => ({ ...prev, [code]: false }));
+
+    // Hydrate attachment metadata from TiDB (source of truth).
+    // The API intentionally returns metadata only; Drive IDs are never exposed.
+    useEffect(() => {
+        if (!v3HeaderId) {
+            setUploadedFiles([]);
+            return undefined;
+        }
+
+        let cancelled = false;
+        const loadAttachments = async () => {
+            setIsLoadingAttachments(true);
+            setAttachmentLoadError('');
+            try {
+                const response = await fetch(
+                    `${API.HOST}/api/v3/spt/drafts/${v3HeaderId}/attachments`,
+                    { method: 'GET', headers: { ...getAuthHeaders() } }
+                );
+                const result = await response.json().catch(() => null);
+                if (!response.ok) {
+                    const code = result?.error?.code;
+                    const message = result?.error?.message || 'Gagal memuat daftar lampiran.';
+                    throw new Error(`[${code || response.status}] ${message}`);
+                }
+
+                const rows = Array.isArray(result?.data?.attachments)
+                    ? result.data.attachments
+                    : [];
+                if (cancelled) return;
+
+                const mapped = rows.map((item) => {
+                    const doc = SECTION_I_DOCS.find(d => d.code === item.documentCode);
+                    const dateValue = item.createdAt || item.uploadedAt;
+                    return {
+                        id: String(item.attachmentId),
+                        code: item.documentCode,
+                        label: doc?.label || item.documentCode,
+                        originalName: item.originalFileName || 'Untitled file',
+                        generatedName: item.originalFileName || 'Untitled file',
+                        file: null,
+                        previewUrl: null,
+                        uploadDate: dateValue
+                            ? new Date(dateValue).toLocaleString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                            })
+                            : '—',
+                        isPersisted: true,
+                    };
+                });
+
+                setUploadedFiles(mapped);
+                const uploadedCodes = [...new Set(mapped.map(item => item.code))];
+                setSuccessNotice(
+                    uploadedCodes.reduce((acc, code) => ({ ...acc, [code]: true }), {})
+                );
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('Gagal memuat daftar attachment V3:', error);
+                    setAttachmentLoadError(error.message);
+                }
+            } finally {
+                if (!cancelled) setIsLoadingAttachments(false);
+            }
+        };
+
+        loadAttachments();
+        return () => { cancelled = true; };
+        // getAuthHeaders is a stable parent utility in practice; depending on it
+        // would refetch on every parent render because it is declared inline.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [v3HeaderId]);
 
     // Modals
     const [previewModal, setPreviewModal]   = useState(null); // { url, name }
@@ -1665,6 +1739,16 @@ const AttachmentsSection = () => {
                 </table>
             </div>
 
+            {/* ── Attachment listing status ── */}
+            {isLoadingAttachments && (
+                <p className="text-xs text-gray-500">Loading uploaded attachments...</p>
+            )}
+            {attachmentLoadError && (
+                <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {attachmentLoadError}
+                </div>
+            )}
+
             {/* ── Uploaded Files Table ── */}
             {uploadedFiles.length > 0 && (
                 <div>
@@ -1687,8 +1771,9 @@ const AttachmentsSection = () => {
                                         <td className="px-4 py-3 text-gray-700">{f.label}</td>
                                         <td className="px-4 py-3">
                                             <button
-                                                onClick={() => openPreview(f.previewUrl, f.generatedName)}
-                                                className="text-blue-600 hover:text-blue-800 underline text-xs text-left"
+                                                onClick={() => f.previewUrl && openPreview(f.previewUrl, f.generatedName)}
+                                                disabled={!f.previewUrl}
+                                                className={`underline text-xs text-left ${f.previewUrl ? 'text-blue-600 hover:text-blue-800' : 'text-gray-600 cursor-default'}`}
                                                 title={f.generatedName}
                                             >
                                                 {f.generatedName}
@@ -1698,14 +1783,18 @@ const AttachmentsSection = () => {
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2 justify-center">
                                                 <button
-                                                    onClick={() => openPreview(f.previewUrl, f.generatedName)}
-                                                    className="px-3 py-1.5 text-xs font-medium border border-blue-400 text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                                                    onClick={() => f.previewUrl && openPreview(f.previewUrl, f.generatedName)}
+                                                    disabled={!f.previewUrl}
+                                                    title={!f.previewUrl ? 'Preview server file requires a download endpoint.' : 'Preview file'}
+                                                    className={`px-3 py-1.5 text-xs font-medium border rounded transition-colors ${f.previewUrl ? 'border-blue-400 text-blue-600 hover:bg-blue-50' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
                                                 >
                                                     Preview
                                                 </button>
                                                 <button
-                                                    onClick={() => setDeleteModal({ id: f.id })}
-                                                    className="px-3 py-1.5 text-xs font-medium border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors"
+                                                    onClick={() => !f.isPersisted && setDeleteModal({ id: f.id })}
+                                                    disabled={!!f.isPersisted}
+                                                    title={f.isPersisted ? 'Penghapusan file tersimpan dilakukan melalui Google Drive.' : 'Delete file'}
+                                                    className={`px-3 py-1.5 text-xs font-medium border rounded transition-colors ${f.isPersisted ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-red-300 text-red-600 hover:bg-red-50'}`}
                                                 >
                                                     Delete
                                                 </button>
@@ -6010,7 +6099,7 @@ const SptTahunanBadanForm = React.forwardRef(({ onBusinessClassificationChange, 
             case 'transactions':
                 return <StatementOfTransactionsSection sptData={sptData} updateSectionData={updateSectionData} onTabTrigger={onTabTrigger} />;
             case 'attachments':
-                return <AttachmentsSection uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} />;
+                return <AttachmentsSection uploadedFiles={uploadedFiles} setUploadedFiles={setUploadedFiles} v3HeaderId={v3HeaderId} getAuthHeaders={getAuthHeaders} />;
             case 'statement':
                 return <StatementSection sptData={sptData} companyData={companyData} updateSectionData={updateSectionData} />;
             default:
