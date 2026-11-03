@@ -1453,6 +1453,7 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
     // from the V3 attachment listing endpoint and shared with the whole form.
     const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
     const [attachmentLoadError, setAttachmentLoadError] = useState('');
+    const [uploadingCodes, setUploadingCodes] = useState({});
 
     // Success notice per code — persists while file is uploaded, clears on delete/replace/cancel
     const [successNotice, setSuccessNotice] = useState({});
@@ -1558,48 +1559,94 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
     };
 
     // Upload button clicked
-    const handleUpload = (docDef) => {
+    const handleUpload = async (docDef) => {
         const { code, multi } = docDef;
         const { file, previewUrl } = rowState[code];
-        if (!file) return;
+        if (!file || !v3HeaderId) return;
 
         if (!multi) {
-            // Check if already uploaded
+            // Keep the existing replacement confirmation flow.
             const existing = uploadedFiles.find(f => f.code === code);
             if (existing) {
                 setReplaceModal({ code, file, previewUrl, docDef });
                 return;
             }
         }
-        commitUpload(docDef, file, previewUrl);
+        await commitUpload(docDef, file, previewUrl);
     };
 
-    const commitUpload = (docDef, file, previewUrl) => {
+    const commitUpload = async (docDef, file, previewUrl) => {
         const { code, label } = docDef;
-        const generatedName = generateName(code);
-        const newEntry = {
-            id: `${code}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-            code, label,
-            originalName: file.name,
-            generatedName,
-            file,
-            previewUrl,
-            uploadDate: new Date().toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-        };
-        setUploadedFiles(prev => {
-            // For single-upload docs, remove old entry first
-            if (!docDef.multi) {
-                return [...prev.filter(f => f.code !== code), newEntry];
+        if (!v3HeaderId) {
+            setAttachmentLoadError('ID draft SPT belum tersedia. Tunggu proses pemuatan draft selesai.');
+            return false;
+        }
+
+        setUploadingCodes(prev => ({ ...prev, [code]: true }));
+        setAttachmentLoadError('');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('documentCode', code);
+
+            // Do not set Content-Type manually; the browser must add multipart boundary.
+            const response = await fetch(
+                `${API.HOST}/api/v3/spt/drafts/${v3HeaderId}/attachments`,
+                {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders() },
+                    body: formData,
+                }
+            );
+            const result = await response.json().catch(() => null);
+            if (!response.ok) {
+                const errorCode = result?.error?.code || response.status;
+                const errorMessage = result?.error?.message || 'Upload lampiran gagal.';
+                throw new Error(`[${errorCode}] ${errorMessage}`);
             }
-            return [...prev, newEntry];
-        });
-        // Reset row
-        setRowState(prev => ({ ...prev, [code]: { file: null, previewUrl: null, warning: '' } }));
-        // Reset input
-        const inp = document.getElementById(`sec_i_input_${code}`);
-        if (inp) inp.value = '';
-        // Show success notice (only for non-multi, or always — multi is fine too)
-        showSuccess(code);
+
+            const saved = result?.data;
+            if (!saved?.attachmentId) {
+                throw new Error('Upload mendapat respons sukses, tetapi attachmentId tidak ditemukan.');
+            }
+
+            const newEntry = {
+                id: String(saved.attachmentId),
+                code: saved.documentCode || code,
+                label,
+                originalName: saved.originalFileName || file.name,
+                generatedName: saved.originalFileName || file.name,
+                file,
+                previewUrl,
+                uploadDate: new Date().toLocaleString('en-GB', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                }),
+                isPersisted: true,
+            };
+
+            setUploadedFiles(prev => {
+                // For single-upload documents, keep the current UI behavior.
+                // The backend does not expose DELETE, so this does not delete old Drive records.
+                if (!docDef.multi) {
+                    return [...prev.filter(item => item.code !== code), newEntry];
+                }
+                return [...prev, newEntry];
+            });
+
+            setRowState(prev => ({ ...prev, [code]: { file: null, previewUrl: null, warning: '' } }));
+            const input = document.getElementById(`sec_i_input_${code}`);
+            if (input) input.value = '';
+            showSuccess(code);
+            return true;
+        } catch (error) {
+            console.error('Upload attachment V3 gagal:', error);
+            setAttachmentLoadError(error.message || 'Upload lampiran gagal.');
+            return false;
+        } finally {
+            setUploadingCodes(prev => ({ ...prev, [code]: false }));
+        }
     };
 
     const handleCancel = (code) => {
@@ -1622,10 +1669,14 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
         setDeleteModal(null);
     };
 
-    const handleReplaceConfirm = () => {
+    const handleReplaceConfirm = async () => {
         if (!replaceModal) return;
-        commitUpload(replaceModal.docDef, replaceModal.file, replaceModal.previewUrl);
-        setReplaceModal(null);
+        const uploaded = await commitUpload(
+            replaceModal.docDef,
+            replaceModal.file,
+            replaceModal.previewUrl
+        );
+        if (uploaded) setReplaceModal(null);
     };
 
     const handleReplaceCancel = () => {
@@ -1659,7 +1710,7 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                             // For single-upload docs: disable all buttons when a file is already uploaded
                             const isUploaded = !doc.multi && uploadedFiles.some(f => f.code === doc.code);
                             const chooseDisabled = isUploaded;
-                            const uploadDisabled = !hasFile || isUploaded;
+                            const uploadDisabled = !hasFile || isUploaded || !!uploadingCodes[doc.code];
                             const cancelDisabled = !hasFile;
                             return (
                                 <tr key={doc.code} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
