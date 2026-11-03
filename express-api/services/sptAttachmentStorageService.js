@@ -762,15 +762,28 @@ class SptAttachmentStorageService {
    * TiDB is the ownership source of truth; Drive is never searched by name.
    */
   async getAttachmentForHeader(headerId, attachmentId) {
-    if (!/^\\d+$/.test(String(headerId)) || Number(headerId) <= 0 ||
-        !/^\\d+$/.test(String(attachmentId)) || Number(attachmentId) <= 0) {
-      throw new AttachmentValidationError("headerId atau attachmentId tidak valid.");
+    if (
+      !/^\d+$/.test(String(headerId)) ||
+      Number(headerId) <= 0 ||
+      !/^\d+$/.test(String(attachmentId)) ||
+      Number(attachmentId) <= 0
+    ) {
+      throw new AttachmentValidationError(
+        "headerId atau attachmentId tidak valid."
+      );
     }
 
-    const attachment = await sptAttachmentRepository.findById(Number(attachmentId));
-    if (!attachment || String(attachment.header_id) !== String(headerId)) {
+    const attachment = await sptAttachmentRepository.findById(
+      Number(attachmentId)
+    );
+
+    if (
+      !attachment ||
+      String(attachment.header_id) !== String(headerId)
+    ) {
       return null;
     }
+
     return attachment;
   }
 
