@@ -43,7 +43,7 @@ class SptAttachmentController {
     }
 
     const { headerId } = req.params;
-    if (!/^\\d+$/.test(String(headerId)) || Number(headerId) <= 0) {
+    if (!/^\d+$/.test(String(headerId)) || Number(headerId) <= 0) {
       return res.status(400).json({
         error: { code: "INVALID_HEADER_ID", message: "headerId tidak valid." },
       });

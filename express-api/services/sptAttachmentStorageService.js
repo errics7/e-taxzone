@@ -751,7 +751,7 @@ class SptAttachmentStorageService {
    * TiDB remains the source of truth; this method never searches Google Drive.
    */
   async listAttachmentsByHeaderId(headerId) {
-    if (!/^\\d+$/.test(String(headerId)) || Number(headerId) <= 0) {
+    if (!/^\d+$/.test(String(headerId)) || Number(headerId) <= 0) {
       throw new AttachmentValidationError('headerId tidak valid.');
     }
     return sptAttachmentRepository.findAllByHeaderId(Number(headerId));
