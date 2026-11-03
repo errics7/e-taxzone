@@ -1683,6 +1683,9 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
             console.error('Delete attachment V3 gagal:', error);
             setAttachmentLoadError(error.message || 'Gagal menghapus lampiran.');
         } finally {
+            // Always dismiss the confirmation modal after the request finishes.
+            // Errors remain visible in the attachment error banner.
+            setDeleteModal(null);
             setDeletingIds(prev => ({ ...prev, [target.id]: false }));
         }
     };

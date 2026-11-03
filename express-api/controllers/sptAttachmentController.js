@@ -212,8 +212,8 @@ class SptAttachmentController {
     const { headerId, attachmentId } = req.params;
     const numericHeaderId = Number(headerId);
     const numericAttachmentId = Number(attachmentId);
-    if (!/^\\d+$/.test(String(headerId)) || !Number.isSafeInteger(numericHeaderId) || numericHeaderId <= 0 ||
-        !/^\\d+$/.test(String(attachmentId)) || !Number.isSafeInteger(numericAttachmentId) || numericAttachmentId <= 0) {
+    if (!/^\d+$/.test(String(headerId)) || !Number.isSafeInteger(numericHeaderId) || numericHeaderId <= 0 ||
+        !/^\d+$/.test(String(attachmentId)) || !Number.isSafeInteger(numericAttachmentId) || numericAttachmentId <= 0) {
       return res.status(400).json({ error: { code: "INVALID_ATTACHMENT_ID", message: "ID SPT atau attachment tidak valid." } });
     }
 
@@ -260,8 +260,8 @@ class SptAttachmentController {
     const { headerId, attachmentId } = req.params;
     const numericHeaderId = Number(headerId);
     const numericAttachmentId = Number(attachmentId);
-    if (!/^\\d+$/.test(String(headerId)) || !Number.isSafeInteger(numericHeaderId) || numericHeaderId <= 0 ||
-        !/^\\d+$/.test(String(attachmentId)) || !Number.isSafeInteger(numericAttachmentId) || numericAttachmentId <= 0) {
+    if (!/^\d+$/.test(String(headerId)) || !Number.isSafeInteger(numericHeaderId) || numericHeaderId <= 0 ||
+        !/^\d+$/.test(String(attachmentId)) || !Number.isSafeInteger(numericAttachmentId) || numericAttachmentId <= 0) {
       return res.status(400).json({ error: { code: "INVALID_ATTACHMENT_ID", message: "ID SPT atau attachment tidak valid." } });
     }
 
