@@ -564,10 +564,19 @@ class SptAttachmentStorageService {
       );
     }
 
-    const { filePath, originalFileName, mimeType, fileSize, ownership } = input;
+    const {
+      filePath,
+      originalFileName,
+      storedFileName,
+      mimeType,
+      fileSize,
+      ownership,
+    } = input;
 
     assertNonEmptyString(filePath, "filePath");
     assertNonEmptyString(originalFileName, "originalFileName");
+    const driveFileName = storedFileName || originalFileName;
+    assertNonEmptyString(driveFileName, "storedFileName");
     assertNonEmptyString(mimeType, "mimeType");
     assertPositiveNumber(fileSize, "fileSize");
 
@@ -595,7 +604,7 @@ class SptAttachmentStorageService {
     // filesystem check, duplicated here.
     return googleDriveService.uploadFile({
       filePath,
-      fileName: storedFileName || originalFileName,
+      fileName: driveFileName,
       mimeType,
       parentFolderId: folder.folderId,
     });
@@ -847,6 +856,12 @@ class SptAttachmentStorageService {
       fileSize,
     } = input;
 
+    // Use the controller's canonical document name for physical Drive storage.
+    // Keep originalFileName unchanged for audit metadata. The fallback preserves
+    // compatibility with callers that do not provide a storedFileName.
+    const driveFileName = storedFileName || originalFileName;
+    assertNonEmptyString(driveFileName, "storedFileName");
+
     // 2. Resolve ownership. Any failure here happens before any Drive call.
     const ownership = await this.resolveOwnership(headerId);
 
@@ -867,7 +882,7 @@ class SptAttachmentStorageService {
     // nothing was created on Drive to clean up.
     const driveFile = await googleDriveService.uploadFile({
       filePath,
-      fileName: originalFileName,
+      fileName: driveFileName,
       mimeType,
       parentFolderId: driveFolderId,
     });
