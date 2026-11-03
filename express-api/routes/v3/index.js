@@ -8,25 +8,20 @@ const sptDraftController = require("../../controllers/sptDraftController");
 const sptAttachmentController = require("../../controllers/sptAttachmentController");
 const sptAttachmentUpload = require("../../middleware/sptAttachmentUpload.middleware");
 
-
-
-
 //#region Skenario
 router.get("/skenario/list", v.verifikasi(["dosen", "admin"]), scen.getAllScenarios);
 // router.get("/skenario/listall", v.verifikasi(["admin"]), scen.listSkenarioalldata);
 // router.get("/skenario/listgsworksheet/:id", v.verifikasi(["dosen","admin"]), scen.listWsSkenario);
 // router.post("/skenario/baru", v.verifikasi(["dosen", "admin"]), scen.createScenario);
 // router.post("/skenario/updategsworksheet", v.verifikasi(["dosen","admin"]), scen.updateGSSkenario);
-// router.post("/skenario/updategsthemevirtualtour", v.verifikasi(["dosen","admin"]), vt.setdatadefaultTemplate); 
-// router.post("/skenario/updateinfo", v.verifikasi(["dosen","admin"]), scen.updateinfoscen);
-// router.post("/skenario/deleted", v.verifikasi(["dosen","admin"]), scen.softdeletedscen);
-// router.post("/skenario/gamesimulasilist", v.verifikasi(["dosen","admin"]), gamesimulasi.gamesimulasilist);
+// router.post("/skenario/updategsthemevirtualtour", v.verifikasi(["dosen","admin"]), vt.setdatadefaultTemplate);
+// router.post("/skenario/updateinfo", v.verifikasi(["dosen", "admin"]), scen.updateinfoscen);
+// router.post("/skenario/deleted", v.verifikasi(["dosen", "admin"]), scen.softdeletedscen);
+// router.post("/skenario/gamesimulasilist", v.verifikasi(["dosen", "admin"]), gamesimulasi.gamesimulasilist);
 // router.get("/skenario/subscriber/detail/:scenid", v.verifikasi(["dosen","admin"]), scen.getdetailsubscriber);
 // router.post("/skenario/subscriber/update", v.verifikasi(["dosen","admin"]), scen.updateUsersSubscriber);
 // router.post("/skenario/gsworksheet/updateimage", v.verifikasi(["dosen","admin"]), scen.updatedatagsicon);
-
 //#endregion
-
 
 //#region SPT Tahunan Badan - Draft Preparation
 router.post("/spt/drafts", v.verifall(), sptDraftController.createDraft);
@@ -39,10 +34,19 @@ router.post("/spt/drafts/:headerId/calculate", v.verifall(), sptDraftController.
 router.post("/spt/drafts/:headerId/recalculate", v.verifall(), sptDraftController.recalculate);
 router.delete("/spt/drafts/:headerId", v.verifall(), sptDraftController.deleteDraft);
 
-// SPT Attachment Upload (Google Drive + TiDB metadata)
-router.post("/spt/drafts/:headerId/attachments", v.verifall(), sptAttachmentUpload, sptAttachmentController.upload);
+// SPT Attachment (Google Drive + TiDB metadata)
+router.get(
+  "/spt/drafts/:headerId/attachments",
+  v.verifall(),
+  sptAttachmentController.list
+);
 
+router.post(
+  "/spt/drafts/:headerId/attachments",
+  v.verifall(),
+  sptAttachmentUpload,
+  sptAttachmentController.upload
+);
 //#endregion
-
 
 module.exports = router;
