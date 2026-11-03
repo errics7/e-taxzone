@@ -291,6 +291,17 @@ async function listFilesInFolder(parentFolderId) {
   return files;
 }
 
+// Stream file content from private Google Drive storage.
+// The caller is responsible for authorizing the attachment through TiDB first.
+async function downloadFile(fileId) {
+  assertNonEmptyString(fileId, "fileId");
+  const res = await getDriveClient().files.get(
+    { fileId, alt: "media" },
+    { responseType: "stream" }
+  );
+  return res.data;
+}
+
 // Permanently delete the Drive file with this ID (Drive's files.delete skips
 // the trash). No lookup by name; errors (including 404/403) propagate.
 // Returns { fileId, deleted: true }.
@@ -320,6 +331,7 @@ module.exports = {
   ensureFolderPath,
   uploadFile,
   getFile,
+  downloadFile,
   listFilesInFolder,
   deleteFile,
   isDriveConfigured,

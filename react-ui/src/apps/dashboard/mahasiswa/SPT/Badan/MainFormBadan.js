@@ -1454,6 +1454,8 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
     const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
     const [attachmentLoadError, setAttachmentLoadError] = useState('');
     const [uploadingCodes, setUploadingCodes] = useState({});
+    const [deletingIds, setDeletingIds] = useState({});
+    const [previewLoadingIds, setPreviewLoadingIds] = useState({});
 
     // Success notice per code — persists while file is uploaded, clears on delete/replace/cancel
     const [successNotice, setSuccessNotice] = useState({});
@@ -1498,7 +1500,7 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                         code: item.documentCode,
                         label: doc?.label || item.documentCode,
                         originalName: item.originalFileName || 'Untitled file',
-                        generatedName: item.originalFileName || 'Untitled file',
+                        generatedName: item.storedFileName || item.originalFileName || 'Untitled file',
                         file: null,
                         previewUrl: null,
                         uploadDate: dateValue
@@ -1564,14 +1566,8 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
         const { file, previewUrl } = rowState[code];
         if (!file || !v3HeaderId) return;
 
-        if (!multi) {
-            // Keep the existing replacement confirmation flow.
-            const existing = uploadedFiles.find(f => f.code === code);
-            if (existing) {
-                setReplaceModal({ code, file, previewUrl, docDef });
-                return;
-            }
-        }
+        // Existing attachment blocks upload. User must hard-delete it first.
+        if (uploadedFiles.some(f => f.code === code) && !multi) return;
         await commitUpload(docDef, file, previewUrl);
     };
 
@@ -1616,7 +1612,7 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                 code: saved.documentCode || code,
                 label,
                 originalName: saved.originalFileName || file.name,
-                generatedName: saved.originalFileName || file.name,
+                generatedName: saved.storedFileName || saved.originalFileName || file.name,
                 file,
                 previewUrl,
                 uploadDate: new Date().toLocaleString('en-GB', {
@@ -1657,16 +1653,38 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
         if (inp) inp.value = '';
     };
 
-    const handleDeleteConfirm = () => {
-        if (!deleteModal) return;
-        const target = uploadedFiles.find(f => f.id === deleteModal.id);
-        if (target) {
-            // For non-multi docs: if no remaining entries for that code after delete, clear notice
-            const remaining = uploadedFiles.filter(f => f.id !== deleteModal.id && f.code === target.code);
-            if (remaining.length === 0) clearSuccess(target.code);
+    const handleDeleteConfirm = async () => {
+        if (!deleteModal || !v3HeaderId) return;
+        const target = uploadedFiles.find(f => String(f.id) === String(deleteModal.id));
+        if (!target) {
+            setDeleteModal(null);
+            return;
         }
-        setUploadedFiles(prev => prev.filter(f => f.id !== deleteModal.id));
-        setDeleteModal(null);
+
+        setDeletingIds(prev => ({ ...prev, [target.id]: true }));
+        setAttachmentLoadError('');
+        try {
+            const response = await fetch(
+                `${API.HOST}/api/v3/spt/drafts/${v3HeaderId}/attachments/${target.id}`,
+                { method: 'DELETE', headers: { ...getAuthHeaders() } }
+            );
+            const result = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(result?.error?.message || `Gagal menghapus lampiran (${response.status}).`);
+            }
+
+            setUploadedFiles(prev => prev.filter(f => String(f.id) !== String(target.id)));
+            const remaining = uploadedFiles.filter(
+                f => String(f.id) !== String(target.id) && f.code === target.code
+            );
+            if (remaining.length === 0) clearSuccess(target.code);
+            setDeleteModal(null);
+        } catch (error) {
+            console.error('Delete attachment V3 gagal:', error);
+            setAttachmentLoadError(error.message || 'Gagal menghapus lampiran.');
+        } finally {
+            setDeletingIds(prev => ({ ...prev, [target.id]: false }));
+        }
     };
 
     const handleReplaceConfirm = async () => {
@@ -1686,7 +1704,41 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
         setReplaceModal(null);
     };
 
-    const openPreview = (url, name) => setPreviewModal({ url, name });
+    const openPreview = async (fileOrUrl, name) => {
+        // Local selected files already have an object URL.
+        if (typeof fileOrUrl === 'string') {
+            setPreviewModal({ url: fileOrUrl, name, objectUrl: false });
+            return;
+        }
+
+        const item = fileOrUrl;
+        if (!item || !v3HeaderId) return;
+        setPreviewLoadingIds(prev => ({ ...prev, [item.id]: true }));
+        setAttachmentLoadError('');
+        try {
+            const response = await fetch(
+                `${API.HOST}/api/v3/spt/drafts/${v3HeaderId}/attachments/${item.id}/preview`,
+                { method: 'GET', headers: { ...getAuthHeaders() } }
+            );
+            if (!response.ok) {
+                const result = await response.json().catch(() => null);
+                throw new Error(result?.error?.message || `Preview gagal (${response.status}).`);
+            }
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            setPreviewModal({ url: objectUrl, name: item.generatedName, objectUrl: true });
+        } catch (error) {
+            console.error('Preview attachment V3 gagal:', error);
+            setAttachmentLoadError(error.message || 'File gagal dibuka.');
+        } finally {
+            setPreviewLoadingIds(prev => ({ ...prev, [item.id]: false }));
+        }
+    };
+
+    const closePreview = () => {
+        if (previewModal?.objectUrl) URL.revokeObjectURL(previewModal.url);
+        setPreviewModal(null);
+    };
 
     return (
         <div className="p-6 space-y-6">
@@ -1734,6 +1786,19 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                                             >
                                                 {rs.file.name}
                                             </button>
+                                        ) : uploadedFiles.some(item => item.code === doc.code) ? (
+                                            <div className="space-y-1">
+                                                {uploadedFiles.filter(item => item.code === doc.code).map(item => (
+                                                    <button
+                                                        key={item.id}
+                                                        onClick={() => item.isPersisted ? openPreview(item) : (item.previewUrl && openPreview(item.previewUrl, item.generatedName))}
+                                                        className="block text-blue-600 hover:text-blue-800 text-xs underline truncate max-w-[200px] text-left"
+                                                        title={item.generatedName}
+                                                    >
+                                                        {item.generatedName}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         ) : (
                                             <span className="text-gray-400 text-xs">—</span>
                                         )}
@@ -1822,9 +1887,9 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                                         <td className="px-4 py-3 text-gray-700">{f.label}</td>
                                         <td className="px-4 py-3">
                                             <button
-                                                onClick={() => f.previewUrl && openPreview(f.previewUrl, f.generatedName)}
-                                                disabled={!f.previewUrl}
-                                                className={`underline text-xs text-left ${f.previewUrl ? 'text-blue-600 hover:text-blue-800' : 'text-gray-600 cursor-default'}`}
+                                                onClick={() => f.isPersisted ? openPreview(f) : (f.previewUrl && openPreview(f.previewUrl, f.generatedName))}
+                                                disabled={!!previewLoadingIds[f.id]}
+                                                className="underline text-xs text-left text-blue-600 hover:text-blue-800 disabled:text-gray-400"
                                                 title={f.generatedName}
                                             >
                                                 {f.generatedName}
@@ -1834,20 +1899,19 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2 justify-center">
                                                 <button
-                                                    onClick={() => f.previewUrl && openPreview(f.previewUrl, f.generatedName)}
-                                                    disabled={!f.previewUrl}
-                                                    title={!f.previewUrl ? 'Preview server file requires a download endpoint.' : 'Preview file'}
-                                                    className={`px-3 py-1.5 text-xs font-medium border rounded transition-colors ${f.previewUrl ? 'border-blue-400 text-blue-600 hover:bg-blue-50' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+                                                    onClick={() => f.isPersisted ? openPreview(f) : (f.previewUrl && openPreview(f.previewUrl, f.generatedName))}
+                                                    disabled={!!previewLoadingIds[f.id]}
+                                                    className="px-3 py-1.5 text-xs font-medium border border-blue-400 text-blue-600 rounded hover:bg-blue-50 transition-colors disabled:opacity-50"
                                                 >
-                                                    Preview
+                                                    {previewLoadingIds[f.id] ? 'Loading...' : 'Preview'}
                                                 </button>
                                                 <button
-                                                    onClick={() => !f.isPersisted && setDeleteModal({ id: f.id })}
-                                                    disabled={!!f.isPersisted}
-                                                    title={f.isPersisted ? 'Penghapusan file tersimpan dilakukan melalui Google Drive.' : 'Delete file'}
-                                                    className={`px-3 py-1.5 text-xs font-medium border rounded transition-colors ${f.isPersisted ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-red-300 text-red-600 hover:bg-red-50'}`}
+                                                    onClick={() => setDeleteModal({ id: f.id })}
+                                                    disabled={!!deletingIds[f.id]}
+                                                    title="Hapus file dari Google Drive dan database"
+                                                    className="px-3 py-1.5 text-xs font-medium border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
                                                 >
-                                                    Delete
+                                                    {deletingIds[f.id] ? 'Deleting...' : 'Delete'}
                                                 </button>
                                             </div>
                                         </td>
@@ -1865,7 +1929,7 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                     <div className="bg-white rounded-xl shadow-2xl flex flex-col" style={{ width: '80vw', maxWidth: 960, height: '85vh' }}>
                         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
                             <span className="text-sm font-semibold text-gray-700 truncate max-w-lg" title={previewModal.name}>{previewModal.name}</span>
-                            <button onClick={() => setPreviewModal(null)} className="text-gray-400 hover:text-gray-700 text-xl font-bold leading-none">×</button>
+                            <button onClick={closePreview} className="text-gray-400 hover:text-gray-700 text-xl font-bold leading-none">×</button>
                         </div>
                         <div className="flex-1 p-2">
                             <iframe
@@ -1885,13 +1949,13 @@ const AttachmentsSection = ({ uploadedFiles, setUploadedFiles, v3HeaderId, getAu
                         <h4 className="text-base font-semibold text-gray-800 mb-3">Delete File</h4>
                         <p className="text-sm text-gray-600 mb-6">Are you sure you want to delete this file?</p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setDeleteModal(null)}
+                            <button onClick={() => setDeleteModal(null)} disabled={!!deletingIds[deleteModal.id]}
                                 className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                                 Cancel
                             </button>
-                            <button onClick={handleDeleteConfirm}
-                                className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                                Delete
+                            <button onClick={handleDeleteConfirm} disabled={!!deletingIds[deleteModal.id]}
+                                className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+                                {deletingIds[deleteModal.id] ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>
                     </div>

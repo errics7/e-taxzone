@@ -41,6 +41,18 @@ router.get(
   sptAttachmentController.list
 );
 
+router.get(
+  "/spt/drafts/:headerId/attachments/:attachmentId/preview",
+  v.verifall(),
+  sptAttachmentController.preview
+);
+
+router.delete(
+  "/spt/drafts/:headerId/attachments/:attachmentId",
+  v.verifall(),
+  sptAttachmentController.remove
+);
+
 router.post(
   "/spt/drafts/:headerId/attachments",
   v.verifall(),

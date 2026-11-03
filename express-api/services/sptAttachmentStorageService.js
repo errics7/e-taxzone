@@ -595,7 +595,7 @@ class SptAttachmentStorageService {
     // filesystem check, duplicated here.
     return googleDriveService.uploadFile({
       filePath,
-      fileName: originalFileName,
+      fileName: storedFileName || originalFileName,
       mimeType,
       parentFolderId: folder.folderId,
     });
@@ -757,6 +757,69 @@ class SptAttachmentStorageService {
     return sptAttachmentRepository.findAllByHeaderId(Number(headerId));
   }
 
+  /**
+   * Return one attachment only when it belongs to the requested SPT header.
+   * TiDB is the ownership source of truth; Drive is never searched by name.
+   */
+  async getAttachmentForHeader(headerId, attachmentId) {
+    if (!/^\\d+$/.test(String(headerId)) || Number(headerId) <= 0 ||
+        !/^\\d+$/.test(String(attachmentId)) || Number(attachmentId) <= 0) {
+      throw new AttachmentValidationError("headerId atau attachmentId tidak valid.");
+    }
+
+    const attachment = await sptAttachmentRepository.findById(Number(attachmentId));
+    if (!attachment || String(attachment.header_id) !== String(headerId)) {
+      return null;
+    }
+    return attachment;
+  }
+
+  /**
+   * Hard-delete one attachment. Delete the physical Drive object first;
+   * only after Drive confirms deletion is the TiDB metadata row removed.
+   * If DB deletion fails, surface a consistency error for operator repair.
+   */
+  async hardDeleteAttachment(headerId, attachmentId) {
+    const attachment = await this.getAttachmentForHeader(headerId, attachmentId);
+    if (!attachment) return null;
+
+    if (!attachment.drive_file_id) {
+      throw new AttachmentValidationError("Referensi file Google Drive tidak tersedia.");
+    }
+
+    await googleDriveService.deleteFile(attachment.drive_file_id);
+
+    try {
+      const deletedCount = await sptAttachmentRepository.hardDeleteById(attachment.id);
+      if (deletedCount !== 1) {
+        const error = new Error("File Drive sudah dihapus, tetapi metadata TiDB tidak berhasil dihapus.");
+        error.code = "ATTACHMENT_DELETE_DB_INCONSISTENT";
+        throw error;
+      }
+    } catch (error) {
+      if (error.code === "ATTACHMENT_DELETE_DB_INCONSISTENT") throw error;
+      const wrapped = new Error("File Drive sudah dihapus, tetapi metadata TiDB gagal dihapus. Perlu rekonsiliasi.");
+      wrapped.code = "ATTACHMENT_DELETE_DB_INCONSISTENT";
+      wrapped.cause = error;
+      throw wrapped;
+    }
+
+    return { attachmentId: attachment.id, deleted: true };
+  }
+
+  /**
+   * Obtain a private Drive read stream after resolving the TiDB attachment row.
+   */
+  async getAttachmentDownload(headerId, attachmentId) {
+    const attachment = await this.getAttachmentForHeader(headerId, attachmentId);
+    if (!attachment) return null;
+    if (!attachment.drive_file_id) {
+      throw new AttachmentValidationError("Referensi file Google Drive tidak tersedia.");
+    }
+    const stream = await googleDriveService.downloadFile(attachment.drive_file_id);
+    return { attachment, stream };
+  }
+
   async uploadAndPersistAttachment(input) {
     // 1. Validate input — reuses the G2.6-A validation boundary unchanged.
     this._validateUploadInput(input);
@@ -766,6 +829,7 @@ class SptAttachmentStorageService {
       documentCode,
       filePath,
       originalFileName,
+      storedFileName,
       mimeType,
       fileSize,
     } = input;
